@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { tryLocalSolve, preprocessProblem } from "./local-solver";
 import { isPromptInjection, INJECTION_MESSAGE } from "@/lib/injection-guard";
+import ZAI from "z-ai-web-dev-sdk";
 
 // Hybrid solver: tries local fast solver first, falls back to LLM
 
@@ -181,7 +182,6 @@ Problem: ${problem}
 Solve this problem step-by-step. Return ONLY the JSON response as specified.`;
 
   try {
-    const ZAI = (await import("z-ai-web-dev-sdk")).default;
     const zai = await ZAI.create();
     const result = await zai.chat.completions.create({
       messages: [
@@ -309,7 +309,6 @@ Problem: ${problem}
 Rephrased problem:`;
 
   try {
-    const ZAI = (await import("z-ai-web-dev-sdk")).default;
     const zai = await ZAI.create();
     const result = await zai.chat.completions.create({
       messages: [
@@ -399,7 +398,6 @@ RULES:
 - Test your JSON mentally before outputting — it must parse with JSON.parse().`;
 
   try {
-    const ZAI = (await import("z-ai-web-dev-sdk")).default;
     const zai = await ZAI.create();
     const result = await zai.chat.completions.create({
       messages: [

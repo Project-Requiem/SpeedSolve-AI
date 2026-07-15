@@ -10,21 +10,137 @@ interface LocalSolution {
   mistakes: string[];
 }
 
+// Comprehensive Unicode → ASCII normalizer for math/science input
 export function preprocessProblem(text: string): string {
-  return text
-    .replace(/\u00d7/g, "*")
-    .replace(/\u00f7/g, "/")
-    .replace(/\u2212/g, "-")
-    .replace(/\u221a/g, "sqrt")
-    .replace(/\u03c0/g, "pi")
-    .replace(/\u03b8/g, "theta")
-    .replace(/\u00b2/g, "^2")
-    .replace(/\u00b3/g, "^3")
-    .replace(/\u00b0/g, " degrees ")
-    .replace(/\u2192/g, "->")
-    .replace(/\u2264/g, "<=")
-    .replace(/\u2265/g, ">=")
-    .trim();
+  let s = text;
+
+  // ── Superscript digits (common in user input) ──
+  const superscripts: Record<string, string> = {
+    '\u2070': '0', '\u00b9': '1', '\u00b2': '2', '\u00b3': '3', '\u2074': '4',
+    '\u2075': '5', '\u2076': '6', '\u2077': '7', '\u2078': '8', '\u2079': '9',
+  };
+  // Convert standalone superscripts to ^n (e.g., x² → x^2)
+  s = s.replace(/([a-zA-Z0-9)])([\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079\u2070\u00b9])/g,
+    (_, base, sup) => `${base}^${superscripts[sup] || sup}`);
+  // Handle multi-digit superscripts
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const [uni, ascii] of Object.entries(superscripts)) {
+      if (s.includes(uni)) {
+        s = s.replace(uni, ascii);
+        changed = true;
+      }
+    }
+  }
+
+  // ── Subscript digits ──
+  const subscripts: Record<string, string> = {
+    '\u2080': '0', '\u2081': '1', '\u2082': '2', '\u2083': '3', '\u2084': '4',
+    '\u2085': '5', '\u2086': '6', '\u2087': '7', '\u2088': '8', '\u2089': '9',
+  };
+  for (const [uni, ascii] of Object.entries(subscripts)) {
+    s = s.replace(new RegExp(uni, 'g'), `_${ascii}`);
+  }
+
+  // ── Greek lowercase letters ──
+  const greekLower: Record<string, string> = {
+    '\u03b1': 'alpha',   '\u03b2': 'beta',    '\u03b3': 'gamma',
+    '\u03b4': 'delta',   '\u03b5': 'epsilon', '\u03b6': 'zeta',
+    '\u03b7': 'eta',     '\u03b8': 'theta',   '\u03b9': 'iota',
+    '\u03ba': 'kappa',   '\u03bb': 'lambda',  '\u03bc': 'mu',
+    '\u03bd': 'nu',      '\u03be': 'xi',      '\u03bf': 'omicron',
+    '\u03c0': 'pi',      '\u03c1': 'rho',     '\u03c2': 'sigma',
+    '\u03c3': 'sigma',   '\u03c4': 'tau',     '\u03c5': 'upsilon',
+    '\u03c6': 'phi',     '\u03c7': 'chi',     '\u03c8': 'psi',
+    '\u03c9': 'omega',
+  };
+
+  // ── Greek uppercase letters ──
+  const greekUpper: Record<string, string> = {
+    '\u0391': 'Alpha', '\u0392': 'Beta',   '\u0393': 'Gamma',
+    '\u0394': 'Delta', '\u0395': 'Epsilon','\u0396': 'Zeta',
+    '\u0397': 'Eta',   '\u0398': 'Theta',  '\u0399': 'Iota',
+    '\u039a': 'Kappa', '\u039b': 'Lambda', '\u039c': 'Mu',
+    '\u039d': 'Nu',    '\u039e': 'Xi',     '\u039f': 'Omicron',
+    '\u03a0': 'Pi',    '\u03a1': 'Rho',    '\u03a3': 'Sigma',
+    '\u03a4': 'Tau',   '\u03a5': 'Upsilon','\u03a6': 'Phi',
+    '\u03a7': 'Chi',   '\u03a8': 'Psi',    '\u03a9': 'Omega',
+  };
+
+  for (const [uni, ascii] of Object.entries(greekLower)) {
+    s = s.replace(new RegExp(uni, 'g'), ascii);
+  }
+  for (const [uni, ascii] of Object.entries(greekUpper)) {
+    s = s.replace(new RegExp(uni, 'g'), ascii);
+  }
+
+  // ── Math operators & symbols ──
+  s = s.replace(/\u00d7/g, '*');           // × multiplication
+  s = s.replace(/\u00f7/g, '/');           // ÷ division
+  s = s.replace(/\u2212/g, '-');           // − minus
+  s = s.replace(/\u2212/g, '-');           // minus sign
+  s = s.replace(/\u221a/g, 'sqrt');        // √ square root
+  s = s.replace(/\u221b/g, 'cbrt');        // ∛ cube root
+  s = s.replace(/\u221c/g, 'fourthrt');    // ∜ fourth root
+  s = s.replace(/\u00b1/g, '+/-');         // ± plus-minus
+  s = s.replace(/\u2213/g, '-/+');         // ∓ minus-plus
+
+  // ── Comparison & relation symbols ──
+  s = s.replace(/\u2260/g, '!=');          // ≠ not equal
+  s = s.replace(/\u2248/g, 'approximately'); // ≈ approximately
+  s = s.replace(/\u2245/g, 'approximately'); // ≅ congruent
+  s = s.replace(/\u2264/g, '<=');          // ≤ less than or equal
+  s = s.replace(/\u2265/g, '>=');          // ≥ greater than or equal
+  s = s.replace(/\u2190/g, '<-');          // ← left arrow
+  s = s.replace(/\u2192/g, '->');          // → right arrow
+  s = s.replace(/\u2194/g, '<->');         // ↔ left-right arrow
+
+  // ── Calculus & summation ──
+  s = s.replace(/\u222b/g, 'integral');    // ∫ integral
+  s = s.replace(/\u2211/g, 'sum');         // ∑ summation
+  s = s.replace(/\u220f/g, 'product');     // ∏ product
+  s = s.replace(/\u2202/g, 'partial');     // ∂ partial derivative
+  s = s.replace(/\u221e/g, 'infinity');    // ∞ infinity
+  s = s.replace(/\u2208/g, 'in');          // ∈ element of
+  s = s.replace(/\u2209/g, 'not in');      // ∉ not element of
+  s = s.replace(/\u2282/g, 'subset');      // ⊂ subset
+  s = s.replace(/\u2283/g, 'superset');    // ⊃ superset
+  s = s.replace(/\u2227/g, 'and');         // ∧ logical and
+  s = s.replace(/\u2228/g, 'or');          // ∨ logical or
+  s = s.replace(/\u2200/g, 'for all');     // ∀ for all
+  s = s.replace(/\u2203/g, 'there exists'); // ∃ there exists
+
+  // ── Angle / degree ──
+  s = s.replace(/\u00b0/g, ' degrees ');   // ° degree
+  s = s.replace(/\u2220/g, 'angle ');      // ∠ angle
+
+  // ── Chemistry / physics symbols ──
+  s = s.replace(/\u0394/g, 'delta');       // Δ (already in Greek upper, but ensure)
+  s = s.replace(/\u2102/g, 'Complex');     // ℂ complex numbers
+  s = s.replace(/\u211d/g, 'Real');        // ℝ real numbers
+  s = s.replace(/\u212f/g, 'e');           // ℯ Euler's number
+  s = s.replace(/\u2134/g, 'i');           // ℴ imaginary unit
+
+  // ── Misc commonly pasted symbols ──
+  s = s.replace(/\u2026/g, '...');         // … ellipsis
+  s = s.replace(/\u2013/g, '-');           // – en dash
+  s = s.replace(/\u2014/g, '--');          // — em dash
+  s = s.replace(/\u2018/g, "'");           // ' left single quote
+  s = s.replace(/\u2019/g, "'");           // ' right single quote
+  s = s.replace(/\u201c/g, '"');           // " left double quote
+  s = s.replace(/\u201d/g, '"');           // " right double quote
+  s = s.replace(/\u00a0/g, ' ');           // non-breaking space
+
+  // ── Handle ^ notation: convert "x^2" patterns that users type with actual superscripts ──
+  // Already handled above, but also normalize cases like "x2" → "x^2" when followed by space/operator
+  // This is context-dependent so we don't force it
+
+  // ── Handle ×10^n scientific notation ──
+  s = s.replace(/×\s*10\s*\^/gi, 'e');
+  s = s.replace(/\*\s*10\s*\^/gi, 'e');
+
+  return s.trim();
 }
 
 function solveLinearEq(match: RegExpMatchArray): LocalSolution | null {
