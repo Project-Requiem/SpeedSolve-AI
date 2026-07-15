@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { tryLocalSolve, preprocessProblem } from "./local-solver";
 import { isPromptInjection, INJECTION_MESSAGE } from "@/lib/injection-guard";
-import ZAI from "z-ai-web-dev-sdk";
+// SDK loaded via require() to avoid ESM/CJS interop issues in Next.js standalone
+let _ZAI: any = null;
+async function getZAI() {
+  if (!_ZAI) {
+    try {
+      const mod = await import("z-ai-web-dev-sdk");
+      _ZAI = (mod as any).default || mod;
+    } catch (err) {
+      console.error("[SpeedSolve AI] Failed to load z-ai-web-dev-sdk:", err);
+      return null;
+    }
+  }
+  return _ZAI;
+}
 
 // Hybrid solver: tries local fast solver first, falls back to LLM
 
@@ -182,7 +195,9 @@ Problem: ${problem}
 Solve this problem step-by-step. Return ONLY the JSON response as specified.`;
 
   try {
-    const zai = await ZAI.create();
+    const SDK = await getZAI();
+    if (!SDK) return "";
+    const zai = await SDK.create();
     const result = await zai.chat.completions.create({
       messages: [
         { role: "system", content: SOLVER_SYSTEM_PROMPT },
@@ -309,7 +324,9 @@ Problem: ${problem}
 Rephrased problem:`;
 
   try {
-    const zai = await ZAI.create();
+    const SDK = await getZAI();
+    if (!SDK) return null;
+    const zai = await SDK.create();
     const result = await zai.chat.completions.create({
       messages: [
         { role: "system", content: "You rephrase math/science problems into standard formats. Output ONLY the rephrased text, nothing else." },
@@ -398,7 +415,9 @@ RULES:
 - Test your JSON mentally before outputting — it must parse with JSON.parse().`;
 
   try {
-    const zai = await ZAI.create();
+    const SDK = await getZAI();
+    if (!SDK) return "";
+    const zai = await SDK.create();
     const result = await zai.chat.completions.create({
       messages: [
         { role: "system", content: SOLVER_SYSTEM_PROMPT },
@@ -560,8 +579,8 @@ export async function POST(request: NextRequest) {
 
     if (!raw) {
       return NextResponse.json(
-        { error: "Failed to get solution. Please try again." },
-        { status: 500 }
+        { error: "AI solver is unavailable. This feature requires the z.ai environment. Try a local-solvable problem instead, or use the site on z.ai's preview." },
+        { status: 503 }
       );
     }
 

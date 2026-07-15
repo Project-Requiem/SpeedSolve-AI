@@ -43,11 +43,11 @@ db/*.db-journal
 *.swp
 *.swo
 
-# upload/temp
-upload/
-data/
-download/
-tool-results/
+# upload/temp (top-level only)
+/upload/
+/data/
+/download/
+/tool-results/
 worklog.md
 dev.log
 server.log
