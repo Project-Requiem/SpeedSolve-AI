@@ -1,19 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { tryLocalSolve, preprocessProblem } from "./local-solver";
 import { isPromptInjection, INJECTION_MESSAGE } from "@/lib/injection-guard";
-// SDK loaded via require() to avoid ESM/CJS interop issues in Next.js standalone
-let _ZAI: any = null;
-async function getZAI() {
-  if (!_ZAI) {
+import ZAI from "z-ai-web-dev-sdk";
+
+// Singleton ZAI instance — create once, reuse for speed
+let _zaiInstance: any = null;
+async function getZAIInstance() {
+  if (!_zaiInstance) {
     try {
-      const mod = await import("z-ai-web-dev-sdk");
-      _ZAI = (mod as any).default || mod;
+      _zaiInstance = await ZAI.create();
+      console.log("[SpeedSolve AI] ZAI SDK instance created successfully");
     } catch (err) {
-      console.error("[SpeedSolve AI] Failed to load z-ai-web-dev-sdk:", err);
+      console.error("[SpeedSolve AI] Failed to create ZAI instance:", err);
       return null;
     }
   }
-  return _ZAI;
+  return _zaiInstance;
 }
 
 // Hybrid solver: tries local fast solver first, falls back to LLM
@@ -195,15 +197,14 @@ Problem: ${problem}
 Solve this problem step-by-step. Return ONLY the JSON response as specified.`;
 
   try {
-    const SDK = await getZAI();
-    if (!SDK) return "";
-    const zai = await SDK.create();
+    const zai = await getZAIInstance();
+    if (!zai) return "";
     const result = await zai.chat.completions.create({
       messages: [
-        { role: "system", content: SOLVER_SYSTEM_PROMPT },
+        { role: "assistant", content: SOLVER_SYSTEM_PROMPT },
         { role: "user", content: userPrompt },
       ],
-      stream: false,
+      thinking: { type: "disabled" },
     });
 
     const content =
@@ -324,15 +325,14 @@ Problem: ${problem}
 Rephrased problem:`;
 
   try {
-    const SDK = await getZAI();
-    if (!SDK) return null;
-    const zai = await SDK.create();
+    const zai = await getZAIInstance();
+    if (!zai) return null;
     const result = await zai.chat.completions.create({
       messages: [
-        { role: "system", content: "You rephrase math/science problems into standard formats. Output ONLY the rephrased text, nothing else." },
+        { role: "assistant", content: "You rephrase math/science problems into standard formats. Output ONLY the rephrased text, nothing else." },
         { role: "user", content: REPHRASE_PROMPT },
       ],
-      stream: false,
+      thinking: { type: "disabled" },
     });
 
     const content = result.choices?.[0]?.message?.content?.trim() || "";
@@ -415,15 +415,14 @@ RULES:
 - Test your JSON mentally before outputting — it must parse with JSON.parse().`;
 
   try {
-    const SDK = await getZAI();
-    if (!SDK) return "";
-    const zai = await SDK.create();
+    const zai = await getZAIInstance();
+    if (!zai) return "";
     const result = await zai.chat.completions.create({
       messages: [
-        { role: "system", content: SOLVER_SYSTEM_PROMPT },
+        { role: "assistant", content: SOLVER_SYSTEM_PROMPT },
         { role: "user", content: strictPrompt },
       ],
-      stream: false,
+      thinking: { type: "disabled" },
     });
     return result.choices?.[0]?.message?.content || "";
   } catch (err) {

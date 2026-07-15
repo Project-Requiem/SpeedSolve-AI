@@ -608,17 +608,10 @@ export default function Home() {
     }
     setFbError('')
     try {
-      // Fetch user's real IPv4 from a public service
-      let clientIp = ''
-      try {
-        const ipRes = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(3000) })
-        if (ipRes.ok) { const d = await ipRes.json(); clientIp = d.ip || '' }
-      } catch { /* fallback to server-side detection */ }
-
-      const res = await fetch('/api/v1/srv/x8kq2m9p', {
+      const res = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: fbName.trim(), message: fbMsg.trim(), subject, board, grade: fbGrade, clientIp }),
+        body: JSON.stringify({ name: fbName.trim(), feedback: fbMsg.trim(), subject, board, problem: problem.trim() }),
       })
       if (res.ok) {
         setFbSubmitted(true)

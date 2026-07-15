@@ -1,32 +1,53 @@
-import { NextResponse } from 'next/server'
-import { promises as fs } from 'fs'
-import path from 'path'
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
 
-const DATA_FILE = path.join(process.cwd(), 'data', 'user_responses.json')
+function toCSV(entries: any[]): string {
+  if (entries.length === 0) return "";
+  const headers = ["ID", "Name", "Feedback", "IP Address", "Subject", "Board", "Problem", "Date/Time", "User Agent"];
+  const rows = entries.map((e) => [
+    e.id,
+    e.name,
+    `"${(e.feedback || "").replace(/"/g, '""')}"`,
+    e.ipAddress,
+    e.subject,
+    e.board,
+    `"${(e.problem || "").replace(/"/g, '""')}"`,
+    e.createdAt ? new Date(e.createdAt).toISOString() : "",
+    `"${(e.userAgent || "").replace(/"/g, '""')}"`,
+  ]);
+  return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+}
 
-// GET /api/feedback/download — returns all feedback as a downloadable JSON file
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    let data: unknown[] = []
-    try {
-      const raw = await fs.readFile(DATA_FILE, 'utf-8')
-      data = JSON.parse(raw)
-    } catch {
-      // File doesn't exist yet — return empty array
+    const { searchParams } = new URL(request.url);
+    const format = (searchParams.get("format") || "json").toLowerCase();
+
+    const entries = await db.feedback.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (format === "csv") {
+      const csv = toCSV(entries);
+      return new NextResponse(csv, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": 'attachment; filename="speedsolve-feedbacks.csv"',
+        },
+      });
     }
 
-    // Return as downloadable JSON
-    return new NextResponse(JSON.stringify(data, null, 2), {
+    // Default: JSON download
+    return new NextResponse(JSON.stringify(entries, null, 2), {
       status: 200,
       headers: {
-        'Content-Type': 'application/json',
-        'Content-Disposition': 'attachment; filename="speedsolve-feedbacks.json"',
+        "Content-Type": "application/json",
+        "Content-Disposition": 'attachment; filename="speedsolve-feedbacks.json"',
       },
-    })
-  } catch {
-    return NextResponse.json(
-      { error: 'Failed to read feedback data.' },
-      { status: 500 }
-    )
+    });
+  } catch (err) {
+    console.error("Feedback download error:", err);
+    return NextResponse.json({ error: "Failed to export feedback" }, { status: 500 });
   }
 }

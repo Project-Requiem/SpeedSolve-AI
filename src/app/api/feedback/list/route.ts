@@ -1,29 +1,43 @@
-import { NextResponse } from 'next/server'
-import { promises as fs } from 'fs'
-import path from 'path'
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
 
-const DATA_FILE = path.join(process.cwd(), 'data', 'user_responses.json')
-
-// GET /api/feedback/list — returns feedback count and recent entries
-export async function GET() {
+// GET /api/feedback/list — returns feedback count and recent entries (paginated)
+export async function GET(request: Request) {
   try {
-    let data: unknown[] = []
-    try {
-      const raw = await fs.readFile(DATA_FILE, 'utf-8')
-      data = JSON.parse(raw)
-    } catch {
-      // No data yet
-    }
+    const { searchParams } = new URL(request.url);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50")));
+    const search = (searchParams.get("search") || "").trim();
+
+    const where = search
+      ? {
+          OR: [
+            { name: { contains: search } },
+            { feedback: { contains: search } },
+            { ipAddress: { contains: search } },
+          ],
+        }
+      : {};
+
+    const [entries, total] = await Promise.all([
+      db.feedback.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      db.feedback.count({ where }),
+    ]);
 
     return NextResponse.json({
-      total: data.length,
-      recent: data.slice(-20).reverse(),
-      downloadUrl: '/api/feedback/download',
-    })
-  } catch {
-    return NextResponse.json(
-      { error: 'Failed to read feedback data.' },
-      { status: 500 }
-    )
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      entries,
+    });
+  } catch (err) {
+    console.error("Feedback list error:", err);
+    return NextResponse.json({ error: "Failed to read feedback" }, { status: 500 });
   }
 }
