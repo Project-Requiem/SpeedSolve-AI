@@ -1,21 +1,83 @@
 import { NextRequest, NextResponse } from "next/server";
 import { tryLocalSolve, preprocessProblem } from "./local-solver";
 import { isPromptInjection, INJECTION_MESSAGE } from "@/lib/injection-guard";
-import ZAI from "z-ai-web-dev-sdk";
 
-// Singleton ZAI instance — create once, reuse for speed
+// ── AI Provider: Google Gemini (free, works on Vercel) ──
+const GEMINI_KEY = process.env.GEMINI_API_KEY || "";
+const GEMINI_MODEL = "gemini-2.0-flash";
+
+async function solveWithGemini(systemPrompt: string, userPrompt: string): Promise<string> {
+  if (!GEMINI_KEY) return "";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_KEY}`;
+  const body = {
+    system_instruction: { parts: [{ text: systemPrompt }] },
+    contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+    generationConfig: {
+      temperature: 0.1,
+      maxOutputTokens: 4096,
+      responseMimeType: "application/json",
+    },
+  };
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    console.error("[Gemini] API error", res.status, errText.slice(0, 200));
+    return "";
+  }
+  const data = await res.json();
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  return content;
+}
+
+// ── AI Provider: z-ai SDK (works inside z.ai sandbox only) ──
 let _zaiInstance: any = null;
 async function getZAIInstance() {
   if (!_zaiInstance) {
     try {
+      const mod = await import("z-ai-web-dev-sdk");
+      const ZAI = (mod as any).default || mod;
       _zaiInstance = await ZAI.create();
-      console.log("[SpeedSolve AI] ZAI SDK instance created successfully");
-    } catch (err) {
-      console.error("[SpeedSolve AI] Failed to create ZAI instance:", err);
+      console.log("[SpeedSolve AI] z-ai SDK instance created");
+    } catch {
       return null;
     }
   }
   return _zaiInstance;
+}
+
+async function solveWithZAI(systemPrompt: string, userPrompt: string): Promise<string> {
+  try {
+    const zai = await getZAIInstance();
+    if (!zai) return "";
+    const result = await zai.chat.completions.create({
+      messages: [
+        { role: "assistant", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      thinking: { type: "disabled" },
+    });
+    return result.choices?.[0]?.message?.content || "";
+  } catch {
+    return "";
+  }
+}
+
+// ── Unified AI call: tries Gemini first, then z-ai SDK ──
+async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
+  // Priority 1: Gemini (works everywhere, free)
+  if (GEMINI_KEY) {
+    const result = await solveWithGemini(systemPrompt, userPrompt);
+    if (result) return result;
+    console.warn("[SpeedSolve AI] Gemini failed, trying fallback...");
+  }
+  // Priority 2: z-ai SDK (works in z.ai sandbox)
+  const fallback = await solveWithZAI(systemPrompt, userPrompt);
+  if (fallback) return fallback;
+  return "";
 }
 
 // Hybrid solver: tries local fast solver first, falls back to LLM
@@ -196,24 +258,7 @@ Problem: ${problem}
 
 Solve this problem step-by-step. Return ONLY the JSON response as specified.`;
 
-  try {
-    const zai = await getZAIInstance();
-    if (!zai) return "";
-    const result = await zai.chat.completions.create({
-      messages: [
-        { role: "assistant", content: SOLVER_SYSTEM_PROMPT },
-        { role: "user", content: userPrompt },
-      ],
-      thinking: { type: "disabled" },
-    });
-
-    const content =
-      result.choices?.[0]?.message?.content || "";
-    return content;
-  } catch (err) {
-    console.error("LLM solve error:", err);
-    return "";
-  }
+  return callAI(SOLVER_SYSTEM_PROMPT, userPrompt);
 }
 
 function extractJSON(text: string): object | null {
@@ -324,25 +369,13 @@ Problem: ${problem}
 
 Rephrased problem:`;
 
-  try {
-    const zai = await getZAIInstance();
-    if (!zai) return null;
-    const result = await zai.chat.completions.create({
-      messages: [
-        { role: "assistant", content: "You rephrase math/science problems into standard formats. Output ONLY the rephrased text, nothing else." },
-        { role: "user", content: REPHRASE_PROMPT },
-      ],
-      thinking: { type: "disabled" },
-    });
-
-    const content = result.choices?.[0]?.message?.content?.trim() || "";
-    if (!content || content.includes("__NOT_NUMERICAL__")) return null;
-    console.log(`[SpeedSolve AI] AI rephrased: "${problem.slice(0, 50)}..." → "${content.slice(0, 80)}..."`);
-    return content;
-  } catch (err) {
-    console.error("AI rephrase error:", err);
-    return null;
-  }
+  const content = (await callAI(
+    "You rephrase math/science problems into standard formats. Output ONLY the rephrased text, nothing else.",
+    REPHRASE_PROMPT
+  )).trim();
+  if (!content || content.includes("__NOT_NUMERICAL__")) return null;
+  console.log(`[SpeedSolve AI] AI rephrased: "${problem.slice(0, 50)}..." → "${content.slice(0, 80)}..."`);
+  return content;
 }
 
 function generateSimilarQuestions(problem: string, subject: string): string[] {
@@ -414,21 +447,7 @@ RULES:
 - Do NOT use \\text{} or \\mathrm{} in any formula.
 - Test your JSON mentally before outputting — it must parse with JSON.parse().`;
 
-  try {
-    const zai = await getZAIInstance();
-    if (!zai) return "";
-    const result = await zai.chat.completions.create({
-      messages: [
-        { role: "assistant", content: SOLVER_SYSTEM_PROMPT },
-        { role: "user", content: strictPrompt },
-      ],
-      thinking: { type: "disabled" },
-    });
-    return result.choices?.[0]?.message?.content || "";
-  } catch (err) {
-    console.error("Strict LLM retry error:", err);
-    return "";
-  }
+  return callAI(SOLVER_SYSTEM_PROMPT, strictPrompt);
 }
 
 // ── Fallback: extract whatever we can from raw LLM text ──
@@ -578,7 +597,7 @@ export async function POST(request: NextRequest) {
 
     if (!raw) {
       return NextResponse.json(
-        { error: "AI solver is unavailable. This feature requires the z.ai environment. Try a local-solvable problem instead, or use the site on z.ai's preview." },
+        { error: "AI solver is currently unavailable. Please try again in a moment." },
         { status: 503 }
       );
     }
