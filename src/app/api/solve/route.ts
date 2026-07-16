@@ -3,34 +3,122 @@ import { tryLocalSolve, preprocessProblem } from "./local-solver";
 import { isPromptInjection, INJECTION_MESSAGE } from "@/lib/injection-guard";
 
 // ── AI Provider: Google Gemini (free, works on Vercel) ──
-const GEMINI_KEY = process.env.GEMINI_API_KEY || "";
+// Supports multiple API keys with automatic rotation & rate-limit recovery
 const GEMINI_MODEL = "gemini-2.0-flash";
 
-async function solveWithGemini(systemPrompt: string, userPrompt: string): Promise<string> {
-  if (!GEMINI_KEY) return "";
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_KEY}`;
-  const body = {
-    system_instruction: { parts: [{ text: systemPrompt }] },
-    contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-    generationConfig: {
-      temperature: 0.1,
-      maxOutputTokens: 4096,
-      responseMimeType: "application/json",
-    },
-  };
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const errText = await res.text().catch(() => "");
-    console.error("[Gemini] API error", res.status, errText.slice(0, 200));
-    return "";
+// Parse all GEMINI_API_KEY, GEMINI_API_KEY_2, GEMINI_API_KEY_3, ... from env
+function loadGeminiKeys(): string[] {
+  const keys: string[] = [];
+  // Primary key
+  const primary = process.env.GEMINI_API_KEY || "";
+  if (primary.trim()) keys.push(primary.trim());
+
+  // Numbered keys: GEMINI_API_KEY_2, GEMINI_API_KEY_3, ... up to _20
+  for (let i = 2; i <= 20; i++) {
+    const k = process.env[`GEMINI_API_KEY_${i}`] || "";
+    if (k.trim() && !keys.includes(k.trim())) keys.push(k.trim());
   }
-  const data = await res.json();
-  const content = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-  return content;
+  return keys;
+}
+
+const ALL_GEMINI_KEYS = loadGeminiKeys();
+
+// Per-key state tracking
+const keyState: Map<string, { cooldownUntil: number; failCount: number }> = new Map();
+
+// Initialize state for all keys
+for (const k of ALL_GEMINI_KEYS) {
+  keyState.set(k, { cooldownUntil: 0, failCount: 0 });
+}
+
+function getAvailableKey(): string | null {
+  const now = Date.now();
+  for (const k of ALL_GEMINI_KEYS) {
+    const state = keyState.get(k)!;
+    if (now >= state.cooldownUntil) return k;
+  }
+  return null; // all keys in cooldown
+}
+
+function markKeyFailure(key: string) {
+  const state = keyState.get(key);
+  if (!state) return;
+  state.failCount++;
+  // Exponential backoff: 60s, 120s, 240s, 480s... max 30 min
+  const cooldown = Math.min(60 * Math.pow(2, state.failCount - 1), 1800);
+  state.cooldownUntil = Date.now() + cooldown * 1000;
+  console.warn(`[Gemini] Key #${ALL_GEMINI_KEYS.indexOf(key) + 1} rate-limited, cooldown ${cooldown}s`);
+}
+
+function markKeySuccess(key: string) {
+  const state = keyState.get(key);
+  if (state) {
+    state.failCount = 0;
+    state.cooldownUntil = 0;
+  }
+}
+
+async function solveWithGemini(systemPrompt: string, userPrompt: string): Promise<string> {
+  if (ALL_GEMINI_KEYS.length === 0) return "";
+
+  // Try each available key
+  const maxAttempts = Math.min(ALL_GEMINI_KEYS.length, 3);
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const key = getAvailableKey();
+    if (!key) {
+      console.warn("[Gemini] All keys in cooldown");
+      break;
+    }
+
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
+      const body = {
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 4096,
+          responseMimeType: "application/json",
+        },
+      };
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (res.status === 429 || res.status === 503) {
+        // Rate limited — rotate to next key
+        markKeyFailure(key);
+        continue;
+      }
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        console.error("[Gemini] API error", res.status, errText.slice(0, 200));
+        markKeyFailure(key);
+        continue;
+      }
+
+      const data = await res.json();
+
+      // Check for safety blocks or empty responses
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      if (!content) {
+        // Empty response, might be blocked — try next key
+        continue;
+      }
+
+      markKeySuccess(key);
+      return content;
+    } catch (err) {
+      console.error(`[Gemini] Key #${ALL_GEMINI_KEYS.indexOf(key) + 1} error:`, err);
+      markKeyFailure(key);
+      continue;
+    }
+  }
+  return "";
 }
 
 // ── AI Provider: z-ai SDK (works inside z.ai sandbox only) ──
@@ -69,10 +157,10 @@ async function solveWithZAI(systemPrompt: string, userPrompt: string): Promise<s
 // ── Unified AI call: tries Gemini first, then z-ai SDK ──
 async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
   // Priority 1: Gemini (works everywhere, free)
-  if (GEMINI_KEY) {
+  if (ALL_GEMINI_KEYS.length > 0) {
     const result = await solveWithGemini(systemPrompt, userPrompt);
     if (result) return result;
-    console.warn("[SpeedSolve AI] Gemini failed, trying fallback...");
+    console.warn("[SpeedSolve AI] All Gemini keys failed, trying fallback...");
   }
   // Priority 2: z-ai SDK (works in z.ai sandbox)
   const fallback = await solveWithZAI(systemPrompt, userPrompt);
