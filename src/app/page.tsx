@@ -254,6 +254,18 @@ export default function Home() {
   const [samples, setSamples] = useState<Record<string, SampleProblem[]>>({})
   const [showAlt, setShowAlt] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
+  const [solutionInView, setSolutionInView] = useState(true)
+
+  // IntersectionObserver: detect if solution panel is in viewport (for floating button)
+  useEffect(() => {
+    if (!outputBodyRef.current) return
+    const observer = new IntersectionObserver(
+      ([entry]) => { setSolutionInView(entry.isIntersecting) },
+      { threshold: 0.1, rootMargin: '0px' }
+    )
+    observer.observe(outputBodyRef.current)
+    return () => observer.disconnect()
+  }, [solution]) // re-observe when solution changes (panel may not exist before)
   const [scrolled, setScrolled] = useState(false)
   const [flashAnswer, setFlashAnswer] = useState(false)
   const [solveSource, setSolveSource] = useState<'local' | 'ai'>('local')
@@ -270,6 +282,7 @@ export default function Home() {
   const [fileName, setFileName] = useState<string | null>(null)
   const [showUploadMenu, setShowUploadMenu] = useState(false)
   const [showCamera, setShowCamera] = useState(false)
+  const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
   const [cameraFacing, setCameraFacing] = useState<'environment' | 'user'>('environment')
   const [showEditor, setShowEditor] = useState(false)
@@ -461,7 +474,7 @@ export default function Home() {
           if (window.innerWidth <= 1024) {
             setTimeout(() => {
               outputBodyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-            }, 300)
+            }, 200)
           }
         }, 150)
       }
@@ -523,7 +536,7 @@ export default function Home() {
           if (window.innerWidth <= 1024) {
             setTimeout(() => {
               outputBodyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-            }, 300)
+            }, 200)
           }
         }, 150)
       }
@@ -817,15 +830,40 @@ export default function Home() {
     if (!ctx) return
     ctx.drawImage(video, 0, 0)
     const dataUrl = canvas.toDataURL('image/jpeg', 0.92)
-    closeCamera()
-    setEditorImage(dataUrl)
-    setShowEditor(true)
+    // Stop stream to save battery, show preview
+    cameraStream?.getTracks().forEach(t => t.stop())
+    setCameraStream(null)
+    setCapturedImage(dataUrl)
   }, [cameraStream])
+
+  const retakePhoto = useCallback(async () => {
+    setCapturedImage(null)
+    // Re-start camera stream
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: cameraFacing }, width: { ideal: 1920, max: 3840 }, height: { ideal: 1080, max: 2160 } }
+      })
+      setCameraStream(stream)
+      setShowCamera(true)
+      setTimeout(() => { cameraVideoRef.current?.play() }, 200)
+    } catch {
+      setShowCamera(false)
+    }
+  }, [cameraFacing])
+
+  const useCapturedPhoto = useCallback(() => {
+    if (!capturedImage) return
+    setCapturedImage(null)
+    setShowCamera(false)
+    setEditorImage(capturedImage)
+    setShowEditor(true)
+  }, [capturedImage])
 
   const closeCamera = useCallback(() => {
     cameraStream?.getTracks().forEach(t => t.stop())
     setCameraStream(null)
     setShowCamera(false)
+    setCapturedImage(null)
   }, [cameraStream])
 
   // ── Image Editor (Crop + Ink) ──
@@ -1187,26 +1225,59 @@ export default function Home() {
               <input ref={pdfInputRef} type="file" accept=".pdf" onChange={handlePDFUpload} className="hidden-input" />
               <canvas ref={cameraCanvasRef} className="hidden-input" />
 
-              {/* Camera modal */}
+              {/* Camera Modal — Fullscreen Android-style */}
               {showCamera && (
-                <div className="camera-modal" onClick={closeCamera}>
-                  <div className="camera-modal-inner" onClick={e => e.stopPropagation()}>
-                    <div className="camera-header">
-                      <span>Point camera at the problem</span>
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <button className="camera-flip-btn" onClick={flipCamera} title="Flip camera">
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                <div className="cam-modal">
+                  {/* Live viewfinder */}
+                  {!capturedImage && (
+                    <>
+                      <video ref={cameraVideoRef} autoPlay playsInline muted className="cam-video" />
+                      {/* Top overlay bar */}
+                      <div className="cam-top-bar">
+                        <button className="cam-top-btn" onClick={closeCamera} aria-label="Close camera">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
-                        <button className="camera-close" onClick={closeCamera}>&times;</button>
+                        <div className="cam-top-hint">Point at the problem</div>
+                        <button className="cam-top-btn" onClick={flipCamera} aria-label="Flip camera">
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                        </button>
                       </div>
-                    </div>
-                    <video ref={cameraVideoRef} autoPlay playsInline muted className="camera-video" />
-                    <div className="camera-actions">
-                      <button className="camera-capture-btn" onClick={captureCamera}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="currentColor"/></svg>
-                      </button>
-                    </div>
-                  </div>
+                      {/* Bottom capture bar */}
+                      <div className="cam-bottom-bar">
+                        <div className="cam-bottom-spacer" />
+                        <button className="cam-shutter" onClick={captureCamera} aria-label="Capture photo">
+                          <div className="cam-shutter-ring" />
+                        </button>
+                        <div className="cam-bottom-spacer" />
+                      </div>
+                    </>
+                  )}
+
+                  {/* Captured image preview (like Android's "Use Photo" screen) */}
+                  {capturedImage && (
+                    <>
+                      <img src={capturedImage} className="cam-preview-img" alt="Captured" />
+                      {/* Top bar with close */}
+                      <div className="cam-top-bar">
+                        <button className="cam-top-btn" onClick={closeCamera} aria-label="Close">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                        <div className="cam-top-hint">Photo captured</div>
+                        <div className="cam-bottom-spacer" />
+                      </div>
+                      {/* Bottom bar with Retake / Use Photo */}
+                      <div className="cam-bottom-bar">
+                        <button className="cam-action-btn cam-retake-btn" onClick={retakePhoto}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                          <span>Retake</span>
+                        </button>
+                        <button className="cam-action-btn cam-use-btn" onClick={useCapturedPhoto}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                          <span>Use Photo</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -1709,6 +1780,17 @@ export default function Home() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Mobile: floating "View Answer" pill */}
+      {solution && !solutionInView && !loading && (
+        <button
+          className="view-answer-fab"
+          onClick={() => outputBodyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>View Answer</span>
+        </button>
       )}
 
       {/* Scroll to top */}
