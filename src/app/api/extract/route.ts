@@ -1,5 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const GEMINI_KEY = process.env.GEMINI_API_KEY || "";
+
+async function extractWithGemini(
+  base64: string,
+  mime: string
+): Promise<string | null> {
+  if (!GEMINI_KEY) return null;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
+  const body = {
+    contents: [
+      {
+        parts: [
+          {
+            text: 'Extract ALL the text and math from this image. This is a student\'s homework/exam problem. Return ONLY the extracted text — preserve all math notation, equations, numbers, fractions, Greek letters, and units exactly as written. Use ^ for superscripts, sqrt() for square roots. Do NOT solve the problem. Do NOT add any explanation. If there are multiple problems, separate them with newlines.',
+          },
+          { inlineData: { mimeType: mime, data: base64 } },
+        ],
+      },
+    ],
+    generationConfig: { temperature: 0.05 },
+  };
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+}
+
 // POST /api/extract — Extract text from images (via VLM) or PDFs
 export async function POST(req: NextRequest) {
   try {
@@ -14,7 +45,7 @@ export async function POST(req: NextRequest) {
     if (type === "pdf") {
       return await extractFromPDF(file);
     }
-    // Image or camera — both use VLM
+    // Image or camera — both use VLM with Gemini fallback
     return await extractFromImage(file);
   } catch (err) {
     console.error("Extract error:", err);
@@ -25,44 +56,56 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/** Extract math/problem text from an image using VLM */
+/** Extract math/problem text from an image using VLM, with Gemini fallback */
 async function extractFromImage(file: File) {
   const bytes = await file.arrayBuffer();
   const base64 = Buffer.from(bytes).toString("base64");
   const mime = file.type || "image/png";
 
-  const ZAI = (await import("z-ai-web-dev-sdk")).default;
-  const zai = await ZAI.create();
+  // 1. Try z-ai-web-dev-sdk VLM (z.ai sandbox)
+  try {
+    const ZAI = (await import("z-ai-web-dev-sdk")).default;
+    const zai = await ZAI.create();
 
-  const result = await zai.createChatCompletionVision({
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: 'Extract ALL the text and math from this image. This is a student\'s homework/exam problem. Return ONLY the extracted text — preserve all math notation, equations, numbers, and units exactly as written. Do NOT solve the problem. Do NOT add any explanation. If there are multiple problems, separate them with newlines.',
-          },
-          {
-            type: "image_url",
-            image_url: {
-              url: `data:${mime};base64,${base64}`,
+    const result = await zai.createChatCompletionVision({
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: 'Extract ALL the text and math from this image. This is a student\'s homework/exam problem. Return ONLY the extracted text — preserve all math notation, equations, numbers, fractions, Greek letters, and units exactly as written. Use ^ for superscripts, sqrt() for square roots. Do NOT solve the problem. Do NOT add any explanation. If there are multiple problems, separate them with newlines.',
             },
-          },
-        ],
-      },
-    ],
-    stream: false,
-  });
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:${mime};base64,${base64}`,
+              },
+            },
+          ],
+        },
+      ],
+      stream: false,
+    });
 
-  const extracted =
-    result.choices?.[0]?.message?.content || "";
-
-  if (!extracted.trim()) {
-    return NextResponse.json({ error: "Could not read any text from the image" }, { status: 422 });
+    const extracted = result.choices?.[0]?.message?.content || "";
+    if (extracted.trim()) {
+      return NextResponse.json({ text: extracted.trim() });
+    }
+  } catch (err) {
+    console.warn("z-ai VLM failed, falling back to Gemini:", err);
   }
 
-  return NextResponse.json({ text: extracted.trim() });
+  // 2. Fallback: Google Gemini 2.0 Flash
+  const geminiText = await extractWithGemini(base64, mime);
+  if (geminiText?.trim()) {
+    return NextResponse.json({ text: geminiText.trim() });
+  }
+
+  return NextResponse.json(
+    { error: "Could not read any text from the image" },
+    { status: 422 }
+  );
 }
 
 /** Extract text from a PDF file */
@@ -75,8 +118,13 @@ async function extractFromPDF(file: File) {
   const data = await pdfParse(buffer);
 
   const text = data.text?.trim();
-  if (!text) {
-    return NextResponse.json({ error: "Could not extract text from PDF — it may be scanned/image-based" }, { status: 422 });
+
+  // If extracted text is very short, it's likely a scanned/image PDF
+  if (!text || text.length < 20) {
+    return NextResponse.json(
+      { error: "This PDF appears to be scanned/image-based. Please use the camera or image upload instead — take a photo of the page for best results." },
+      { status: 422 }
+    );
   }
 
   return NextResponse.json({ text });

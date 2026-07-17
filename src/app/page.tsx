@@ -274,8 +274,11 @@ export default function Home() {
   const [cameraFacing, setCameraFacing] = useState<'environment' | 'user'>('environment')
   const [showEditor, setShowEditor] = useState(false)
   const [editorImage, setEditorImage] = useState<string | null>(null)
-  const [editorMode, setEditorMode] = useState<'crop' | 'ink'>('crop')
+  const [editorMode, setEditorMode] = useState<'crop' | 'pen' | 'highlighter' | 'rect' | 'circle'>('crop')
   const [inkColor, setInkColor] = useState('#ef4444')
+  const [inkSize, setInkSize] = useState(3)
+  const [shapeStart, setShapeStart] = useState<{ x: number; y: number } | null>(null)
+  const [shapePreview, setShapePreview] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [cropArea, setCropArea] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
   const [cropStart, setCropStart] = useState<{ x: number; y: number } | null>(null)
@@ -764,7 +767,7 @@ export default function Home() {
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: cameraFacing, width: { ideal: 1920 }, height: { ideal: 1080 } }
+        video: { facingMode: { ideal: cameraFacing }, width: { ideal: 1920, max: 3840 }, height: { ideal: 1080, max: 2160 } }
       })
       setCameraStream(stream)
       setShowCamera(true)
@@ -774,7 +777,7 @@ export default function Home() {
       if (cameraFacing === 'environment') {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'user', width: { ideal: 1920 }, height: { ideal: 1080 } }
+            video: { facingMode: { ideal: 'user' }, width: { ideal: 1920, max: 3840 }, height: { ideal: 1080, max: 2160 } }
           })
           setCameraFacing('user')
           setCameraStream(stream)
@@ -794,7 +797,7 @@ export default function Home() {
     cameraStream?.getTracks().forEach(t => t.stop())
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: newFacing, width: { ideal: 1920 }, height: { ideal: 1080 } }
+        video: { facingMode: { ideal: newFacing }, width: { ideal: 1920, max: 3840 }, height: { ideal: 1080, max: 2160 } }
       })
       setCameraFacing(newFacing)
       setCameraStream(stream)
@@ -874,7 +877,13 @@ export default function Home() {
       setCropStart(pos)
       setCropArea({ x: pos.x, y: pos.y, w: 0, h: 0 })
       setIsDrawing(true)
+    } else if (editorMode === 'rect' || editorMode === 'circle') {
+      const pos = getEditorPos(e)
+      setShapeStart(pos)
+      setShapePreview({ x: pos.x, y: pos.y, w: 0, h: 0 })
+      setIsDrawing(true)
     } else {
+      // pen or highlighter
       setIsDrawing(true)
       const ink = inkCanvasRef.current
       if (!ink) return
@@ -883,12 +892,19 @@ export default function Home() {
       const pos = getEditorPos(e)
       ctx.beginPath()
       ctx.moveTo(pos.x, pos.y)
-      ctx.strokeStyle = inkColor
-      ctx.lineWidth = 3
+      if (editorMode === 'highlighter') {
+        ctx.globalCompositeOperation = 'multiply'
+        ctx.strokeStyle = 'rgba(255, 235, 59, 0.35)'
+        ctx.lineWidth = 20
+      } else {
+        ctx.globalCompositeOperation = 'source-over'
+        ctx.strokeStyle = inkColor
+        ctx.lineWidth = inkSize
+      }
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
     }
-  }, [editorMode, getEditorPos, inkColor])
+  }, [editorMode, getEditorPos, inkColor, inkSize])
 
   const handleEditorPointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDrawing) return
@@ -900,7 +916,15 @@ export default function Home() {
         w: Math.abs(pos.x - cropStart.x),
         h: Math.abs(pos.y - cropStart.y)
       })
-    } else if (editorMode === 'ink') {
+    } else if ((editorMode === 'rect' || editorMode === 'circle') && shapeStart) {
+      const pos = getEditorPos(e)
+      setShapePreview({
+        x: Math.min(shapeStart.x, pos.x),
+        y: Math.min(shapeStart.y, pos.y),
+        w: Math.abs(pos.x - shapeStart.x),
+        h: Math.abs(pos.y - shapeStart.y)
+      })
+    } else if (editorMode === 'pen' || editorMode === 'highlighter') {
       const ink = inkCanvasRef.current
       if (!ink) return
       const ctx = ink.getContext('2d')
@@ -909,11 +933,37 @@ export default function Home() {
       ctx.lineTo(pos.x, pos.y)
       ctx.stroke()
     }
-  }, [isDrawing, editorMode, cropStart, getEditorPos])
+  }, [isDrawing, editorMode, cropStart, shapeStart, getEditorPos])
 
   const handleEditorPointerUp = useCallback(() => {
+    if ((editorMode === 'rect' || editorMode === 'circle') && shapePreview && shapePreview.w > 3 && shapePreview.h > 3) {
+      const ink = inkCanvasRef.current
+      if (ink) {
+        const ctx = ink.getContext('2d')
+        if (ctx) {
+          ctx.globalCompositeOperation = 'source-over'
+          ctx.strokeStyle = inkColor
+          ctx.lineWidth = 2
+          ctx.lineCap = 'round'
+          ctx.lineJoin = 'round'
+          if (editorMode === 'rect') {
+            ctx.strokeRect(shapePreview.x, shapePreview.y, shapePreview.w, shapePreview.h)
+          } else {
+            const cx = shapePreview.x + shapePreview.w / 2
+            const cy = shapePreview.y + shapePreview.h / 2
+            const rx = Math.max(1, shapePreview.w / 2)
+            const ry = Math.max(1, shapePreview.h / 2)
+            ctx.beginPath()
+            ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2)
+            ctx.stroke()
+          }
+        }
+      }
+    }
     setIsDrawing(false)
-  }, [])
+    setShapePreview(null)
+    setShapeStart(null)
+  }, [editorMode, shapePreview, inkColor])
 
   const applyCrop = useCallback(() => {
     const canvas = editorCanvasRef.current
@@ -986,6 +1036,9 @@ export default function Home() {
     setCropArea(null)
     setCropStart(null)
     setIsDrawing(false)
+    setShapePreview(null)
+    setShapeStart(null)
+    setEditorMode('crop')
   }, [])
 
   const clearFilePreview = useCallback(() => {
@@ -1170,7 +1223,7 @@ export default function Home() {
                       <canvas
                         ref={inkCanvasRef}
                         className="editor-ink-canvas"
-                        style={{ display: editorMode === 'ink' ? 'block' : 'none' }}
+                        style={{ display: editorMode !== 'crop' ? 'block' : 'none' }}
                         onPointerDown={handleEditorPointerDown}
                         onPointerMove={handleEditorPointerMove}
                         onPointerUp={handleEditorPointerUp}
@@ -1194,25 +1247,56 @@ export default function Home() {
                           }}
                         />
                       )}
+                      {shapePreview && (editorMode === 'rect' || editorMode === 'circle') && (
+                        <div
+                          className={`editor-shape-preview ${editorMode === 'rect' ? 'editor-shape-preview-rect' : 'editor-shape-preview-circle'}`}
+                          style={{
+                            left: shapePreview.x, top: shapePreview.y,
+                            width: shapePreview.w, height: shapePreview.h,
+                            borderColor: inkColor
+                          }}
+                        />
+                      )}
                     </div>
                     <div className="editor-toolbar">
                       <div className="editor-mode-btns">
                         <button
                           className={`editor-mode-btn${editorMode === 'crop' ? ' active' : ''}`}
-                          onClick={() => { setEditorMode('crop'); setCropArea(null); setCropStart(null) }}
+                          onClick={() => { setEditorMode('crop'); setCropArea(null); setCropStart(null); setShapePreview(null) }}
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H4"/></svg>
                           Crop
                         </button>
                         <button
-                          className={`editor-mode-btn${editorMode === 'ink' ? ' active' : ''}`}
-                          onClick={() => setEditorMode('ink')}
+                          className={`editor-mode-btn${editorMode === 'pen' ? ' active' : ''}`}
+                          onClick={() => setEditorMode('pen')}
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-                          Mark
+                          Pen
+                        </button>
+                        <button
+                          className={`editor-mode-btn${editorMode === 'highlighter' ? ' active' : ''}`}
+                          onClick={() => setEditorMode('highlighter')}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"/><path d="m9 11 4 4"/><path d="m5 19-3 2 2-3"/></svg>
+                          Highlight
+                        </button>
+                        <button
+                          className={`editor-mode-btn${editorMode === 'rect' ? ' active' : ''}`}
+                          onClick={() => setEditorMode('rect')}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                          Rect
+                        </button>
+                        <button
+                          className={`editor-mode-btn${editorMode === 'circle' ? ' active' : ''}`}
+                          onClick={() => setEditorMode('circle')}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+                          Circle
                         </button>
                       </div>
-                      {editorMode === 'ink' && (
+                      {(editorMode === 'pen' || editorMode === 'rect' || editorMode === 'circle') && (
                         <div className="editor-ink-colors">
                           {['#ef4444', '#3b82f6', '#22c55e', '#f59e0b', '#ffffff'].map(c => (
                             <button
@@ -1252,7 +1336,13 @@ export default function Home() {
                   {/* File preview bar */}
                   {(filePreview || (extracting && fileName)) && (
                     <div className="file-preview-bar">
-                      {filePreview && <img src={filePreview} alt="preview" className="file-preview-img" />}
+                      {filePreview ? (
+                        <img src={filePreview} alt="preview" className="file-preview-img" />
+                      ) : (
+                        <div className="file-preview-pdf-icon">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        </div>
+                      )}
                       <div className="file-preview-info">
                         <span className="file-preview-name">{extracting ? 'Extracting text...' : fileName}</span>
                         {extracting && <div className="extract-progress"><div className="extract-progress-bar" /></div>}
