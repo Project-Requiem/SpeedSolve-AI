@@ -833,24 +833,29 @@ body {
 .file-preview-remove { display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;transition:all 0.15s ease;flex-shrink:0; }
 .file-preview-remove:hover { background:rgba(239,68,68,0.12);color:#ef4444; }
 
-/* ── Camera Modal — Fullscreen Android-style ── */
+/* ── Camera Modal — WhatsApp-style Fullscreen ── */
 .cam-modal {
   position: fixed; inset: 0; z-index: 9999;
-  background: #000; animation: fadeIn 0.2s ease;
+  background: #000; animation: fadeIn 0.15s ease;
   display: flex; flex-direction: column;
+  overflow: hidden;
 }
 .cam-video {
   position: absolute; inset: 0; width: 100%; height: 100%;
   object-fit: cover; background: #000;
+  /* Critical for iOS Safari inline playback */
+  -webkit-object-fit: cover;
+  z-index: 0;
 }
 .cam-preview-img {
   position: absolute; inset: 0; width: 100%; height: 100%;
   object-fit: contain; background: #000;
+  z-index: 0;
 }
 /* Gradient overlays for readability */
 .cam-modal::before {
   content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 25%, transparent 70%, rgba(0,0,0,0.6) 100%);
+  background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 20%, transparent 75%, rgba(0,0,0,0.55) 100%);
 }
 /* Top bar */
 .cam-top-bar {
@@ -874,6 +879,30 @@ body {
   font-family: var(--font); letter-spacing: 0.2px;
   text-shadow: 0 1px 4px rgba(0,0,0,0.5);
 }
+/* Zoom slider — WhatsApp style */
+.cam-zoom-wrap {
+  position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%);
+  z-index: 2; width: 180px;
+}
+.cam-zoom-slider {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 4px; border-radius: 2px;
+  background: rgba(255,255,255,0.3); outline: none;
+  cursor: pointer;
+}
+.cam-zoom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: white; border: 2px solid rgba(0,0,0,0.2);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  cursor: pointer;
+}
+.cam-zoom-slider::-moz-range-thumb {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: white; border: 2px solid rgba(0,0,0,0.2);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  cursor: pointer;
+}
 /* Bottom bar */
 .cam-bottom-bar {
   position: relative; z-index: 2;
@@ -882,7 +911,7 @@ body {
   flex-shrink: 0;
 }
 .cam-bottom-spacer { width: 42px; }
-/* Shutter button — large ring like Android */
+/* Shutter button — large ring like WhatsApp/Android */
 .cam-shutter {
   width: 72px; height: 72px; border-radius: 50%; border: none;
   background: transparent; cursor: pointer; padding: 0;
@@ -926,6 +955,7 @@ body {
   .cam-bottom-spacer { width: 38px; }
   .cam-action-btn { padding: 10px 20px; font-size: 0.82rem; gap: 6px; }
   .cam-action-btn svg { width: 18px; height: 18px; }
+  .cam-zoom-wrap { width: 150px; bottom: 100px; }
 }
 /* Shutter flash effect */
 @keyframes camFlash {

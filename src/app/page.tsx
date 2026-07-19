@@ -284,8 +284,8 @@ export default function Home() {
   const [showCamera, setShowCamera] = useState(false)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [showFlash, setShowFlash] = useState(false)
-  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
   const [cameraFacing, setCameraFacing] = useState<'environment' | 'user'>('environment')
+  const cameraStreamRef = useRef<MediaStream | null>(null)
   const [showEditor, setShowEditor] = useState(false)
   const [editorImage, setEditorImage] = useState<string | null>(null)
   const [editorMode, setEditorMode] = useState<'crop' | 'pen' | 'highlighter' | 'rect' | 'circle'>('crop')
@@ -756,7 +756,7 @@ export default function Home() {
     e.target.value = ''
   }, [extractFromFile])
 
-  const openCamera = useCallback(async () => {
+  const openCamera = useCallback(() => {
     if (typeof window === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
       // Fallback to file picker on unsupported browsers
       const input = document.createElement('input')
@@ -774,63 +774,92 @@ export default function Home() {
       input.click()
       return
     }
-    // Check HTTPS (required for camera on mobile Safari)
-    // Note: many browsers now allow camera on localhost/non-HTTPS
-    if (location.protocol !== 'https:' && !location.hostname.includes('localhost') && !location.hostname.includes('127.0.0.1') && !location.hostname.includes('.space-z.ai')) {
-      setError('Camera requires HTTPS. Please use a secure connection.')
-      return
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: cameraFacing } }
-      })
-      setCameraStream(stream)
-      setShowCamera(true)
-    } catch (err: any) {
-      // On mobile, if environment fails try user (front) camera
-      if (cameraFacing === 'environment') {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: 'user' } }
-          })
-          setCameraFacing('user')
-          setCameraStream(stream)
-          setShowCamera(true)
-        } catch {
-          setError('Camera access denied. Please allow camera permission and try again.')
-        }
-      } else {
-        setError('Camera access denied. Please allow camera permission in your browser settings.')
-      }
-    }
-  }, [cameraFacing])
+    setCapturedImage(null)
+    setShowCamera(true)
+  }, [])
 
-  // Attach stream to video element whenever it changes
+  // Start/stop camera stream based on showCamera + capturedImage state
+  // This runs AFTER the video element is in the DOM, fixing the race condition
   useEffect(() => {
+    if (!showCamera || capturedImage) return
+
     const video = cameraVideoRef.current
     if (!video) return
-    if (cameraStream) {
-      video.srcObject = cameraStream
-      video.play().catch(() => {})
-    } else {
-      video.srcObject = null
-    }
-    return () => { video.srcObject = null }
-  }, [cameraStream])
 
-  const flipCamera = useCallback(async () => {
-    const newFacing = cameraFacing === 'environment' ? 'user' : 'environment'
-    cameraStream?.getTracks().forEach(t => t.stop())
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: newFacing } }
-      })
-      setCameraFacing(newFacing)
-      setCameraStream(stream)
-    } catch {
-      // Stay on current camera
+    let cancelled = false
+    let stream: MediaStream | null = null
+
+    const startStream = async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: cameraFacing },
+            width: { ideal: 1280 },
+            height: { ideal: 1920 },
+          }
+        })
+        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return }
+        cameraStreamRef.current = stream
+        video.srcObject = stream
+        // Ensure the video is ready before playing
+        video.addEventListener('loadedmetadata', () => {
+          if (!cancelled) {
+            video.play().catch(() => {})
+          }
+        }, { once: true })
+        // Fallback: if loadedmetadata already fired
+        if (video.readyState >= 2) {
+          video.play().catch(() => {})
+        }
+      } catch {
+        // On mobile, if environment fails try user (front) camera
+        if (!cancelled && cameraFacing === 'environment') {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: { ideal: 'user' }, width: { ideal: 1280 }, height: { ideal: 1920 } }
+            })
+            if (cancelled) { stream.getTracks().forEach(t => t.stop()); return }
+            cameraStreamRef.current = stream
+            setCameraFacing('user')
+            video.srcObject = stream
+            video.addEventListener('loadedmetadata', () => {
+              if (!cancelled) video.play().catch(() => {})
+            }, { once: true })
+            if (video.readyState >= 2) video.play().catch(() => {})
+          } catch {
+            if (!cancelled) setShowCamera(false)
+          }
+        } else if (!cancelled) {
+          setShowCamera(false)
+        }
+      }
     }
-  }, [cameraFacing, cameraStream])
+
+    startStream()
+
+    return () => {
+      cancelled = true
+      if (stream) stream.getTracks().forEach(t => t.stop())
+      if (cameraStreamRef.current) {
+        cameraStreamRef.current.getTracks().forEach(t => t.stop())
+        cameraStreamRef.current = null
+      }
+      if (video) video.srcObject = null
+    }
+  }, [showCamera, capturedImage, cameraFacing])
+
+  const flipCamera = useCallback(() => {
+    const newFacing = cameraFacing === 'environment' ? 'user' : 'environment'
+    // Stop current stream
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach(t => t.stop())
+      cameraStreamRef.current = null
+    }
+    const video = cameraVideoRef.current
+    if (video) video.srcObject = null
+    // Changing cameraFacing triggers the useEffect above to start a new stream
+    setCameraFacing(newFacing)
+  }, [cameraFacing])
 
   const captureCamera = useCallback(() => {
     const video = cameraVideoRef.current
@@ -845,25 +874,20 @@ export default function Home() {
     if (!ctx) return
     ctx.drawImage(video, 0, 0)
     const dataUrl = canvas.toDataURL('image/jpeg', 0.92)
-    // Stop stream to save battery, show preview
-    cameraStream?.getTracks().forEach(t => t.stop())
-    setCameraStream(null)
-    setCapturedImage(dataUrl)
-  }, [cameraStream])
-
-  const retakePhoto = useCallback(async () => {
-    setCapturedImage(null)
-    // Re-start camera stream
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: cameraFacing } }
-      })
-      setCameraStream(stream)
-      setShowCamera(true)
-    } catch {
-      setShowCamera(false)
+    // Stop stream to save battery
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach(t => t.stop())
+      cameraStreamRef.current = null
     }
-  }, [cameraFacing])
+    const v = cameraVideoRef.current
+    if (v) v.srcObject = null
+    setCapturedImage(dataUrl)
+  }, [])
+
+  const retakePhoto = useCallback(() => {
+    setCapturedImage(null)
+    // capturedImage going null + showCamera still true → useEffect restarts stream
+  }, [])
 
   const useCapturedPhoto = useCallback(() => {
     if (!capturedImage) return
@@ -874,11 +898,13 @@ export default function Home() {
   }, [capturedImage])
 
   const closeCamera = useCallback(() => {
-    cameraStream?.getTracks().forEach(t => t.stop())
-    setCameraStream(null)
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach(t => t.stop())
+      cameraStreamRef.current = null
+    }
     setShowCamera(false)
     setCapturedImage(null)
-  }, [cameraStream])
+  }, [])
 
   // ── Image Editor (Crop + Ink) ──
   const [editorImgSize, setEditorImgSize] = useState({ w: 0, h: 0 })
@@ -1572,22 +1598,62 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Camera Modal — Fullscreen Android-style (rendered at root to avoid backdrop-filter containment) */}
+      {/* Camera Modal — WhatsApp-style fullscreen (rendered at root level) */}
       {showCamera && (
         <div className="cam-modal">
-          {/* Live viewfinder */}
+          {/* ── LIVE VIEWFINDER ── */}
           {!capturedImage && (
             <>
-              <video ref={cameraVideoRef} autoPlay playsInline muted className="cam-video" />
-              {/* Top overlay bar */}
+              <video
+                ref={cameraVideoRef}
+                autoPlay
+                playsInline
+                webkit-playsinline="true"
+                muted
+                className="cam-video"
+              />
+              {/* Top bar: close | flash | flip */}
               <div className="cam-top-bar">
                 <button className="cam-top-btn" onClick={closeCamera} aria-label="Close camera">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
-                <div className="cam-top-hint">Point at the problem</div>
+                {/* Flash toggle */}
+                <button className="cam-top-btn" onClick={() => {
+                  const track = cameraStreamRef.current?.getVideoTracks()[0]
+                  if (track) {
+                    const caps = track.getCapabilities()
+                    if (caps.torch) {
+                      const current = track.getSettings().torch || false
+                      track.applyConstraints({ advanced: [{ torch: !current }] as any }).catch(() => {})
+                    }
+                  }
+                }} aria-label="Toggle flash">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18.36 6.64A9 9 0 0 1 20.77 15"/><path d="M6.16 6.16a9 9 0 1 0 12.68 12.68"/><path d="M12 2v4"/><path d="M12 18v4"/></svg>
+                </button>
+                {/* Flip camera */}
                 <button className="cam-top-btn" onClick={flipCamera} aria-label="Flip camera">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                 </button>
+              </div>
+              {/* Zoom slider (WhatsApp-style) */}
+              <div className="cam-zoom-wrap">
+                <input
+                  type="range" min="1" max="5" step="0.1" defaultValue="1"
+                  className="cam-zoom-slider"
+                  onChange={(e) => {
+                    const zoom = parseFloat(e.target.value)
+                    const track = cameraStreamRef.current?.getVideoTracks()[0]
+                    if (track) {
+                      const caps = track.getCapabilities()
+                      if (caps.zoom) {
+                        const min = caps.zoom.min
+                        const max = caps.zoom.max
+                        const val = Math.min(max, Math.max(min, zoom * (max / 5)))
+                        track.applyConstraints({ advanced: [{ zoom: val }] as any }).catch(() => {})
+                      }
+                    }
+                  }}
+                />
               </div>
               {/* Bottom capture bar */}
               <div className="cam-bottom-bar">
@@ -1602,11 +1668,11 @@ export default function Home() {
             </>
           )}
 
-          {/* Captured image preview (like Android's "Use Photo" screen) */}
+          {/* ── CAPTURED PREVIEW (WhatsApp "Use Photo" screen) ── */}
           {capturedImage && (
             <>
               <img src={capturedImage} className="cam-preview-img" alt="Captured" />
-              {/* Top bar with close */}
+              {/* Top bar */}
               <div className="cam-top-bar">
                 <button className="cam-top-btn" onClick={closeCamera} aria-label="Close">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
