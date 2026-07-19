@@ -283,6 +283,7 @@ export default function Home() {
   const [showUploadMenu, setShowUploadMenu] = useState(false)
   const [showCamera, setShowCamera] = useState(false)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
+  const [showFlash, setShowFlash] = useState(false)
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
   const [cameraFacing, setCameraFacing] = useState<'environment' | 'user'>('environment')
   const [showEditor, setShowEditor] = useState(false)
@@ -773,29 +774,28 @@ export default function Home() {
       input.click()
       return
     }
-    // Check HTTPS (required for camera on mobile)
-    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+    // Check HTTPS (required for camera on mobile Safari)
+    // Note: many browsers now allow camera on localhost/non-HTTPS
+    if (location.protocol !== 'https:' && !location.hostname.includes('localhost') && !location.hostname.includes('127.0.0.1') && !location.hostname.includes('.space-z.ai')) {
       setError('Camera requires HTTPS. Please use a secure connection.')
       return
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: cameraFacing }, width: { ideal: 1920, max: 3840 }, height: { ideal: 1080, max: 2160 } }
+        video: { facingMode: { ideal: cameraFacing } }
       })
       setCameraStream(stream)
       setShowCamera(true)
-      setTimeout(() => { cameraVideoRef.current?.play() }, 200)
     } catch (err: any) {
       // On mobile, if environment fails try user (front) camera
       if (cameraFacing === 'environment') {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: 'user' }, width: { ideal: 1920, max: 3840 }, height: { ideal: 1080, max: 2160 } }
+            video: { facingMode: { ideal: 'user' } }
           })
           setCameraFacing('user')
           setCameraStream(stream)
           setShowCamera(true)
-          setTimeout(() => { cameraVideoRef.current?.play() }, 200)
         } catch {
           setError('Camera access denied. Please allow camera permission and try again.')
         }
@@ -805,16 +805,28 @@ export default function Home() {
     }
   }, [cameraFacing])
 
+  // Attach stream to video element whenever it changes
+  useEffect(() => {
+    const video = cameraVideoRef.current
+    if (!video) return
+    if (cameraStream) {
+      video.srcObject = cameraStream
+      video.play().catch(() => {})
+    } else {
+      video.srcObject = null
+    }
+    return () => { video.srcObject = null }
+  }, [cameraStream])
+
   const flipCamera = useCallback(async () => {
     const newFacing = cameraFacing === 'environment' ? 'user' : 'environment'
     cameraStream?.getTracks().forEach(t => t.stop())
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: newFacing }, width: { ideal: 1920, max: 3840 }, height: { ideal: 1080, max: 2160 } }
+        video: { facingMode: { ideal: newFacing } }
       })
       setCameraFacing(newFacing)
       setCameraStream(stream)
-      setTimeout(() => { cameraVideoRef.current?.play() }, 200)
     } catch {
       // Stay on current camera
     }
@@ -823,7 +835,10 @@ export default function Home() {
   const captureCamera = useCallback(() => {
     const video = cameraVideoRef.current
     const canvas = cameraCanvasRef.current
-    if (!video || !canvas) return
+    if (!video || !canvas || !video.videoWidth) return
+    // Trigger visual flash
+    setShowFlash(true)
+    setTimeout(() => setShowFlash(false), 350)
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
     const ctx = canvas.getContext('2d')
@@ -841,11 +856,10 @@ export default function Home() {
     // Re-start camera stream
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: cameraFacing }, width: { ideal: 1920, max: 3840 }, height: { ideal: 1080, max: 2160 } }
+        video: { facingMode: { ideal: cameraFacing } }
       })
       setCameraStream(stream)
       setShowCamera(true)
-      setTimeout(() => { cameraVideoRef.current?.play() }, 200)
     } catch {
       setShowCamera(false)
     }
@@ -1583,6 +1597,8 @@ export default function Home() {
                 </button>
                 <div className="cam-bottom-spacer" />
               </div>
+              {/* Shutter flash overlay */}
+              {showFlash && <div className="cam-flash" />}
             </>
           )}
 

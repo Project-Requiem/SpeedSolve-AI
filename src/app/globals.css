@@ -927,6 +927,16 @@ body {
   .cam-action-btn { padding: 10px 20px; font-size: 0.82rem; gap: 6px; }
   .cam-action-btn svg { width: 18px; height: 18px; }
 }
+/* Shutter flash effect */
+@keyframes camFlash {
+  0% { opacity: 0.85; }
+  100% { opacity: 0; }
+}
+.cam-flash {
+  position: absolute; inset: 0; z-index: 3;
+  background: white; pointer-events: none;
+  animation: camFlash 0.3s ease-out forwards;
+}
 
 /* ── Image Editor Modal ── */
 .editor-modal { position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);animation:fadeIn 0.2s ease; }
