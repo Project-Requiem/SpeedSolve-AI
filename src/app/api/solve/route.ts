@@ -100,14 +100,20 @@ async function solveWithGemini(systemPrompt: string, userPrompt: string): Promis
       });
 
       if (res.status === 429 || res.status === 503) {
-        // Rate limited — rotate to next key
+        const errBody = await res.text().catch(() => "");
+        const isGeoBlock = errBody.includes("location is not supported") || errBody.includes("limit: 0");
+        if (isGeoBlock) {
+          console.error("[Gemini] Geo-blocked: server region not supported. Will work on Vercel (US)." );
+        } else {
+          console.warn(`[Gemini] Key #${ALL_GEMINI_KEYS.indexOf(key) + 1} rate-limited, rotating...`);
+        }
         markKeyFailure(key);
         continue;
       }
 
       if (!res.ok) {
         const errText = await res.text().catch(() => "");
-        console.error("[Gemini] API error", res.status, errText.slice(0, 200));
+        console.error("[Gemini] API error", res.status, errText.slice(0, 300));
         markKeyFailure(key);
         continue;
       }
@@ -642,13 +648,9 @@ export async function POST(request: NextRequest) {
     );
 
     if (!raw) {
-      console.error("[SpeedSolve AI] Both z-ai SDK and Gemini returned empty. AI unavailable.");
+      console.error("[SpeedSolve AI] Gemini returned empty. AI unavailable.");
       return NextResponse.json(
-        { error: "AI solver is currently unavailable. Please try again in a moment.", _debug: {
-          zaiAvailable: !!_zaiInstance,
-          geminiKeys: ALL_GEMINI_KEYS.length,
-          geminiKeyFormat: ALL_GEMINI_KEYS[0]?.startsWith('AQ.') ? 'AQ.' : (ALL_GEMINI_KEYS[0]?.startsWith('AIzaSy') ? 'AIzaSy' : 'unknown'),
-        }},
+        { error: "AI solver is currently unavailable. Please try again in a moment." },
         { status: 503 }
       );
     }

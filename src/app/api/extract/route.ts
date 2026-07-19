@@ -60,47 +60,13 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/** Extract math/problem text from an image using VLM, with Gemini fallback */
+/** Extract math/problem text from an image using Gemini Vision */
 async function extractFromImage(file: File) {
   const bytes = await file.arrayBuffer();
   const base64 = Buffer.from(bytes).toString("base64");
   const mime = file.type || "image/png";
 
-  // 1. Try z-ai-web-dev-sdk VLM (z.ai sandbox)
-  try {
-    const ZAI = (await import("z-ai-web-dev-sdk")).default;
-    const zai = await ZAI.create();
-
-    const result = await zai.createChatCompletionVision({
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: 'Extract ALL the text and math from this image. This is a student\'s homework/exam problem. Return ONLY the extracted text — preserve all math notation, equations, numbers, fractions, Greek letters, and units exactly as written. Use ^ for superscripts, sqrt() for square roots. Do NOT solve the problem. Do NOT add any explanation. If there are multiple problems, separate them with newlines.',
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:${mime};base64,${base64}`,
-              },
-            },
-          ],
-        },
-      ],
-      stream: false,
-    });
-
-    const extracted = result.choices?.[0]?.message?.content || "";
-    if (extracted.trim()) {
-      return NextResponse.json({ text: extracted.trim() });
-    }
-  } catch (err) {
-    console.warn("z-ai VLM failed, falling back to Gemini:", err);
-  }
-
-  // 2. Fallback: Google Gemini 2.0 Flash
+  // Use Google Gemini 2.0 Flash Vision
   const geminiText = await extractWithGemini(base64, mime);
   if (geminiText?.trim()) {
     return NextResponse.json({ text: geminiText.trim() });
