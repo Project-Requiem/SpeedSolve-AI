@@ -132,56 +132,16 @@ async function solveWithGemini(systemPrompt: string, userPrompt: string): Promis
   return "";
 }
 
-// ── AI Provider: z-ai SDK (works inside z.ai sandbox only) ──
-let _zaiInstance: any = null;
-async function getZAIInstance() {
-  if (!_zaiInstance) {
-    try {
-      const mod = await import("z-ai-web-dev-sdk");
-      const ZAI = (mod as any).default || mod;
-      _zaiInstance = await ZAI.create();
-      console.log("[SpeedSolve AI] z-ai SDK instance created");
-    } catch {
-      return null;
-    }
-  }
-  return _zaiInstance;
-}
-
-async function solveWithZAI(systemPrompt: string, userPrompt: string): Promise<string> {
-  try {
-    const zai = await getZAIInstance();
-    if (!zai) return "";
-    const result = await zai.chat.completions.create({
-      messages: [
-        { role: "assistant", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      thinking: { type: "disabled" },
-    });
-    return result.choices?.[0]?.message?.content || "";
-  } catch {
+// ── Unified AI call: Gemini API only ──
+async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
+  if (ALL_GEMINI_KEYS.length === 0) {
+    console.error("[SpeedSolve AI] No GEMINI_API_KEY set in environment");
     return "";
   }
-}
 
-// ── Unified AI call: tries z-ai SDK first (reliable in sandbox), then Gemini ──
-async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
-  // Priority 1: z-ai SDK (works reliably in z.ai sandbox, no quota limits)
-  console.log("[SpeedSolve AI] Trying z-ai SDK first...");
-  const zaiResult = await solveWithZAI(systemPrompt, userPrompt);
-  if (zaiResult) {
-    console.log("[SpeedSolve AI] z-ai SDK succeeded");
-    return zaiResult;
-  }
-  console.warn("[SpeedSolve AI] z-ai SDK failed, trying Gemini...");
-
-  // Priority 2: Gemini API (user-provided key, may have quota limits)
-  if (ALL_GEMINI_KEYS.length > 0) {
-    const result = await solveWithGemini(systemPrompt, userPrompt);
-    if (result) return result;
-    console.warn("[SpeedSolve AI] All Gemini keys also failed.");
-  }
+  const result = await solveWithGemini(systemPrompt, userPrompt);
+  if (result) return result;
+  console.error("[SpeedSolve AI] All Gemini keys failed or in cooldown");
   return "";
 }
 
