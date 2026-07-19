@@ -1270,8 +1270,8 @@ export default function Home() {
               <input ref={pdfInputRef} type="file" accept=".pdf" onChange={handlePDFUpload} className="hidden-input" />
               <canvas ref={cameraCanvasRef} className="hidden-input" />
 
-              <div className="input-group" style={{ display: 'flex', alignItems: 'stretch', gap: '10px' }}>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ position: 'relative', flex: 1 }}>
                   <textarea
                     className="input-textarea"
                     rows={4}
@@ -1280,86 +1280,75 @@ export default function Home() {
                     onChange={e => setProblem(e.target.value)}
                     onKeyDown={handleKeyDown}
                   />
-                  {/* File preview bar */}
-                  {(filePreview || (extracting && fileName)) && (
-                    <div className="file-preview-bar">
-                      {filePreview ? (
-                        <img src={filePreview} alt="preview" className="file-preview-img" />
-                      ) : (
-                        <div className="file-preview-pdf-icon">
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  <div className="input-inline-actions">
+                    <div className="upload-btn-wrapper" ref={uploadMenuRef}>
+                      <button
+                        className="inline-action-btn"
+                        onClick={() => setShowUploadMenu(v => !v)}
+                        title="Upload image, PDF, or camera"
+                        disabled={extracting}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                        </svg>
+                        <span>Attach</span>
+                      </button>
+                      {showUploadMenu && (
+                        <div className="upload-popover">
+                          <button className="upload-popover-item" onClick={() => { setShowUploadMenu(false); imageInputRef.current?.click() }} disabled={extracting}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                            <span>Image</span>
+                          </button>
+                          <button className="upload-popover-item" onClick={() => { setShowUploadMenu(false); pdfInputRef.current?.click() }} disabled={extracting}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                            <span>PDF</span>
+                          </button>
+                          <button className="upload-popover-item" onClick={() => { setShowUploadMenu(false); openCamera() }} disabled={extracting}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                            <span>Camera</span>
+                          </button>
                         </div>
                       )}
-                      <div className="file-preview-info">
-                        <span className="file-preview-name">{extracting ? 'Extracting text...' : fileName}</span>
-                        {extracting && <div className="extract-progress"><div className="extract-progress-bar" /></div>}
-                      </div>
-                      {!extracting && (
-                        <button className="file-preview-remove" onClick={clearFilePreview} title="Remove">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        </button>
-                      )}
                     </div>
-                  )}
-                </div>
-                {/* Action buttons column */}
-                <div className="input-actions-col">
-                  <div className="upload-btn-wrapper" ref={uploadMenuRef}>
-                    <button
-                      className="action-btn upload-trigger-btn"
-                      onClick={() => setShowUploadMenu(v => !v)}
-                      title="Upload file"
-                      disabled={extracting}
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-                      </svg>
-                    </button>
-                    {showUploadMenu && (
-                      <div className="upload-popover">
-                        <button
-                          className="upload-popover-item"
-                          onClick={() => { setShowUploadMenu(false); imageInputRef.current?.click() }}
-                          disabled={extracting}
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-                          <span>Image</span>
-                        </button>
-                        <button
-                          className="upload-popover-item"
-                          onClick={() => { setShowUploadMenu(false); pdfInputRef.current?.click() }}
-                          disabled={extracting}
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                          <span>PDF</span>
-                        </button>
-                        <button
-                          className="upload-popover-item"
-                          onClick={() => { setShowUploadMenu(false); openCamera() }}
-                          disabled={extracting}
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                          <span>Camera</span>
-                        </button>
-                      </div>
+                    {voiceSupported && (
+                      <button
+                        className={`inline-action-btn voice-btn${isListening ? ' active' : ''}`}
+                        onClick={toggleVoice}
+                        title={isListening ? 'Stop listening' : 'Voice input'}
+                        aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                          <line x1="12" y1="19" x2="12" y2="23"/>
+                          <line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                        <span>{isListening ? 'Stop' : 'Voice'}</span>
+                      </button>
                     )}
                   </div>
-                  {voiceSupported && (
-                    <button
-                      className={`action-btn voice-btn${isListening ? ' active' : ''}`}
-                      onClick={toggleVoice}
-                      title={isListening ? 'Stop listening' : 'Voice input'}
-                      aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                        <line x1="12" y1="19" x2="12" y2="23"/>
-                        <line x1="8" y1="23" x2="16" y2="23"/>
-                      </svg>
-                    </button>
-                  )}
                 </div>
+                {/* File preview bar */}
+                {(filePreview || (extracting && fileName)) && (
+                  <div className="file-preview-bar">
+                    {filePreview ? (
+                      <img src={filePreview} alt="preview" className="file-preview-img" />
+                    ) : (
+                      <div className="file-preview-pdf-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                      </div>
+                    )}
+                    <div className="file-preview-info">
+                      <span className="file-preview-name">{extracting ? 'Extracting text...' : fileName}</span>
+                      {extracting && <div className="extract-progress"><div className="extract-progress-bar" /></div>}
+                    </div>
+                    {!extracting && (
+                      <button className="file-preview-remove" onClick={clearFilePreview} title="Remove">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Feature 4: Keyboard hints */}
@@ -1411,16 +1400,6 @@ export default function Home() {
                   </span>
                 )}
                 {/* Feature 7: Try with AI — only after a local solve */}
-                {solution && solveSource === 'local' && (
-                  <button
-                    className="try-ai-btn"
-                    onClick={retryWithAI}
-                    disabled={loading}
-                  >
-                    <span className="try-ai-label">Try with AI</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                  </button>
-                )}
                 {/* Feature 2: Copy answer button */}
                 {solution && (
                   <button
@@ -1474,7 +1453,7 @@ export default function Home() {
               {loading && (
                 <div className="output-loading">
                   <p className="loading-text">
-                    {retryingAI ? 'Getting AI-powered solution...' : 'Solving your problem...'}
+                    {solveSource === 'ai' ? 'Getting AI solution...' : 'Solving your problem...'}
                   </p>
                   <div className="loading-progress">
                     <div className="loading-progress-bar" style={{ width: `${progress}%` }} />

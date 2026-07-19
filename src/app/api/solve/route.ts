@@ -579,7 +579,7 @@ function buildFallbackSolution(raw: string, problem: string, subject: string): a
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { problem, subject, board, forceAI } = body;
+    const { problem, subject, board } = body;
 
     if (!problem || typeof problem !== "string") {
       return NextResponse.json(
@@ -608,35 +608,17 @@ export async function POST(request: NextRequest) {
     // Preprocess: normalize Unicode symbols, Greek letters, etc.
     const processedProblem = preprocessProblem(problem);
 
-    // ── Try local solver first (instant, no AI needed) ──
-    // Skip local if forceAI is true (user clicked "Try with AI")
-    // NOTE: Local solver is tried FIRST for instant responses on simple patterns.
-    // It falls through to AI automatically if no pattern matches.
-    if (!forceAI) {
-      const localResult = await tryLocalSolve(processedProblem, resolvedSubject);
-      if (localResult) {
-        // Ensure local solutions have similar questions, mistakes, and exam tips
-        if (localResult.similar.length === 0) {
-          localResult.similar = generateSimilarQuestions(problem, resolvedSubject);
-        }
-        if (localResult.mistakes.length === 0) {
-          localResult.mistakes = generateCommonMistakes(resolvedSubject);
-        }
-        localResult.examTips =
-          BOARD_TIPS[resolvedBoard]?.[resolvedSubject] ||
-          BOARD_TIPS["icse"]?.[resolvedSubject] ||
-          [];
+    // ── Step 1: Try local solver (instant) ──
+    const localResult = await tryLocalSolve(processedProblem, resolvedSubject);
+    if (localResult) {
+      if (localResult.similar.length === 0) localResult.similar = generateSimilarQuestions(problem, resolvedSubject);
+      if (localResult.mistakes.length === 0) localResult.mistakes = generateCommonMistakes(resolvedSubject);
+      localResult.examTips = BOARD_TIPS[resolvedBoard]?.[resolvedSubject] || BOARD_TIPS["icse"]?.[resolvedSubject] || [];
+      return NextResponse.json({ success: true, data: localResult, source: "local" });
+    }
 
-        return NextResponse.json({
-          success: true,
-          data: localResult,
-          source: "local",
-        });
-      }
-    } // end local instant-solve
-
-    // ── AI Solver: full LLM for everything the local solver can't match instantly ──
-    console.log(`[SpeedSolve AI] ${forceAI ? 'Forced AI' : 'Local miss'}, using AI for: "${processedProblem.slice(0, 80)}..."`);
+    // ── Step 2: AI Solver (auto-fallback) ──
+    console.log(`[SpeedSolve AI] Local miss, using Gemini AI for: "${processedProblem.slice(0, 80)}..."`);
     // Pass ORIGINAL problem to AI (preserves Greek letters), processedProblem as fallback
     const aiProblem = problem.includes('θ') || problem.includes('α') || problem.includes('β') ||
                        problem.includes('ω') || problem.includes('λ') || problem.includes('μ') ||
