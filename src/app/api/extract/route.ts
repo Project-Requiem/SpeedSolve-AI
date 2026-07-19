@@ -7,7 +7,11 @@ async function extractWithGemini(
   mime: string
 ): Promise<string | null> {
   if (!GEMINI_KEY) return null;
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
+  const baseUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  // Support both old (AIzaSy) and new (AQ.) API key formats
+  const url = GEMINI_KEY.startsWith("AQ.") ? baseUrl : `${baseUrl}?key=${GEMINI_KEY}`;
+  if (GEMINI_KEY.startsWith("AQ.")) headers["x-goog-api-key"] = GEMINI_KEY;
   const body = {
     contents: [
       {
@@ -23,7 +27,7 @@ async function extractWithGemini(
   };
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(body),
   });
   if (!res.ok) return null;

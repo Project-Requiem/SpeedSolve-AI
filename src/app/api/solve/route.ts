@@ -71,7 +71,7 @@ async function solveWithGemini(systemPrompt: string, userPrompt: string): Promis
     }
 
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
       const body = {
         system_instruction: { parts: [{ text: systemPrompt }] },
         contents: [{ role: "user", parts: [{ text: userPrompt }] }],
@@ -82,9 +82,20 @@ async function solveWithGemini(systemPrompt: string, userPrompt: string): Promis
         },
       };
 
-      const res = await fetch(url, {
+      // Support both old (AIzaSy) and new (AQ.) API key formats
+      // New AQ. keys MUST go in x-goog-api-key header, not as URL param
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (key.startsWith("AQ.")) {
+        headers["x-goog-api-key"] = key;
+      } else {
+        // Legacy AIzaSy keys — append as query param
+        headers["Content-Type"] = "application/json";
+      }
+      const fetchUrl = key.startsWith("AQ.") ? url : `${url}?key=${key}`;
+
+      const res = await fetch(fetchUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(body),
       });
 
