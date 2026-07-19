@@ -165,17 +165,23 @@ async function solveWithZAI(systemPrompt: string, userPrompt: string): Promise<s
   }
 }
 
-// ── Unified AI call: tries Gemini first, then z-ai SDK ──
+// ── Unified AI call: tries z-ai SDK first (reliable in sandbox), then Gemini ──
 async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
-  // Priority 1: Gemini (works everywhere, free)
+  // Priority 1: z-ai SDK (works reliably in z.ai sandbox, no quota limits)
+  console.log("[SpeedSolve AI] Trying z-ai SDK first...");
+  const zaiResult = await solveWithZAI(systemPrompt, userPrompt);
+  if (zaiResult) {
+    console.log("[SpeedSolve AI] z-ai SDK succeeded");
+    return zaiResult;
+  }
+  console.warn("[SpeedSolve AI] z-ai SDK failed, trying Gemini...");
+
+  // Priority 2: Gemini API (user-provided key, may have quota limits)
   if (ALL_GEMINI_KEYS.length > 0) {
     const result = await solveWithGemini(systemPrompt, userPrompt);
     if (result) return result;
-    console.warn("[SpeedSolve AI] All Gemini keys failed, trying fallback...");
+    console.warn("[SpeedSolve AI] All Gemini keys also failed.");
   }
-  // Priority 2: z-ai SDK (works in z.ai sandbox)
-  const fallback = await solveWithZAI(systemPrompt, userPrompt);
-  if (fallback) return fallback;
   return "";
 }
 
@@ -676,8 +682,13 @@ export async function POST(request: NextRequest) {
     );
 
     if (!raw) {
+      console.error("[SpeedSolve AI] Both z-ai SDK and Gemini returned empty. AI unavailable.");
       return NextResponse.json(
-        { error: "AI solver is currently unavailable. Please try again in a moment." },
+        { error: "AI solver is currently unavailable. Please try again in a moment.", _debug: {
+          zaiAvailable: !!_zaiInstance,
+          geminiKeys: ALL_GEMINI_KEYS.length,
+          geminiKeyFormat: ALL_GEMINI_KEYS[0]?.startsWith('AQ.') ? 'AQ.' : (ALL_GEMINI_KEYS[0]?.startsWith('AIzaSy') ? 'AIzaSy' : 'unknown'),
+        }},
         { status: 503 }
       );
     }

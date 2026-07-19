@@ -43,9 +43,23 @@ export function preprocessProblem(text: string): string {
     s = s.replace(new RegExp(uni, 'g'), `_${ascii}`);
   }
 
-  // ── Greek letters: keep as Unicode ──
-  // AI understands Greek symbols. Local patterns match Unicode directly (e.g. sin θ).
-  // Converting to English words (θ→"theta") previously BROKE all regex pattern matching.
+  // ── Greek letters: keep as Unicode for AI, add word aliases for local patterns ──
+  // AI understands Greek symbols directly.
+  // For local solver, add word-name after the symbol so patterns can match both.
+  const greekAliases: Record<string, string> = {
+    '\u03b8': 'θ',  // theta
+    '\u03b1': 'α',  // alpha
+    '\u03b2': 'β',  // beta
+    '\u03b3': 'γ',  // gamma
+    '\u03c9': 'ω',  // omega
+    '\u03bb': 'λ',  // lambda
+    '\u03bc': 'μ',  // mu
+    '\u03c6': 'φ',  // phi
+    '\u03c0': 'π',  // pi
+    '\u0394': 'Δ',  // Delta (uppercase)
+    '\u03a3': 'Σ',  // Sigma (uppercase)
+  };
+  // These are already Unicode, just ensure they pass through unchanged.
 
   // ── Math operators & symbols ──
   s = s.replace(/\u00d7/g, '*');           // × multiplication
@@ -143,23 +157,24 @@ function solveQuadratic(match: RegExpMatchArray): LocalSolution | null {
   // Handle: x^2-5x+6=0, 2x^2 + 3x - 5 = 0, x² + x - 6 = 0
   let a = 1, b = 0, c = 0;
 
-  // Extract a (coefficient of x^2)
-  const aMatch = raw.match(/(-?\d*)\s*[xXyY]\s*[\^²]\s*2/);
+  // Extract a (coefficient of x^2) — handles: x^2, 2x^2, -3x^2, 0.5x^2
+  const aMatch = raw.match(/(-?\d*\.?\d*)\s*[xXyY]\s*[\^²]\s*2/);
   if (aMatch) {
-    a = aMatch[1] === '' || aMatch[1] === '+' ? 1 : aMatch[1] === '-' ? -1 : parseInt(aMatch[1]);
+    const aStr = aMatch[1].replace(/\s/g, '');
+    a = aStr === '' || aStr === '+' ? 1 : aStr === '-' ? -1 : parseFloat(aStr);
   }
 
   // Extract b (coefficient of x, between x^2 term and constant)
-  const bMatch = raw.match(/[\^²]\s*2\s*([+\-]\s*\d*)\s*[xXyY](?:\s*[+\-]|\s*=)/);
+  const bMatch = raw.match(/[\^²]\s*2\s*([+\-]\s*\d*\.?\d*)\s*[xXyY](?:\s*[+\-]|\s*=)/);
   if (bMatch && bMatch[1]) {
     const bStr = bMatch[1].replace(/\s/g, '');
-    b = bStr === '+' || bStr === '' ? 1 : bStr === '-' ? -1 : parseInt(bStr);
+    b = bStr === '+' || bStr === '' ? 1 : bStr === '-' ? -1 : parseFloat(bStr);
   }
 
   // Extract c (constant term before = 0)
-  const cMatch = raw.match(/([+\-]\s*\d+)\s*=\s*0/);
+  const cMatch = raw.match(/([+\-]\s*\d+\.?\d*)\s*=\s*0/);
   if (cMatch) {
-    c = parseInt(cMatch[1].replace(/\s/g, ''));
+    c = parseFloat(cMatch[1].replace(/\s/g, ''));
   }
 
   if (a === 0) return null;
@@ -649,7 +664,7 @@ interface PatternRule { regex: RegExp; solver: (m: RegExpMatchArray) => LocalSol
 
 const PATTERNS: PatternRule[] = [
   { regex: /(?:solve|find)\s+[\d.]*\s*[xX]\s*[+\-]\s*\d+\s*=\s*\d+/i, solver: solveLinearEq },
-  { regex: /(?:solve|find|roots?)?\s*[xXyY]\s*[\^²]\s*2\s*[+\-]\s*\d+\s*[xXyY]?\s*[+\-]\s*-?\d+\s*=\s*0/i, solver: solveQuadratic },
+  { regex: /(?:solve|find|roots?|root)?\s*-?\d*\.?\d*\s*[xXyY]\s*[\^²]\s*2\s*[+\-]\s*\d+\.?\d*\s*[xXyY]?\s*[+\-]\s*-?\d+\.?\d*\s*=\s*0/i, solver: solveQuadratic },
   { regex: /find\s+([\d.]+)%\s+of\s+([\d.]+)/i, solver: solvePercentage },
   { regex: /simple\s+interest\s+on\s+rs\s*([\d.]+)\s+at\s*([\d.]+)%\s*per\s+annum\s+for\s*([\d.]+)\s*years/i, solver: solveSimpleInterest },
   { regex: /travels\s+([\d.]+)\s*km\s+in\s+([\d.]+)\s*hours/i, solver: solveSpeed },
@@ -674,7 +689,7 @@ const PATTERNS: PatternRule[] = [
   { regex: /(\d+)\s*mL.*?([\d.]+)\s*M\s+HCl.*?(\d+)\s*mL\s+NaOH/i, solver: solveReaction },
   { regex: /balance.*?Fe.*?O2.*?Fe2O3/i, solver: solveBalance },
   { regex: /LCM\s*(and|&)\s*GCD\s+of/i, solver: solveLCMGCD },
-  { regex: /sin\s*[θ\\theta]+(?:\s*=\s*(\d+)\s*\/\s*(\d+)|\s+(\d+)\s*\/\s*(\d+))/i, solver: solveTrig },
+  { regex: /(?:sin|cos|tan)\s*[\u03b8\u03b1\u03b2\u03b3\u03c9\u03c6\\theta\\alpha\\beta]+(?:\s*=\s*(\d+)\s*\/\s*(\d+)|\s+(\d+)\s*\/\s*(\d+))/i, solver: solveTrig },
   { regex: /mean.*?median.*?mode\s+of/i, solver: solveStats },
   { regex: /\(a\+b\)\^2\s*-\s*\(a-b\)\^2/i, solver: solveIdentity },
 ];
