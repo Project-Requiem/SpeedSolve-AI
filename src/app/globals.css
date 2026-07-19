@@ -167,7 +167,7 @@ body {
 }
 @keyframes tickerScroll {
   0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  100% { transform: translateX(-33.333%); }
 }
 
 .float-y { animation: floatY 4s ease-in-out infinite; }
@@ -236,7 +236,8 @@ body {
   display: flex; gap: 48px; white-space: nowrap;
   font-family: var(--mono); font-size: clamp(0.65rem, 0.85vw, 0.85rem);
   color: var(--ticker-color); will-change: transform;
-  animation: tickerScroll 60s linear infinite;
+  animation: tickerScroll 90s linear infinite;
+  transform: translateZ(0);
 }
 .ticker-track span { opacity: 1; letter-spacing: 0.5px; color: var(--ticker-color); }
 @media (max-width: 768px) {
@@ -834,7 +835,7 @@ body {
 
 /* ── Camera Modal — Fullscreen Android-style ── */
 .cam-modal {
-  position: fixed; inset: 0; z-index: 1000;
+  position: fixed; inset: 0; z-index: 9999;
   background: #000; animation: fadeIn 0.2s ease;
   display: flex; flex-direction: column;
 }
@@ -928,7 +929,7 @@ body {
 }
 
 /* ── Image Editor Modal ── */
-.editor-modal { position:fixed;inset:0;z-index:1001;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);animation:fadeIn 0.2s ease; }
+.editor-modal { position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);animation:fadeIn 0.2s ease; }
 .editor-modal-inner { width:min(94vw,720px);border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-card);border:1px solid var(--border-color);box-shadow:var(--shadow-lg);display:flex;flex-direction:column;max-height:92vh; }
 .editor-header { display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border-color);font-size:0.88rem;font-weight:600;color:var(--text-primary);font-family:var(--font);flex-shrink:0; }
 .editor-canvas-wrap { position:relative;display:flex;align-items:center;justify-content:center;padding:8px;overflow:auto;flex:1;touch-action:none; }
@@ -1032,7 +1033,7 @@ body {
   .final-answer-box .katex { font-size: 1rem; }
   .solution-section { padding: 14px; }
   .scroll-top-btn { bottom: 16px; right: 16px; width: 40px; height: 40px; }
-  .ticker-track { font-size: 0.6rem; gap: 32px; animation-duration: 30s; }
+  .ticker-track { font-size: 0.6rem; gap: 32px; animation-duration: 45s; }
   .formula-ticker { height: 26px; top: 60px; }
   /* Input area */
   .input-hint { flex-wrap:wrap; gap:4px; font-size:0.68rem; line-height:1.5; }

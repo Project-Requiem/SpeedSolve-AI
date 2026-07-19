@@ -1150,12 +1150,17 @@ export default function Home() {
       <div className="formula-ticker">
         <div className="ticker-track">
           {TICKER_FORMULAS.map((f, i) => (
-            <span key={i} dangerouslySetInnerHTML={{
+            <span key={`a-${i}`} dangerouslySetInnerHTML={{
               __html: (() => { try { return katex.renderToString(f, { throwOnError: false }) } catch { return f } })()
             }} />
           ))}
           {TICKER_FORMULAS.map((f, i) => (
-            <span key={`dup-${i}`} dangerouslySetInnerHTML={{
+            <span key={`b-${i}`} dangerouslySetInnerHTML={{
+              __html: (() => { try { return katex.renderToString(f, { throwOnError: false }) } catch { return f } })()
+            }} />
+          ))}
+          {TICKER_FORMULAS.map((f, i) => (
+            <span key={`c-${i}`} dangerouslySetInnerHTML={{
               __html: (() => { try { return katex.renderToString(f, { throwOnError: false }) } catch { return f } })()
             }} />
           ))}
@@ -1224,175 +1229,6 @@ export default function Home() {
               <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden-input" />
               <input ref={pdfInputRef} type="file" accept=".pdf" onChange={handlePDFUpload} className="hidden-input" />
               <canvas ref={cameraCanvasRef} className="hidden-input" />
-
-              {/* Camera Modal — Fullscreen Android-style */}
-              {showCamera && (
-                <div className="cam-modal">
-                  {/* Live viewfinder */}
-                  {!capturedImage && (
-                    <>
-                      <video ref={cameraVideoRef} autoPlay playsInline muted className="cam-video" />
-                      {/* Top overlay bar */}
-                      <div className="cam-top-bar">
-                        <button className="cam-top-btn" onClick={closeCamera} aria-label="Close camera">
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        </button>
-                        <div className="cam-top-hint">Point at the problem</div>
-                        <button className="cam-top-btn" onClick={flipCamera} aria-label="Flip camera">
-                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                        </button>
-                      </div>
-                      {/* Bottom capture bar */}
-                      <div className="cam-bottom-bar">
-                        <div className="cam-bottom-spacer" />
-                        <button className="cam-shutter" onClick={captureCamera} aria-label="Capture photo">
-                          <div className="cam-shutter-ring" />
-                        </button>
-                        <div className="cam-bottom-spacer" />
-                      </div>
-                    </>
-                  )}
-
-                  {/* Captured image preview (like Android's "Use Photo" screen) */}
-                  {capturedImage && (
-                    <>
-                      <img src={capturedImage} className="cam-preview-img" alt="Captured" />
-                      {/* Top bar with close */}
-                      <div className="cam-top-bar">
-                        <button className="cam-top-btn" onClick={closeCamera} aria-label="Close">
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        </button>
-                        <div className="cam-top-hint">Photo captured</div>
-                        <div className="cam-bottom-spacer" />
-                      </div>
-                      {/* Bottom bar with Retake / Use Photo */}
-                      <div className="cam-bottom-bar">
-                        <button className="cam-action-btn cam-retake-btn" onClick={retakePhoto}>
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                          <span>Retake</span>
-                        </button>
-                        <button className="cam-action-btn cam-use-btn" onClick={useCapturedPhoto}>
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                          <span>Use Photo</span>
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* Image Editor Modal (Crop + Ink) */}
-              {showEditor && editorImage && (
-                <div className="editor-modal" onClick={closeEditor}>
-                  <div className="editor-modal-inner" onClick={e => e.stopPropagation()}>
-                    <div className="editor-header">
-                      <span>Edit image</span>
-                      <button className="camera-close" onClick={closeEditor}>&times;</button>
-                    </div>
-                    <div className="editor-canvas-wrap">
-                      <canvas ref={editorCanvasRef} className="editor-canvas" />
-                      <canvas
-                        ref={inkCanvasRef}
-                        className="editor-ink-canvas"
-                        style={{ display: editorMode !== 'crop' ? 'block' : 'none' }}
-                        onPointerDown={handleEditorPointerDown}
-                        onPointerMove={handleEditorPointerMove}
-                        onPointerUp={handleEditorPointerUp}
-                        onPointerLeave={handleEditorPointerUp}
-                      />
-                      {editorMode === 'crop' && cropArea && cropArea.w > 5 && cropArea.h > 5 && (
-                        <div
-                          className="editor-crop-overlay"
-                          style={{
-                            left: cropArea.x, top: cropArea.y,
-                            width: cropArea.w, height: cropArea.h
-                          }}
-                        />
-                      )}
-                      {editorMode === 'crop' && isDrawing && cropStart && (
-                        <div
-                          className="editor-crop-overlay"
-                          style={{
-                            left: cropArea.x, top: cropArea.y,
-                            width: cropArea.w, height: cropArea.h
-                          }}
-                        />
-                      )}
-                      {shapePreview && (editorMode === 'rect' || editorMode === 'circle') && (
-                        <div
-                          className={`editor-shape-preview ${editorMode === 'rect' ? 'editor-shape-preview-rect' : 'editor-shape-preview-circle'}`}
-                          style={{
-                            left: shapePreview.x, top: shapePreview.y,
-                            width: shapePreview.w, height: shapePreview.h,
-                            borderColor: inkColor
-                          }}
-                        />
-                      )}
-                    </div>
-                    <div className="editor-toolbar">
-                      <div className="editor-mode-btns">
-                        <button
-                          className={`editor-mode-btn${editorMode === 'crop' ? ' active' : ''}`}
-                          onClick={() => { setEditorMode('crop'); setCropArea(null); setCropStart(null); setShapePreview(null) }}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H4"/></svg>
-                          Crop
-                        </button>
-                        <button
-                          className={`editor-mode-btn${editorMode === 'pen' ? ' active' : ''}`}
-                          onClick={() => setEditorMode('pen')}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-                          Pen
-                        </button>
-                        <button
-                          className={`editor-mode-btn${editorMode === 'highlighter' ? ' active' : ''}`}
-                          onClick={() => setEditorMode('highlighter')}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"/><path d="m9 11 4 4"/><path d="m5 19-3 2 2-3"/></svg>
-                          Highlight
-                        </button>
-                        <button
-                          className={`editor-mode-btn${editorMode === 'rect' ? ' active' : ''}`}
-                          onClick={() => setEditorMode('rect')}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-                          Rect
-                        </button>
-                        <button
-                          className={`editor-mode-btn${editorMode === 'circle' ? ' active' : ''}`}
-                          onClick={() => setEditorMode('circle')}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
-                          Circle
-                        </button>
-                      </div>
-                      {(editorMode === 'pen' || editorMode === 'rect' || editorMode === 'circle') && (
-                        <div className="editor-ink-colors">
-                          {['#ef4444', '#3b82f6', '#22c55e', '#f59e0b', '#ffffff'].map(c => (
-                            <button
-                              key={c}
-                              className={`editor-color-dot${inkColor === c ? ' active' : ''}`}
-                              style={{ background: c, border: c === '#ffffff' ? '1px solid #555' : 'none' }}
-                              onClick={() => setInkColor(c)}
-                            />
-                          ))}
-                          <button className="editor-mode-btn" onClick={clearInk} style={{ marginLeft: '4px', padding: '4px 8px', fontSize: '0.7rem' }}>Clear</button>
-                        </div>
-                      )}
-                      <div className="editor-action-btns">
-                        {editorMode === 'crop' && cropArea && cropArea.w > 20 && cropArea.h > 20 && (
-                          <button className="editor-apply-btn" onClick={applyCrop}>Apply Crop</button>
-                        )}
-                        <button className="editor-done-btn" onClick={editorDone}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                          Use this
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               <div className="input-group" style={{ display: 'flex', alignItems: 'stretch', gap: '10px' }}>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1721,6 +1557,177 @@ export default function Home() {
           </section>
         </div>
       </main>
+
+      {/* Camera Modal — Fullscreen Android-style (rendered at root to avoid backdrop-filter containment) */}
+      {showCamera && (
+        <div className="cam-modal">
+          {/* Live viewfinder */}
+          {!capturedImage && (
+            <>
+              <video ref={cameraVideoRef} autoPlay playsInline muted className="cam-video" />
+              {/* Top overlay bar */}
+              <div className="cam-top-bar">
+                <button className="cam-top-btn" onClick={closeCamera} aria-label="Close camera">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+                <div className="cam-top-hint">Point at the problem</div>
+                <button className="cam-top-btn" onClick={flipCamera} aria-label="Flip camera">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                </button>
+              </div>
+              {/* Bottom capture bar */}
+              <div className="cam-bottom-bar">
+                <div className="cam-bottom-spacer" />
+                <button className="cam-shutter" onClick={captureCamera} aria-label="Capture photo">
+                  <div className="cam-shutter-ring" />
+                </button>
+                <div className="cam-bottom-spacer" />
+              </div>
+            </>
+          )}
+
+          {/* Captured image preview (like Android's "Use Photo" screen) */}
+          {capturedImage && (
+            <>
+              <img src={capturedImage} className="cam-preview-img" alt="Captured" />
+              {/* Top bar with close */}
+              <div className="cam-top-bar">
+                <button className="cam-top-btn" onClick={closeCamera} aria-label="Close">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+                <div className="cam-top-hint">Photo captured</div>
+                <div className="cam-bottom-spacer" />
+              </div>
+              {/* Bottom bar with Retake / Use Photo */}
+              <div className="cam-bottom-bar">
+                <button className="cam-action-btn cam-retake-btn" onClick={retakePhoto}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                  <span>Retake</span>
+                </button>
+                <button className="cam-action-btn cam-use-btn" onClick={useCapturedPhoto}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span>Use Photo</span>
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Image Editor Modal (rendered at root to avoid backdrop-filter containment) */}
+      {showEditor && editorImage && (
+        <div className="editor-modal" onClick={closeEditor}>
+          <div className="editor-modal-inner" onClick={e => e.stopPropagation()}>
+            <div className="editor-header">
+              <span>Edit image</span>
+              <button className="cam-top-btn" onClick={closeEditor} aria-label="Close editor" style={{ width: 32, height: 32 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div className="editor-canvas-wrap">
+              <canvas ref={editorCanvasRef} className="editor-canvas" />
+              <canvas
+                ref={inkCanvasRef}
+                className="editor-ink-canvas"
+                style={{ display: editorMode !== 'crop' ? 'block' : 'none' }}
+                onPointerDown={handleEditorPointerDown}
+                onPointerMove={handleEditorPointerMove}
+                onPointerUp={handleEditorPointerUp}
+                onPointerLeave={handleEditorPointerUp}
+              />
+              {editorMode === 'crop' && cropArea && cropArea.w > 5 && cropArea.h > 5 && (
+                <div
+                  className="editor-crop-overlay"
+                  style={{
+                    left: cropArea.x, top: cropArea.y,
+                    width: cropArea.w, height: cropArea.h
+                  }}
+                />
+              )}
+              {editorMode === 'crop' && isDrawing && cropStart && (
+                <div
+                  className="editor-crop-overlay"
+                  style={{
+                    left: cropArea.x, top: cropArea.y,
+                    width: cropArea.w, height: cropArea.h
+                  }}
+                />
+              )}
+              {shapePreview && (editorMode === 'rect' || editorMode === 'circle') && (
+                <div
+                  className={`editor-shape-preview ${editorMode === 'rect' ? 'editor-shape-preview-rect' : 'editor-shape-preview-circle'}`}
+                  style={{
+                    left: shapePreview.x, top: shapePreview.y,
+                    width: shapePreview.w, height: shapePreview.h,
+                    borderColor: inkColor
+                  }}
+                />
+              )}
+            </div>
+            <div className="editor-toolbar">
+              <div className="editor-mode-btns">
+                <button
+                  className={`editor-mode-btn${editorMode === 'crop' ? ' active' : ''}`}
+                  onClick={() => { setEditorMode('crop'); setCropArea(null); setCropStart(null); setShapePreview(null) }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H4"/></svg>
+                  Crop
+                </button>
+                <button
+                  className={`editor-mode-btn${editorMode === 'pen' ? ' active' : ''}`}
+                  onClick={() => setEditorMode('pen')}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                  Pen
+                </button>
+                <button
+                  className={`editor-mode-btn${editorMode === 'highlighter' ? ' active' : ''}`}
+                  onClick={() => setEditorMode('highlighter')}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"/><path d="m9 11 4 4"/><path d="m5 19-3 2 2-3"/></svg>
+                  Highlight
+                </button>
+                <button
+                  className={`editor-mode-btn${editorMode === 'rect' ? ' active' : ''}`}
+                  onClick={() => setEditorMode('rect')}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                  Rect
+                </button>
+                <button
+                  className={`editor-mode-btn${editorMode === 'circle' ? ' active' : ''}`}
+                  onClick={() => setEditorMode('circle')}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+                  Circle
+                </button>
+              </div>
+              {(editorMode === 'pen' || editorMode === 'rect' || editorMode === 'circle') && (
+                <div className="editor-ink-colors">
+                  {['#ef4444', '#3b82f6', '#22c55e', '#f59e0b', '#ffffff'].map(c => (
+                    <button
+                      key={c}
+                      className={`editor-color-dot${inkColor === c ? ' active' : ''}`}
+                      style={{ background: c, border: c === '#ffffff' ? '1px solid #555' : 'none' }}
+                      onClick={() => setInkColor(c)}
+                    />
+                  ))}
+                  <button className="editor-mode-btn" onClick={clearInk} style={{ marginLeft: '4px', padding: '4px 8px', fontSize: '0.7rem' }}>Clear</button>
+                </div>
+              )}
+              <div className="editor-action-btns">
+                {editorMode === 'crop' && cropArea && cropArea.w > 20 && cropArea.h > 20 && (
+                  <button className="editor-apply-btn" onClick={applyCrop}>Apply Crop</button>
+                )}
+                <button className="editor-done-btn" onClick={editorDone}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Use this
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Feature 5: Feedback Modal */}
       {showFeedback && (
