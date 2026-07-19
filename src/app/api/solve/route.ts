@@ -300,6 +300,9 @@ CRITICAL RULES:
 7. LaTeX formulas must use standard KaTeX-compatible syntax. ALWAYS wrap every formula in $...$ or $$...$$.
 8. For math formulas in steps, wrap each formula in $...$ (inline) or $$...$$ (display).
 9. NEVER use \\text{} or \\mathrm{} in formulas - just write units directly (e.g., "14 m/s" not "14 \\text{ m/s}").
+10. Handle quadratic equations (ax²+bx+c=0) using the quadratic formula: x = (-b ± √(b²-4ac)) / 2a
+11. Greek letters in problems (θ, α, β, ω, λ, μ, Δ, π, Σ) are standard math/science notation — use them directly in formulas.
+12. If the user writes x^2 or x², treat it as x squared.
 
 OUTPUT FORMAT: Return ONLY valid JSON (no markdown, no code blocks, no commentary):
 {
@@ -635,6 +638,8 @@ export async function POST(request: NextRequest) {
 
     // ── Try local solver first (instant, no AI needed) ──
     // Skip local if forceAI is true (user clicked "Try with AI")
+    // NOTE: Local solver is tried FIRST for instant responses on simple patterns.
+    // It falls through to AI automatically if no pattern matches.
     if (!forceAI) {
       const localResult = await tryLocalSolve(processedProblem, resolvedSubject);
       if (localResult) {
@@ -656,40 +661,16 @@ export async function POST(request: NextRequest) {
           source: "local",
         });
       }
-    } // end Tier 1
+    } // end local instant-solve
 
-    // ── Tier 2: AI-assisted parsing → local solve (skip if forceAI) ──
-    if (!forceAI) {
-      console.log(`[SpeedSolve AI] Local solver missed, trying AI-parse for: "${processedProblem.slice(0, 80)}..."`);
-      const rephrased = await tryAIRephrase(processedProblem, resolvedSubject);
-      if (rephrased) {
-        const retryResult = await tryLocalSolve(rephrased, resolvedSubject);
-        if (retryResult) {
-          // Ensure local solutions have similar questions, mistakes, and exam tips
-          if (retryResult.similar.length === 0) {
-            retryResult.similar = generateSimilarQuestions(problem, resolvedSubject);
-          }
-          if (retryResult.mistakes.length === 0) {
-            retryResult.mistakes = generateCommonMistakes(resolvedSubject);
-          }
-          retryResult.examTips =
-            BOARD_TIPS[resolvedBoard]?.[resolvedSubject] ||
-            BOARD_TIPS["icse"]?.[resolvedSubject] ||
-            [];
-          console.log(`[SpeedSolve AI] AI-rephrase succeeded, solved locally`);
-          return NextResponse.json({
-            success: true,
-            data: retryResult,
-            source: "local",
-          });
-        }
-      }
-    } // end Tier 2
-
-    // ── Tier 3: Full LLM fallback (only for genuinely complex problems) ──
-    console.log(`[SpeedSolve AI] ${forceAI ? 'Forced' : 'All local attempts failed'}, using full AI for: "${processedProblem.slice(0, 80)}..."`);
+    // ── AI Solver: full LLM for everything the local solver can't match instantly ──
+    console.log(`[SpeedSolve AI] ${forceAI ? 'Forced AI' : 'Local miss'}, using AI for: "${processedProblem.slice(0, 80)}..."`);
+    // Pass ORIGINAL problem to AI (preserves Greek letters), processedProblem as fallback
+    const aiProblem = problem.includes('θ') || problem.includes('α') || problem.includes('β') ||
+                       problem.includes('ω') || problem.includes('λ') || problem.includes('μ') ||
+                       problem.includes('Δ') || problem.includes('π') ? problem : processedProblem;
     const raw = await solveWithLLM(
-      processedProblem,
+      aiProblem,
       resolvedSubject,
       resolvedBoard
     );

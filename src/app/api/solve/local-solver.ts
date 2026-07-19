@@ -43,37 +43,9 @@ export function preprocessProblem(text: string): string {
     s = s.replace(new RegExp(uni, 'g'), `_${ascii}`);
   }
 
-  // ── Greek lowercase letters ──
-  const greekLower: Record<string, string> = {
-    '\u03b1': 'alpha',   '\u03b2': 'beta',    '\u03b3': 'gamma',
-    '\u03b4': 'delta',   '\u03b5': 'epsilon', '\u03b6': 'zeta',
-    '\u03b7': 'eta',     '\u03b8': 'theta',   '\u03b9': 'iota',
-    '\u03ba': 'kappa',   '\u03bb': 'lambda',  '\u03bc': 'mu',
-    '\u03bd': 'nu',      '\u03be': 'xi',      '\u03bf': 'omicron',
-    '\u03c0': 'pi',      '\u03c1': 'rho',     '\u03c2': 'sigma',
-    '\u03c3': 'sigma',   '\u03c4': 'tau',     '\u03c5': 'upsilon',
-    '\u03c6': 'phi',     '\u03c7': 'chi',     '\u03c8': 'psi',
-    '\u03c9': 'omega',
-  };
-
-  // ── Greek uppercase letters ──
-  const greekUpper: Record<string, string> = {
-    '\u0391': 'Alpha', '\u0392': 'Beta',   '\u0393': 'Gamma',
-    '\u0394': 'Delta', '\u0395': 'Epsilon','\u0396': 'Zeta',
-    '\u0397': 'Eta',   '\u0398': 'Theta',  '\u0399': 'Iota',
-    '\u039a': 'Kappa', '\u039b': 'Lambda', '\u039c': 'Mu',
-    '\u039d': 'Nu',    '\u039e': 'Xi',     '\u039f': 'Omicron',
-    '\u03a0': 'Pi',    '\u03a1': 'Rho',    '\u03a3': 'Sigma',
-    '\u03a4': 'Tau',   '\u03a5': 'Upsilon','\u03a6': 'Phi',
-    '\u03a7': 'Chi',   '\u03a8': 'Psi',    '\u03a9': 'Omega',
-  };
-
-  for (const [uni, ascii] of Object.entries(greekLower)) {
-    s = s.replace(new RegExp(uni, 'g'), ascii);
-  }
-  for (const [uni, ascii] of Object.entries(greekUpper)) {
-    s = s.replace(new RegExp(uni, 'g'), ascii);
-  }
+  // ── Greek letters: keep as Unicode ──
+  // AI understands Greek symbols. Local patterns match Unicode directly (e.g. sin θ).
+  // Converting to English words (θ→"theta") previously BROKE all regex pattern matching.
 
   // ── Math operators & symbols ──
   s = s.replace(/\u00d7/g, '*');           // × multiplication
@@ -167,9 +139,30 @@ function solveLinearEq(match: RegExpMatchArray): LocalSolution | null {
 
 function solveQuadratic(match: RegExpMatchArray): LocalSolution | null {
   const raw = match[0];
-  const nums = raw.match(/-?\d+\.?\d*/g)?.map(Number) || [];
-  if (nums.length < 3) return null;
-  const a = nums[0] || 1, b = nums[1] || 0, c = nums[2] || 0;
+  // Extract coefficients: match patterns like ax^2 + bx + c = 0
+  // Handle: x^2-5x+6=0, 2x^2 + 3x - 5 = 0, x² + x - 6 = 0
+  let a = 1, b = 0, c = 0;
+
+  // Extract a (coefficient of x^2)
+  const aMatch = raw.match(/(-?\d*)\s*[xXyY]\s*[\^²]\s*2/);
+  if (aMatch) {
+    a = aMatch[1] === '' || aMatch[1] === '+' ? 1 : aMatch[1] === '-' ? -1 : parseInt(aMatch[1]);
+  }
+
+  // Extract b (coefficient of x, between x^2 term and constant)
+  const bMatch = raw.match(/[\^²]\s*2\s*([+\-]\s*\d*)\s*[xXyY](?:\s*[+\-]|\s*=)/);
+  if (bMatch && bMatch[1]) {
+    const bStr = bMatch[1].replace(/\s/g, '');
+    b = bStr === '+' || bStr === '' ? 1 : bStr === '-' ? -1 : parseInt(bStr);
+  }
+
+  // Extract c (constant term before = 0)
+  const cMatch = raw.match(/([+\-]\s*\d+)\s*=\s*0/);
+  if (cMatch) {
+    c = parseInt(cMatch[1].replace(/\s/g, ''));
+  }
+
+  if (a === 0) return null;
   const D = b * b - 4 * a * c;
   if (D < 0) return {
     finalAnswer: `No real roots (discriminant = ${D} < 0)`, finalFormula: `D = ${D} < 0`,
@@ -596,9 +589,11 @@ function solveLCMGCD(match: RegExpMatchArray): LocalSolution | null {
 }
 
 function solveTrig(match: RegExpMatchArray): LocalSolution | null {
-  const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
-  if (nums.length < 2) return null;
-  const o=nums[0],h=nums[1],a=Math.sqrt(h*h-o*o);
+  // Handles: sin θ = 3/5, sin theta = 3/5, sin\theta = 3/5
+  const o = parseInt(match[1] || match[3] || '0');
+  const h = parseInt(match[2] || match[4] || '0');
+  if (!o || !h) return null;
+  const a=Math.sqrt(h*h-o*o);
   return {
     finalAnswer: `cos θ = ${(a/h).toFixed(4)}, tan θ = ${(o/a).toFixed(4)}`,
     finalFormula: `\\cos \\theta = ${a.toFixed(2)}/${h}, \\tan \\theta = ${o}/${a.toFixed(2)}`,
@@ -653,8 +648,8 @@ function solveIdentity(match: RegExpMatchArray): LocalSolution | null {
 interface PatternRule { regex: RegExp; solver: (m: RegExpMatchArray) => LocalSolution | null; }
 
 const PATTERNS: PatternRule[] = [
-  { regex: /solve\s+(\d+)\s*x\s*[+\-]\s*\d+\s*=\s*\d+/i, solver: solveLinearEq },
-  { regex: /solve\s+x\^2\s*[+\-]\s*\d+\s*x\s*[+\-]\s*\d+\s*=\s*0/i, solver: solveQuadratic },
+  { regex: /(?:solve|find)\s+[\d.]*\s*[xX]\s*[+\-]\s*\d+\s*=\s*\d+/i, solver: solveLinearEq },
+  { regex: /(?:solve|find|roots?)?\s*[xXyY]\s*[\^²]\s*2\s*[+\-]\s*\d+\s*[xXyY]?\s*[+\-]\s*-?\d+\s*=\s*0/i, solver: solveQuadratic },
   { regex: /find\s+([\d.]+)%\s+of\s+([\d.]+)/i, solver: solvePercentage },
   { regex: /simple\s+interest\s+on\s+rs\s*([\d.]+)\s+at\s*([\d.]+)%\s*per\s+annum\s+for\s*([\d.]+)\s*years/i, solver: solveSimpleInterest },
   { regex: /travels\s+([\d.]+)\s*km\s+in\s+([\d.]+)\s*hours/i, solver: solveSpeed },
@@ -679,7 +674,7 @@ const PATTERNS: PatternRule[] = [
   { regex: /(\d+)\s*mL.*?([\d.]+)\s*M\s+HCl.*?(\d+)\s*mL\s+NaOH/i, solver: solveReaction },
   { regex: /balance.*?Fe.*?O2.*?Fe2O3/i, solver: solveBalance },
   { regex: /LCM\s*(and|&)\s*GCD\s+of/i, solver: solveLCMGCD },
-  { regex: /sin\s*[θ\\theta]\s*=\s*(\d+)\/(\d+)/i, solver: solveTrig },
+  { regex: /sin\s*[θ\\theta]+(?:\s*=\s*(\d+)\s*\/\s*(\d+)|\s+(\d+)\s*\/\s*(\d+))/i, solver: solveTrig },
   { regex: /mean.*?median.*?mode\s+of/i, solver: solveStats },
   { regex: /\(a\+b\)\^2\s*-\s*\(a-b\)\^2/i, solver: solveIdentity },
 ];
