@@ -44,198 +44,165 @@ export function preprocessProblem(text: string): string {
     s = s.replace(new RegExp(uni, 'g'), `_${ascii}`);
   }
 
-  // ── Greek letters: keep as Unicode for AI, add word aliases for local patterns ──
-  // AI understands Greek symbols directly.
-  // For local solver, add word-name after the symbol so patterns can match both.
-  const greekAliases: Record<string, string> = {
-    '\u03b8': 'θ',  // theta
-    '\u03b1': 'α',  // alpha
-    '\u03b2': 'β',  // beta
-    '\u03b3': 'γ',  // gamma
-    '\u03c9': 'ω',  // omega
-    '\u03bb': 'λ',  // lambda
-    '\u03bc': 'μ',  // mu
-    '\u03c6': 'φ',  // phi
-    '\u03c0': 'π',  // pi
-    '\u0394': 'Δ',  // Delta (uppercase)
-    '\u03a3': 'Σ',  // Sigma (uppercase)
-  };
-  // These are already Unicode, just ensure they pass through unchanged.
+  // ── Math symbols ──
+  s = s.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
+  s = s.replace(/²/g, '^2').replace(/³/g, '^3');
 
-  // ── Math operators & symbols ──
-  s = s.replace(/\u00d7/g, '*');           // × multiplication
-  s = s.replace(/\u00f7/g, '/');           // ÷ division
-  s = s.replace(/\u2212/g, '-');           // − minus
-  s = s.replace(/\u2212/g, '-');           // minus sign
-  s = s.replace(/\u221a/g, 'sqrt');        // √ square root
-  s = s.replace(/\u221b/g, 'cbrt');        // ∛ cube root
-  s = s.replace(/\u221c/g, 'fourthrt');    // ∜ fourth root
-  s = s.replace(/\u00b1/g, '+/-');         // ± plus-minus
-  s = s.replace(/\u2213/g, '-/+');         // ∓ minus-plus
+  // ── Unicode minus → ASCII hyphen ──
+  s = s.replace(/\u2212/g, '-');
 
-  // ── Comparison & relation symbols ──
-  s = s.replace(/\u2260/g, '!=');          // ≠ not equal
-  s = s.replace(/\u2248/g, 'approximately'); // ≈ approximately
-  s = s.replace(/\u2245/g, 'approximately'); // ≅ congruent
-  s = s.replace(/\u2264/g, '<=');          // ≤ less than or equal
-  s = s.replace(/\u2265/g, '>=');          // ≥ greater than or equal
-  s = s.replace(/\u2190/g, '<-');          // ← left arrow
-  s = s.replace(/\u2192/g, '->');          // → right arrow
-  s = s.replace(/\u2194/g, '<->');         // ↔ left-right arrow
+  // ── Degree symbol (don't strip — useful for trig) ──
+  // s = s.replace(/°/g, ' deg ');
 
-  // ── Calculus & summation ──
-  s = s.replace(/\u222b/g, 'integral');    // ∫ integral
-  s = s.replace(/\u2211/g, 'sum');         // ∑ summation
-  s = s.replace(/\u220f/g, 'product');     // ∏ product
-  s = s.replace(/\u2202/g, 'partial');     // ∂ partial derivative
-  s = s.replace(/\u221e/g, 'infinity');    // ∞ infinity
-  s = s.replace(/\u2208/g, 'in');          // ∈ element of
-  s = s.replace(/\u2209/g, 'not in');      // ∉ not element of
-  s = s.replace(/\u2282/g, 'subset');      // ⊂ subset
-  s = s.replace(/\u2283/g, 'superset');    // ⊃ superset
-  s = s.replace(/\u2227/g, 'and');         // ∧ logical and
-  s = s.replace(/\u2228/g, 'or');          // ∨ logical or
-  s = s.replace(/\u2200/g, 'for all');     // ∀ for all
-  s = s.replace(/\u2203/g, 'there exists'); // ∃ there exists
+  // ── Fancy quotes ──
+  s = s.replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"');
 
-  // ── Angle / degree ──
-  s = s.replace(/\u00b0/g, ' degrees ');   // ° degree
-  s = s.replace(/\u2220/g, 'angle ');      // ∠ angle
+  // ── Em dashes and other punctuation ──
+  s = s.replace(/—|–/g, '-').replace(/…/g, '...');
 
-  // ── Chemistry / physics symbols ──
-  s = s.replace(/\u0394/g, 'delta');       // Δ (already in Greek upper, but ensure)
-  s = s.replace(/\u2102/g, 'Complex');     // ℂ complex numbers
-  s = s.replace(/\u211d/g, 'Real');        // ℝ real numbers
-  s = s.replace(/\u212f/g, 'e');           // ℯ Euler's number
-  s = s.replace(/\u2134/g, 'i');           // ℴ imaginary unit
+  // Normalize whitespace
+  s = s.replace(/\s+/g, ' ').trim();
 
-  // ── Misc commonly pasted symbols ──
-  s = s.replace(/\u2026/g, '...');         // … ellipsis
-  s = s.replace(/\u2013/g, '-');           // – en dash
-  s = s.replace(/\u2014/g, '--');          // — em dash
-  s = s.replace(/\u2018/g, "'");           // ' left single quote
-  s = s.replace(/\u2019/g, "'");           // ' right single quote
-  s = s.replace(/\u201c/g, '"');           // " left double quote
-  s = s.replace(/\u201d/g, '"');           // " right double quote
-  s = s.replace(/\u00a0/g, ' ');           // non-breaking space
-
-  // ── Handle ^ notation: convert "x^2" patterns that users type with actual superscripts ──
-  // Already handled above, but also normalize cases like "x2" → "x^2" when followed by space/operator
-  // This is context-dependent so we don't force it
-
-  // ── Handle ×10^n scientific notation ──
-  s = s.replace(/×\s*10\s*\^/gi, 'e');
-  s = s.replace(/\*\s*10\s*\^/gi, 'e');
-
-  return s.trim();
+  return s;
 }
 
+// ─── SOLVER FUNCTIONS ─────────────────────────────────────────────
+
 function solveLinearEq(match: RegExpMatchArray): LocalSolution | null {
-  const raw = match[0];
-  const numPattern = /-?\d+\.?\d*/g;
-  const nums = raw.match(numPattern)?.map(Number) || [];
-  if (nums.length < 2) return null;
-  const a = nums[0] || 1, b = nums[1] || 0, c = nums[2] || 0;
-  if (a === 0) return null;
-  const x = (c - b) / a;
+  const eq = match[0];
+  // Extract coefficient of x, constant on left, and RHS
+  const eqParts = eq.split('=');
+  if (eqParts.length !== 2) return null;
+  const lhs = eqParts[0].trim(), rhs = eqParts[1].trim();
+  const rhsNum = parseFloat(rhs);
+  if (isNaN(rhsNum)) return null;
+
+  // Find variable
+  const varMatch = lhs.match(/[xXyYzZ]/);
+  if (!varMatch) return null;
+  const v = varMatch[0];
+
+  // Parse: [coeff]var [+/- const] or just var + const
+  const cleaned = lhs.replace(/\s/g, '');
+  const coefMatch = cleaned.match(/^(-?\d*\.?\d*)\s*[xXyYzZ]/);
+  const coef = coefMatch && coefMatch[1] ? parseFloat(coefMatch[1]) : 1;
+  const constMatch = cleaned.match(/[+\-]\d+\.?\d*$/);
+  const constant = constMatch ? parseFloat(constMatch[0]) : 0;
+
+  const solution = (rhsNum - constant) / coef;
+  const solutionStr = Number.isInteger(solution) ? String(solution) : solution.toFixed(4);
+
   return {
-    finalAnswer: `x = ${x}`,
-    finalFormula: `x = ${x}`,
+    finalAnswer: `${v} = ${solutionStr}`,
+    finalFormula: `${v} = ${solutionStr}`,
     steps: [
-      { desc: `Start with the linear equation: ${a}x + ${b} = ${c}`, formula: `${a}x + ${b} = ${c}` },
-      { desc: `Subtract ${b} from both sides to isolate the term with x`, formula: `${a}x = ${c} - ${b} = ${c - b}` },
-      { desc: `Divide both sides by ${a} to solve for x`, formula: `x = ${c - b} / ${a} = ${x}` },
+      { desc: `Start with the linear equation: ${eq}`, formula: `${lhs} = ${rhs}` },
+      { desc: constant !== 0
+        ? `Move constant to RHS: ${coef === 1 ? '' : coef}${v} = ${rhsNum} ${constant > 0 ? '- ' + constant : '+ ' + Math.abs(constant)}`
+        : `Isolate ${v}: ${coef === 1 ? '' : coef}${v} = ${rhsNum}`,
+        formula: `${coef === 1 ? '' : coef}${v} = ${rhsNum - constant}` },
+      { desc: `Divide both sides by ${coef}`,
+        formula: `${v} = ${rhsNum - constant} / ${coef} = ${solutionStr}` },
     ],
-    altSteps: [{ desc: `Verification: Substitute x = ${x} back into the original equation`, formula: `${a}(${x}) + ${b} = ${a * x + b} = ${c} ✓` }],
-    similar: [`Solve ${a + 2}x + ${b + 3} = ${c + 5}`, `Solve ${a}x - ${b} = ${c + 10}`, `If ${a}x + ${b} = ${c}, find 3x + 1`],
+    altSteps: [
+      { desc: `Verification: Substitute ${v} = ${solutionStr}`, formula: `${coef}(${solutionStr}) ${constant >= 0 ? '+' : ''}${constant} = ${rhsNum} ✓` },
+    ],
+    similar: [`Solve ${coef + 1}${v} ${constant >= 0 ? '+' : ''}${constant} = ${rhsNum}`, `Find ${v} when ${coef}${v} = ${rhsNum - constant}`],
     mistakes: ["Forgetting to subtract b from both sides before dividing", "Dividing by the wrong coefficient", "Making sign errors when moving terms across the equals sign"],
   };
 }
 
 function solveQuadratic(match: RegExpMatchArray): LocalSolution | null {
-  const raw = match[0];
-  // Extract coefficients: match patterns like ax^2 + bx + c = 0
-  // Handle: x^2-5x+6=0, 2x^2 + 3x - 5 = 0, x² + x - 6 = 0
-  let a = 1, b = 0, c = 0;
+  // ax^2 + bx + c = 0
+  const text = match[0].toLowerCase();
+  const aMatch = text.match(/([-\d.]+)\s*[xXyYzZ]\s*[\^²]\s*2/);
+  const bMatch = text.match(/[+\-]\s*(\d+\.?\d*)\s*[xXyYzZ](?:\s*[\^²]\s*2)?\s*([+\-])/);
+  const cMatch = text.match(/([+\-]\s*\d+\.?\d*)\s*=\s*0/);
 
-  // Extract a (coefficient of x^2) — handles: x^2, 2x^2, -3x^2, 0.5x^2
-  const aMatch = raw.match(/(-?\d*\.?\d*)\s*[xXyY]\s*[\^²]\s*2/);
-  if (aMatch) {
-    const aStr = aMatch[1].replace(/\s/g, '');
-    a = aStr === '' || aStr === '+' ? 1 : aStr === '-' ? -1 : parseFloat(aStr);
+  const a = aMatch ? parseFloat(aMatch[1]) : 1;
+  // Extract b and c more reliably
+  const allNums = text.match(/-?\d+\.?\d*/g)?.map(Number) || [];
+  let b = 0, c = 0;
+  if (allNums.length >= 3) {
+    b = allNums[1]; c = allNums[2];
+  } else if (allNums.length === 2) {
+    b = allNums[0]; c = allNums[1];
+  } else return null;
+
+  const disc = b * b - 4 * a * c;
+  if (disc < 0) {
+    const realPart = (-b / (2 * a)).toFixed(4);
+    const imagPart = (Math.sqrt(-disc) / (2 * a)).toFixed(4);
+    return {
+      finalAnswer: `x = ${realPart} ± ${imagPart}i (complex roots)`,
+      finalFormula: `x = \\frac{-b \\pm \\sqrt{D}}{2a} = ${realPart} \\pm ${imagPart}i`,
+      steps: [
+        { desc: `Identify: a=${a}, b=${b}, c=${c}`, formula: `a=${a}, b=${b}, c=${c}` },
+        { desc: `Discriminant D = b²-4ac = ${disc} (negative → complex roots)`, formula: `D = ${b}^2 - 4(${a})(${c}) = ${disc}` },
+        { desc: `x = (-b ± i√|D|) / 2a`, formula: `x = ${realPart} \\pm ${imagPart}i` },
+      ],
+      altSteps: [], similar: [`Find roots of ${a}x^2 + ${b+1}x + ${c} = 0`],
+      mistakes: ["Wrong sign for discriminant", "Not dividing by 2a", "Arithmetic errors in b²"],
+    };
   }
 
-  // Extract b (coefficient of x, between x^2 term and constant)
-  const bMatch = raw.match(/[\^²]\s*2\s*([+\-]\s*\d*\.?\d*)\s*[xXyY](?:\s*[+\-]|\s*=)/);
-  if (bMatch && bMatch[1]) {
-    const bStr = bMatch[1].replace(/\s/g, '');
-    b = bStr === '+' || bStr === '' ? 1 : bStr === '-' ? -1 : parseFloat(bStr);
-  }
+  const sqrtDisc = Math.sqrt(disc);
+  const x1 = (-b + sqrtDisc) / (2 * a);
+  const x2 = (-b - sqrtDisc) / (2 * a);
+  const fmt = (n: number) => Number.isInteger(n) ? String(n) : n.toFixed(4);
 
-  // Extract c (constant term before = 0)
-  const cMatch = raw.match(/([+\-]\s*\d+\.?\d*)\s*=\s*0/);
-  if (cMatch) {
-    c = parseFloat(cMatch[1].replace(/\s/g, ''));
-  }
-
-  if (a === 0) return null;
-  const D = b * b - 4 * a * c;
-  if (D < 0) return {
-    finalAnswer: `No real roots (discriminant = ${D} < 0)`, finalFormula: `D = ${D} < 0`,
-    steps: [
-      { desc: `Identify coefficients: a = ${a}, b = ${b}, c = ${c}`, formula: `a = ${a}, b = ${b}, c = ${c}` },
-      { desc: `Calculate discriminant D = b² - 4ac`, formula: `D = ${b}² - 4(${a})(${c}) = ${b*b} - ${4*a*c} = ${D}` },
-      { desc: `Since D < 0, there are no real roots.`, formula: `D = ${D} < 0` },
-    ],
-    altSteps: [], similar: [`Solve x² - 3x + 2 = 0`, `Solve 2x² + 5x - 3 = 0`, `Find roots of x² + 4x + 4 = 0`],
-    mistakes: ["Forgetting to check the discriminant", "Arithmetic errors in b² - 4ac", "Confusing signs of b in quadratic formula"],
-  };
-  const sqrtD = Math.sqrt(D), x1 = (-b + sqrtD) / (2 * a), x2 = (-b - sqrtD) / (2 * a);
   return {
-    finalAnswer: D === 0 ? `x = ${x1} (repeated root)` : `x = ${x1} or x = ${x2}`,
-    finalFormula: D === 0 ? `x = ${x1}` : `x = ${x1}, ${x2}`,
+    finalAnswer: disc === 0 ? `x = ${fmt(x1)} (equal roots)` : `x = ${fmt(x1)} or x = ${fmt(x2)}`,
+    finalFormula: disc === 0
+      ? `x = \\frac{-b}{2a} = ${fmt(x1)}`
+      : `x = \\frac{-b \\pm \\sqrt{D}}{2a} = ${fmt(x1)}, ${fmt(x2)}`,
     steps: [
-      { desc: `Identify coefficients: a = ${a}, b = ${b}, c = ${c}`, formula: `${a}x² + ${b}x + ${c} = 0` },
-      { desc: `Calculate discriminant D = b² - 4ac`, formula: `D = ${b*b} - ${4*a*c} = ${D}` },
-      { desc: D === 0 ? `D = 0, one repeated root.` : `D > 0, two distinct real roots.`, formula: `x = (${-b} ± √${D}) / ${2*a}` },
-      { desc: `Calculate root(s)`, formula: D === 0 ? `x = ${x1}` : `x₁ = ${x1}, x₂ = ${x2}` },
+      { desc: `Identify: a=${a}, b=${b}, c=${c}`, formula: `a=${a}, b=${b}, c=${c}` },
+      { desc: `Discriminant D = b²-4ac`, formula: `D = ${b}^2 - 4(${a})(${c}) = ${disc}` },
+      { desc: disc > 0 ? `D > 0 → Two distinct real roots` : `D = 0 → Equal roots`, formula: disc > 0 ? `\\sqrt{D} = ${fmt(sqrtDisc)}` : `D = 0` },
+      { desc: `x = (-b ± √D) / 2a`, formula: `x = ${fmt(x1)}, ${fmt(x2)}` },
     ],
-    altSteps: [{ desc: `Verification: substitute x₁ = ${x1}`, formula: `${a}(${x1})² + ${b}(${x1}) + ${c} = ${a*x1*x1+b*x1+c} ≈ 0 ✓` }],
-    similar: [`Solve x² - 7x + 12 = 0`, `Solve 3x² - 2x - 1 = 0`, `Find roots where sum = 5, product = 6`],
-    mistakes: ["Forgetting to divide by 2a", "Sign errors: using +b instead of -b", "Not checking if D is negative"],
+    altSteps: [
+      { desc: `Sum of roots = -b/a = ${fmt(-b/a)}`, formula: `\\alpha + \\beta = ${fmt(-b/a)}` },
+      { desc: `Product of roots = c/a = ${fmt(c/a)}`, formula: `\\alpha \\beta = ${fmt(c/a)}` },
+    ],
+    similar: [`Find roots of ${a}x^2 + ${b+1}x + ${c} = 0`, `Sum and product of roots for a=${a}, b=${b}, c=${c}`],
+    mistakes: ["Wrong sign for b in the formula", "Forgetting to divide by 2a", "Arithmetic errors in discriminant calculation"],
   };
 }
 
 function solvePercentage(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
   if (nums.length < 2) return null;
-  const pct = nums[0], total = nums[1], result = (pct / 100) * total;
+  const pct = nums[0], val = nums[1], result = (pct / 100) * val;
   return {
-    finalAnswer: `${pct}% of ${total} = ${result}`, finalFormula: `${pct}\\% \\times ${total} = ${result}`,
+    finalAnswer: `${pct}% of ${val} = ${result}`, finalFormula: `${pct}\\% \\times ${val} = ${result}`,
     steps: [
-      { desc: `Convert percentage to decimal: ${pct}% = ${pct}/100 = ${pct/100}`, formula: `${pct}% = ${pct/100}` },
-      { desc: `Multiply by total value`, formula: `${pct/100} \\times ${total} = ${result}` },
+      { desc: `Convert percentage to fraction: ${pct}% = ${pct}/100`, formula: `${pct}\\% = \\frac{${pct}}{100}` },
+      { desc: `Multiply by ${val}`, formula: `\\frac{${pct}}{100} \\times ${val}` },
+      { desc: `= ${result}`, formula: `= ${result}` },
     ],
-    altSteps: [{ desc: `Using fraction method`, formula: `(${pct}/100) \\times ${total} = ${result}` }],
-    similar: [`Find ${pct+10}% of ${total+50}`, `Find ${pct}% of ${total*2}`, `${result} is what percent of ${total}?`],
-    mistakes: ["Forgetting to divide percentage by 100", "Confusing 'of' with other operations", "Misreading the question"],
+    altSteps: [{ desc: `Method 2: ${val} × 0.${pct} = ${result}`, formula: `${val} \\times 0.${pct} = ${result}` }],
+    similar: [`${pct + 10}% of ${val}`, `What % is ${result} of ${val}?`],
+    mistakes: ["Dividing by 1000 instead of 100", "Moving decimal wrong direction", "Confusing percentage with decimal"],
   };
 }
 
 function solveSimpleInterest(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
   if (nums.length < 3) return null;
-  const P = nums[0], R = nums[1], T = nums[2], si = (P * R * T) / 100, A = P + si;
+  const p = nums[0], r = nums[1], t = nums[2], si = (p * r * t) / 100, amt = p + si;
   return {
-    finalAnswer: `Simple Interest = Rs ${si}, Total Amount = Rs ${A}`, finalFormula: `SI = \\frac{${P} \\times ${R} \\times ${T}}{100} = ${si}`,
+    finalAnswer: `Simple Interest = Rs ${si}, Amount = Rs ${amt}`,
+    finalFormula: `SI = \\frac{P \\times R \\times T}{100} = Rs ${si}`,
     steps: [
-      { desc: `Given: P = Rs ${P}, R = ${R}% per annum, T = ${T} years`, formula: `P = ${P}, R = ${R}%, T = ${T}` },
-      { desc: `Apply SI formula: SI = PRT/100`, formula: `SI = (${P} \\times ${R} \\times ${T}) / 100 = ${si}` },
-      { desc: `Total amount = P + SI`, formula: `A = ${P} + ${si} = ${A}` },
+      { desc: `P = Rs ${p}, R = ${r}%, T = ${t} years`, formula: `P=${p}, R=${r}\\%, T=${t}` },
+      { desc: `SI = (P × R × T) / 100`, formula: `SI = \\frac{${p} \\times ${r} \\times ${t}}{100}` },
+      { desc: `SI = Rs ${si}`, formula: `= ${si}` },
+      { desc: `Amount = P + SI = Rs ${amt}`, formula: `A = ${p} + ${si} = ${amt}` },
     ],
-    altSteps: [{ desc: `Interest per year = ${P*R/100}, for ${T} years = ${si} ✓`, formula: `${P*R/100} \\times ${T} = ${si}` }],
-    similar: [`SI on Rs ${P*2} at ${R+2}% for ${T+1} years`, `Find CI on Rs ${P} at ${R}% for ${T} years`, `In how many years will Rs ${P} double at ${R}%?`],
-    mistakes: ["Forgetting to divide by 100", "Confusing SI with CI", "Not converting time to years if given in months"],
+    altSteps: [], similar: [`SI on Rs ${p + 1000} at ${r}% for ${t} years`, `Find T if SI = ${si}, P = ${p}, R = ${r}%`],
+    mistakes: ["Using compound interest formula", "Wrong units for time", "Not converting months to years"],
   };
 }
 
@@ -244,15 +211,15 @@ function solveSpeed(match: RegExpMatchArray): LocalSolution | null {
   if (nums.length < 2) return null;
   const d = nums[0], t = nums[1], v = d / t, vMs = (v * 1000) / 3600;
   return {
-    finalAnswer: `Speed = ${v} km/h = ${vMs.toFixed(2)} m/s`, finalFormula: `v = ${v} \\text{ km/h} = ${vMs.toFixed(2)} \\text{ m/s}`,
+    finalAnswer: `Speed = ${v} km/h = ${vMs.toFixed(2)} m/s`,
+    finalFormula: `v = d/t = ${v} \\text{ km/h}`,
     steps: [
-      { desc: `Given: Distance = ${d} km, Time = ${t} hours`, formula: `d = ${d} km, t = ${t} hr` },
+      { desc: `Distance = ${d} km, Time = ${t} hours`, formula: `d = ${d} km, t = ${t} hr` },
       { desc: `Speed = Distance / Time`, formula: `v = ${d} / ${t} = ${v} km/h` },
-      { desc: `Convert to m/s: multiply by 5/18`, formula: `${v} \\times 5/18 = ${vMs.toFixed(2)} m/s` },
+      { desc: `Convert to m/s (× 5/18)`, formula: `${v} \\times 5/18 = ${vMs.toFixed(2)} m/s` },
     ],
-    altSteps: [{ desc: `Convert distance to meters first: ${d*1000}m / ${t*3600}s`, formula: `${d*1000} / ${t*3600} = ${vMs.toFixed(2)} m/s ✓` }],
-    similar: [`A car travels ${d+100} km in ${t+1} hours. Find speed.`, `A cyclist covers ${d} km at ${v} km/h. Find time.`, `A train at ${vMs.toFixed(0)} m/s for ${t} hours. Find distance.`],
-    mistakes: ["Forgetting km/h to m/s conversion", "Using time/distance instead of distance/time", "Mixing units inconsistently"],
+    altSteps: [], similar: [`Speed for ${d + 50}km in ${t}hr`, `Time to cover ${d}km at ${v}km/h`],
+    mistakes: ["Wrong formula (time/distance)", "Unit conversion errors", "Mixed units"],
   };
 }
 
@@ -261,454 +228,469 @@ function solveAreaCircle(match: RegExpMatchArray): LocalSolution | null {
   if (nums.length < 1) return null;
   const r = nums[0], area = Math.PI * r * r, circ = 2 * Math.PI * r;
   return {
-    finalAnswer: `Area = ${area.toFixed(2)} sq cm`, finalFormula: `A = \\pi r^2 = ${area.toFixed(2)} \\text{ cm}^2`,
+    finalAnswer: `Area = ${area.toFixed(2)} sq. units, Circumference = ${circ.toFixed(2)} units`,
+    finalFormula: `A = \\pi r^2 = ${area.toFixed(2)}`,
     steps: [
-      { desc: `Radius = ${r} cm`, formula: `r = ${r} cm` },
-      { desc: `Apply A = πr²`, formula: `A = \\pi \\times ${r}^2 = ${area.toFixed(2)} cm²` },
+      { desc: `Radius = ${r}`, formula: `r = ${r}` },
+      { desc: `Area = πr²`, formula: `A = \\pi \\times ${r}^2 = ${area.toFixed(2)}` },
+      { desc: `Circumference = 2πr`, formula: `C = 2\\pi \\times ${r} = ${circ.toFixed(2)}` },
     ],
-    altSteps: [{ desc: `Circumference C = 2πr`, formula: `C = 2\\pi \\times ${r} = ${circ.toFixed(2)} cm` }],
-    similar: [`Area of circle with radius ${r+7} cm`, `Area of circle with diameter ${r*2} cm`, `Circumference when area = ${area.toFixed(0)} sq cm`],
-    mistakes: ["Using diameter instead of radius", "Forgetting to square the radius", "Wrong value of π"],
+    altSteps: [], similar: [`Area of circle r=${r + 2}`, `Area of semicircle r=${r}`],
+    mistakes: ["Using diameter instead of radius", "Forgetting π", "Confusing area and circumference"],
   };
 }
 
 function solvePythagoras(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
   if (nums.length < 2) return null;
-  const a = nums[0], b = nums[1], c = Math.sqrt(a*a + b*b);
+  const a = nums[0], b = nums[1], c = Math.sqrt(a * a + b * b);
   return {
-    finalAnswer: `Height = ${c.toFixed(2)} m`, finalFormula: `h = \\sqrt{${a}^2 + ${b}^2} = ${c.toFixed(2)} \\text{ m}`,
+    finalAnswer: `Hypotenuse = ${c.toFixed(2)}`,
+    finalFormula: `c = \\sqrt{a^2 + b^2} = ${c.toFixed(2)}`,
     steps: [
-      { desc: `Right triangle: hypotenuse = ${a} m, base = ${b} m`, formula: `${a} m, ${b} m` },
-      { desc: `h² = hyp² - base²`, formula: `h^2 = ${a}^2 - ${b}^2 = ${a*a - b*b}` },
-      { desc: `h = √${a*a - b*b} = ${c.toFixed(2)} m`, formula: `h = ${c.toFixed(2)} m` },
+      { desc: `a = ${a}, b = ${b}`, formula: `a = ${a}, b = ${b}` },
+      { desc: `c² = a² + b²`, formula: `c^2 = ${a}^2 + ${b}^2 = ${a*a + b*b}` },
+      { desc: `c = √${a*a + b*b} = ${c.toFixed(2)}`, formula: `c = ${c.toFixed(2)}` },
     ],
-    altSteps: [], similar: [`Ladder ${a+2}m, foot ${b+1}m away. Find height.`, `Right triangle legs 5cm, 12cm. Find hypotenuse.`, `Hypotenuse 13cm, leg 5cm. Find other leg.`],
-    mistakes: ["Mixing up hypotenuse", "Forgetting square root", "Using addition instead of subtraction for a leg"],
+    altSteps: [], similar: [`If a=${a+1}, b=${b}, find c`, `Find b if a=${a}, c=${c.toFixed(0)}`],
+    mistakes: ["Adding a + b instead of a² + b²", "Not taking square root", "Wrong sides in formula"],
   };
 }
 
 function solveNewton(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
   if (nums.length < 2) return null;
-  const F = nums[0], m = nums[1], a = F / m;
+  const m = nums[0], f = nums[1], a = f / m;
   return {
-    finalAnswer: `Acceleration = ${a} m/s²`, finalFormula: `a = F/m = ${F}/${m} = ${a} \\text{ m/s}^2`,
+    finalAnswer: `Acceleration = ${a.toFixed(2)} m/s²`,
+    finalFormula: `a = F/m = ${a.toFixed(2)} \\text{ m/s}^2`,
     steps: [
-      { desc: `F = ${F} N, m = ${m} kg`, formula: `F = ${F} N, m = ${m} kg` },
-      { desc: `F = ma, so a = F/m`, formula: `a = ${F} / ${m} = ${a}` },
+      { desc: `Mass = ${m} kg, Force = ${f} N`, formula: `m=${m}kg, F=${f}N` },
+      { desc: `F = ma → a = F/m`, formula: `a = ${f}/${m}` },
+      { desc: `a = ${a.toFixed(2)} m/s²`, formula: `a = ${a.toFixed(2)} m/s^2` },
     ],
-    altSteps: [{ desc: `Check: F = ma → ${m}×${a} = ${m*a} N ✓`, formula: `${m} \\times ${a} = ${m*a} N` }],
-    similar: [`${m+3}kg pushed with ${F+5}N. Find a.`, `What force for ${m}kg at ${a+2}m/s²?`, `${m*2}kg at ${a}m/s². Find F.`],
-    mistakes: ["Confusing mass and weight", "Wrong units", "Forgetting friction reduces net force"],
+    altSteps: [], similar: [`a if F=${f+10}N, m=${m}kg`, `Find F if m=${m}kg, a=5m/s²`],
+    mistakes: ["Using a = m/F instead of F/m", "Unit mismatch (g vs kg)", "Not converting units"],
   };
 }
 
 function solveOhm(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
   if (nums.length < 2) return null;
-  const V = nums[0], I = nums[1], R = V / I;
+  const v = nums[0], i = nums[1], r = v / i, p = v * i;
   return {
-    finalAnswer: `Resistance = ${R} Ω`, finalFormula: `R = V/I = ${V}/${I} = ${R} \\Omega`,
+    finalAnswer: `Resistance = ${r.toFixed(2)} Ω, Power = ${p.toFixed(2)} W`,
+    finalFormula: `R = V/I = ${r.toFixed(2)} \\Omega`,
     steps: [
-      { desc: `V = ${V} V, I = ${I} A`, formula: `V = ${V} V, I = ${I} A` },
-      { desc: `Ohm's Law: V = IR, R = V/I`, formula: `R = ${V} / ${I} = ${R} Ω` },
+      { desc: `Voltage = ${v} V, Current = ${i} A`, formula: `V=${v}V, I=${i}A` },
+      { desc: `R = V/I`, formula: `R = ${v}/${i} = ${r.toFixed(2)} Ω` },
+      { desc: `P = VI`, formula: `P = ${v} × ${i} = ${p.toFixed(2)} W` },
     ],
-    altSteps: [], similar: [`${R+2}Ω with ${V}V. Find current.`, `${R}Ω with ${I+1}A. Find voltage.`, `Two ${R}Ω in series with ${V}V.`],
-    mistakes: ["Confusing V and I", "Not converting units (kΩ, mA)", "Using P=VI when asked for R"],
+    altSteps: [], similar: [`R if V=${v+5}V, I=${i}A`, `Find V if R=${r.toFixed(0)}Ω, I=${i}A`],
+    mistakes: ["Using R = I/V", "Confusing series and parallel", "Unit errors"],
   };
 }
 
 function solvePH(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
   if (nums.length < 1) return null;
-  const c = nums[0], pH = -Math.log10(c);
+  const conc = nums[0], ph = -Math.log10(conc);
   return {
-    finalAnswer: `pH = ${pH.toFixed(2)}`, finalFormula: `\\text{pH} = -\\log[${c}] = ${pH.toFixed(2)}`,
+    finalAnswer: `pH = ${ph.toFixed(2)} (${ph < 7 ? 'acidic' : ph === 7 ? 'neutral' : 'basic'})`,
+    finalFormula: `pH = -\\log[${conc}] = ${ph.toFixed(2)}`,
     steps: [
-      { desc: `[H⁺] = ${c} M (strong acid, fully dissociates)`, formula: `[H^+] = ${c} M` },
-      { desc: `pH = -log[H⁺]`, formula: `pH = -\\log(${c}) = ${pH.toFixed(2)}` },
+      { desc: `[H⁺] = ${conc} M`, formula: `[H^+] = ${conc}` },
+      { desc: `pH = -log[H⁺]`, formula: `pH = -\\log(${conc})` },
+      { desc: `pH = ${ph.toFixed(2)}`, formula: `= ${ph.toFixed(2)}` },
     ],
-    altSteps: [{ desc: `pOH = 14 - pH = ${(14-pH).toFixed(2)}`, formula: `pOH = ${(14-pH).toFixed(2)}` }],
-    similar: [`pH of ${c*10}M HCl?`, `pH of 0.001M NaOH?`, `[H⁺] if pH = ${pH.toFixed(0)}?`],
-    mistakes: ["Forgetting negative sign", "Not recognizing strong acid dissociation", "Confusing pH with pOH"],
+    altSteps: [], similar: [`pH of ${conc * 10}M HCl`, `pH of ${conc}M NaOH`],
+    mistakes: ["Using log instead of -log", "Not converting to moles first", "Confusing [H⁺] and [OH⁻]"],
   };
 }
 
 function solveMolarity(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
   if (nums.length < 2) return null;
-  const g = nums[0], vmL = nums[1], Mw = 40, n = g / Mw, vL = vmL / 1000, M = n / vL;
+  const mass = nums[0], vol = nums[1] / 1000, moles = mass / 40, molarity = moles / vol;
   return {
-    finalAnswer: `Molarity = ${M} M`, finalFormula: `M = n/V = ${n}/${vL} = ${M} \\text{ M}`,
+    finalAnswer: `Molarity = ${molarity.toFixed(2)} M`,
+    finalFormula: `M = n/V = ${molarity.toFixed(2)} M`,
     steps: [
-      { desc: `Mass = ${g}g, Volume = ${vmL}mL, Mw(NaOH) = 40 g/mol`, formula: `m = ${g}g, V = ${vmL}mL` },
-      { desc: `Moles = mass / molar mass`, formula: `n = ${g}/40 = ${n} mol` },
-      { desc: `Volume in L = ${vL}`, formula: `V = ${vL} L` },
-      { desc: `M = n/V`, formula: `M = ${n}/${vL} = ${M} M` },
+      { desc: `Mass = ${mass}g NaOH, Volume = ${vol}L`, formula: `m=${mass}g, V=${vol}L` },
+      { desc: `Moles = mass/Molar mass = ${mass}/40 = ${moles}`, formula: `n = ${mass}/40 = ${moles}` },
+      { desc: `Molarity = moles/volume`, formula: `M = ${moles}/${vol} = ${molarity.toFixed(2)} M` },
     ],
-    altSteps: [], similar: [`${g+8}g NaOH in ${vmL}mL`, `${g}g HCl (M=36.5) in ${vmL*2}mL`, `Grams of NaOH for 1M in 500mL?`],
-    mistakes: ["Forgetting mL to L conversion", "Wrong molar mass", "Confusing molarity with molality"],
+    altSteps: [], similar: [`Molarity of ${mass * 2}g NaOH in ${nums[1]}mL`],
+    mistakes: ["Not converting mL to L", "Wrong molar mass", "Confusing moles and molarity"],
   };
 }
 
 function solveProjectile(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
   if (nums.length < 1) return null;
-  const u = nums[0], g = nums.length > 1 && nums[1] === 10 ? 10 : 9.8;
-  const h = (u*u)/(2*g), tUp = u/g, tTotal = 2*tUp;
+  const u = nums[0], h = (u * u) / (2 * 9.8), t = u / 9.8;
   return {
-    finalAnswer: `Max Height = ${h.toFixed(2)} m, Time = ${tTotal.toFixed(2)} s`,
-    finalFormula: `h = u^2/2g = ${h.toFixed(2)} \\text{ m}`,
+    finalAnswer: `Max height = ${h.toFixed(2)} m, Time = ${t.toFixed(2)} s`,
+    finalFormula: `H = \\frac{u^2}{2g} = ${h.toFixed(2)} m`,
     steps: [
-      { desc: `u = ${u} m/s, g = ${g} m/s², v = 0 at max height`, formula: `u = ${u}, g = ${g}` },
-      { desc: `h = u²/2g`, formula: `h = ${u}²/(2×${g}) = ${h.toFixed(2)} m` },
-      { desc: `Time up = u/g, total = 2t`, formula: `t = ${tTotal.toFixed(2)} s` },
+      { desc: `Initial velocity u = ${u} m/s, g = 9.8 m/s²`, formula: `u=${u}, g=9.8` },
+      { desc: `At max height, v = 0`, formula: `v = 0` },
+      { desc: `v² = u² - 2gh → h = u²/2g`, formula: `H = ${u}^2 / (2 × 9.8) = ${h.toFixed(2)} m` },
+      { desc: `Time = u/g`, formula: `t = ${u}/9.8 = ${t.toFixed(2)} s` },
     ],
-    altSteps: [], similar: [`Ball at ${u+10}m/s. Max height?`, `Time to return from ${u}m/s?`, `Height ${h.toFixed(0)}m. Find u.`],
-    mistakes: ["Using g = +9.8 for upward", "Confusing time up with total time", "v≠0 at max height assumption"],
+    altSteps: [], similar: [`Max height if u=${u + 5}m/s`, `Total time of flight`],
+    mistakes: ["Using +2gh instead of -2gh", "Forgetting g = 9.8", "Wrong sign convention"],
   };
 }
 
 function solveWorkPower(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
   if (nums.length < 3) return null;
-  const m = nums[0], h = nums[1], t = nums[2], g = 9.8, W = m*g*h, P = W/t;
+  const m = nums[0], h = nums[1], t = nums[2];
+  const work = m * 9.8 * h, power = work / t;
   return {
-    finalAnswer: `Work = ${W} J, Power = ${P.toFixed(2)} W`, finalFormula: `P = mgh/t = ${P.toFixed(2)} W`,
+    finalAnswer: `Power = ${power.toFixed(2)} W`,
+    finalFormula: `P = W/t = ${power.toFixed(2)} W`,
     steps: [
-      { desc: `m = ${m}kg, h = ${h}m, t = ${t}s`, formula: `m=${m}, h=${h}, t=${t}` },
-      { desc: `W = mgh`, formula: `W = ${m}×${g}×${h} = ${W} J` },
-      { desc: `P = W/t`, formula: `P = ${W}/${t} = ${P.toFixed(2)} W` },
+      { desc: `Mass = ${m} kg, Height = ${h} m, Time = ${t} s`, formula: `m=${m}, h=${h}, t=${t}` },
+      { desc: `Work = mgh = ${m} × 9.8 × ${h} = ${work} J`, formula: `W = mgh = ${work} J` },
+      { desc: `Power = Work/Time = ${work}/${t} = ${power.toFixed(2)} W`, formula: `P = W/t = ${power.toFixed(2)} W` },
     ],
-    altSteps: [], similar: [`${m+20}kg climbs ${h+2}m in ${t-2}s`, `Work lifting ${m}kg to ${h}m?`, `Power for ${m}kg to ${h}m in ${t}s?`],
-    mistakes: ["Forgetting g in mgh", "Confusing J with W", "Wrong g value"],
+    altSteps: [], similar: [`Power if m=${m + 10}kg, h=${h}m`],
+    mistakes: ["Using g = 10 instead of 9.8 (or vice versa)", "Not converting time units", "Confusing work and power"],
   };
 }
 
 function solveFreeFall(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
   if (nums.length < 1) return null;
-  const h = nums[0], g = nums.length > 1 && nums[1] === 10 ? 10 : 9.8, v = Math.sqrt(2*g*h);
+  const h = nums[0], v = Math.sqrt(2 * 9.8 * h), t = Math.sqrt(2 * h / 9.8);
   return {
-    finalAnswer: `Velocity = ${v.toFixed(2)} m/s`, finalFormula: `v = \\sqrt{2gh} = ${v.toFixed(2)} \\text{ m/s}`,
+    finalAnswer: `Velocity = ${v.toFixed(2)} m/s, Time = ${t.toFixed(2)} s`,
+    finalFormula: `v = \\sqrt{2gh} = ${v.toFixed(2)} m/s`,
     steps: [
-      { desc: `h = ${h}m, u = 0, g = ${g}`, formula: `h=${h}, u=0, g=${g}` },
-      { desc: `v² = u² + 2gh = 2gh`, formula: `v^2 = 2×${g}×${h} = ${2*g*h}` },
-      { desc: `v = √${2*g*h} = ${v.toFixed(2)} m/s`, formula: `v = ${v.toFixed(2)} m/s` },
+      { desc: `Height h = ${h} m`, formula: `h = ${h} m` },
+      { desc: `v² = 2gh`, formula: `v = \\sqrt{2 \\times 9.8 \\times ${h}}` },
+      { desc: `v = ${v.toFixed(2)} m/s`, formula: `v = ${v.toFixed(2)} m/s` },
+      { desc: `t = √(2h/g) = ${t.toFixed(2)} s`, formula: `t = ${t.toFixed(2)} s` },
     ],
-    altSteps: [], similar: [`Fall from ${h+10}m. Velocity?`, `Time to fall ${h}m?`, `Height for ${v.toFixed(0)}m/s?`],
-    mistakes: ["Using u≠0", "g adds to velocity not subtracts", "Confusing with horizontal distance"],
+    altSteps: [], similar: [`Drop from ${h + 20}m`, `Find h if v = ${v.toFixed(0)}m/s`],
+    mistakes: ["Using v = gt without considering h", "Wrong value of g", "Not converting units"],
   };
 }
 
 function solveMomentum(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
   if (nums.length < 4) return null;
-  const m1=nums[0],v1=nums[1],m2=nums[2],v2=nums[3];
-  const p = m1*v1+m2*v2, M = m1+m2, vf = p/M;
+  const m1 = nums[0], v1 = nums[1], m2 = nums[2], v2 = nums[3];
+  const vf = (m1 * v1 + m2 * v2) / (m1 + m2);
   return {
-    finalAnswer: `Final velocity = ${vf.toFixed(2)} m/s`, finalFormula: `v_f = \\frac{${p}}{${M}} = ${vf.toFixed(2)} \\text{ m/s}`,
+    finalAnswer: `Final velocity = ${vf.toFixed(2)} m/s`,
+    finalFormula: `v_f = \\frac{m_1 v_1 + m_2 v_2}{m_1 + m_2} = ${vf.toFixed(2)}`,
     steps: [
-      { desc: `m₁=${m1}kg u₁=${v1}m/s, m₂=${m2}kg u₂=${v2}m/s`, formula: `m_1=${m1}, u_1=${v1}, m_2=${m2}, u_2=${v2}` },
-      { desc: `Conservation: m₁u₁ + m₂u₂ = (m₁+m₂)v`, formula: `${m1}(${v1}) + ${m2}(${v2}) = ${M}v` },
-      { desc: `v = ${p}/${M} = ${vf.toFixed(2)} m/s`, formula: `v = ${vf.toFixed(2)} m/s` },
+      { desc: `m₁=${m1}kg, v₁=${v1}m/s, m₂=${m2}kg, v₂=${v2}m/s`, formula: `m_1=${m1}, v_1=${v1}, m_2=${m2}, v_2=${v2}` },
+      { desc: `Conservation of momentum: m₁v₁ + m₂v₂ = (m₁+m₂)vf`, formula: `p_1 + p_2 = p_f` },
+      { desc: `vf = (${m1}×${v1} + ${m2}×${v2}) / (${m1}+${m2})`, formula: `v_f = ${vf.toFixed(2)} m/s` },
     ],
-    altSteps: [], similar: [`${m1}kg at ${v1}m/s hits stationary ${m2}kg`, `Two ${m1}kg at ${v1} and -${v1} m/s collide`, `${m1+2}kg at ${v1+5}m/s hits ${m2}kg at rest`],
-    mistakes: ["Direction matters for velocity signs", "Using KE conservation (elastic only)", "Not accounting both momenta"],
+    altSteps: [], similar: [`If m₂=${m2 * 2}kg, find vf`],
+    mistakes: ["Not conserving momentum correctly", "Wrong sign for velocities", "Not adding masses"],
   };
 }
 
 function solveCircular(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
   if (nums.length < 3) return null;
-  const m=nums[0],r=nums[1],v=nums[2], F = (m*v*v)/r;
+  const m = nums[0], r = nums[1], v = nums[2], fc = (m * v * v) / r;
   return {
-    finalAnswer: `Centripetal Force = ${F.toFixed(2)} N`, finalFormula: `F_c = mv^2/r = ${F.toFixed(2)} N`,
+    finalAnswer: `Centripetal Force = ${fc.toFixed(2)} N`,
+    finalFormula: `F_c = \\frac{mv^2}{r} = ${fc.toFixed(2)} N`,
     steps: [
       { desc: `m=${m}kg, r=${r}m, v=${v}m/s`, formula: `m=${m}, r=${r}, v=${v}` },
-      { desc: `F = mv²/r`, formula: `F = ${m}×${v}²/${r} = ${F.toFixed(2)} N` },
+      { desc: `Fc = mv²/r`, formula: `F_c = \\frac{${m} \\times ${v}^2}{${r}}` },
+      { desc: `= ${fc.toFixed(2)} N`, formula: `= ${fc.toFixed(2)} N` },
     ],
-    altSteps: [], similar: [`${m+1}kg at ${v+1}m/s radius ${r+1}m`, `Velocity for ${F.toFixed(0)}N with ${m}kg in ${r}m?`, `${m}kg radius ${r*2}m at ${v}m/s`],
-    mistakes: ["Confusing centripetal with centrifugal", "Using diameter instead of radius", "Direction of force"],
+    altSteps: [], similar: [`Fc if v is doubled`, `Find v if Fc=${fc.toFixed(0)}N`],
+    mistakes: ["Using F = mv/r instead of mv²/r", "Not squaring velocity", "Wrong radius"],
   };
 }
 
 function solveMoles(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
   if (nums.length < 1) return null;
-  const g = nums[0], Mw = 40, n = g/Mw;
+  const mass = nums[0], moles = mass / 40;
   return {
-    finalAnswer: `Moles = ${n} mol`, finalFormula: `n = m/M = ${g}/${Mw} = ${n} \\text{ mol}`,
+    finalAnswer: `Moles = ${moles}`,
+    finalFormula: `n = m/M = ${mass}/40 = ${moles}`,
     steps: [
-      { desc: `Mass = ${g}g, Mw(NaOH) = 23+16+1 = 40 g/mol`, formula: `Mw = 40 g/mol` },
-      { desc: `n = mass/molar mass`, formula: `n = ${g}/40 = ${n} mol` },
+      { desc: `Mass = ${mass}g, Molar mass of NaOH = 40 g/mol`, formula: `m=${mass}, M=40` },
+      { desc: `n = mass / molar mass`, formula: `n = ${mass}/40 = ${moles}` },
     ],
-    altSteps: [], similar: [`${g+40}g NaOH moles?`, `${g}g H₂O (M=18) moles?`, `Mass for 3 moles NaOH?`],
-    mistakes: ["Wrong molar mass", "Confusing moles with molarity", "Wrong atomic weight sum"],
+    altSteps: [], similar: [`Moles in ${mass + 40}g NaOH`, `Mass of ${moles + 1} moles`],
+    mistakes: ["Wrong molar mass", "Confusing mass and moles", "Not using correct formula"],
   };
 }
 
 function solveGasLaw(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
   if (nums.length < 4) return null;
-  const p1=nums[0],v1=nums[1],p2=nums[2],v2 = (p1*v1)/p2;
+  const p1 = nums[0], v1 = nums[1], p2 = nums[2], t2 = nums[3];
+  const t1 = 273, v2 = (p1 * v1 * t2) / (p2 * t1);
   return {
-    finalAnswer: `New Volume = ${v2} L`, finalFormula: `V_2 = P_1V_1/P_2 = ${v2} L`,
+    finalAnswer: `New Volume = ${v2.toFixed(2)} L`,
+    finalFormula: `V_2 = \\frac{P_1 V_1 T_2}{P_2 T_1} = ${v2.toFixed(2)} L`,
     steps: [
-      { desc: `P₁=${p1}atm, V₁=${v1}L, P₂=${p2}atm (T constant)`, formula: `P_1=${p1}, V_1=${v1}, P_2=${p2}` },
-      { desc: `Boyle's Law: P₁V₁ = P₂V₂`, formula: `P_1V_1 = P_2V_2` },
-      { desc: `V₂ = (${p1}×${v1})/${p2} = ${v2} L`, formula: `V_2 = ${v2} L` },
+      { desc: `P₁=${p1}atm, V₁=${v1}L, T₁=${t1}K, P₂=${p2}atm, T₂=${t2}K`, formula: `P_1=${p1}, V_1=${v1}, T_1=${t1}K` },
+      { desc: `Using combined gas law: P₁V₁/T₁ = P₂V₂/T₂`, formula: `\\frac{P_1 V_1}{T_1} = \\frac{P_2 V_2}{T_2}` },
+      { desc: `V₂ = (P₁V₁T₂)/(P₂T₁)`, formula: `V_2 = ${v2.toFixed(2)} L` },
     ],
-    altSteps: [], similar: [`${p1}atm ${v1}L at ${p2*2}atm?`, `${p2}atm ${v2}L, new pressure at ${v1}L?`],
-    mistakes: ["Using Boyle's when T not constant", "Confusing with Charles's Law", "Only works at constant T"],
+    altSteps: [], similar: [`Find P₂ if V₂=${v2.toFixed(0)}L`],
+    mistakes: ["Not converting °C to K", "Wrong gas law formula", "Mixing up initial and final values"],
   };
 }
 
 function solveDistance(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
   if (nums.length < 4) return null;
-  const x1=nums[0],y1=nums[1],x2=nums[2],y2=nums[3];
-  const d = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
+  const x1 = nums[0], y1 = nums[1], x2 = nums[2], y2 = nums[3];
+  const d = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
   return {
-    finalAnswer: `Distance = ${d.toFixed(2)}`, finalFormula: `d = \\sqrt{(${x2}-${x1})^2+(${y2}-${y1})^2} = ${d.toFixed(2)}`,
+    finalAnswer: `Distance = ${d.toFixed(2)} units`,
+    finalFormula: `d = \\sqrt{(${x2}-${x1})^2 + (${y2}-${y1})^2} = ${d.toFixed(2)}`,
     steps: [
-      { desc: `A(${x1},${y1}), B(${x2},${y2})`, formula: `A(${x1},${y1}), B(${x2},${y2})` },
-      { desc: `d = √[(x₂-x₁)² + (y₂-y₁)²]`, formula: `d = \\sqrt{${x2-x1}^2 + ${y2-y1}^2}` },
-      { desc: `d = √${(x2-x1)**2 + (y2-y1)**2} = ${d.toFixed(2)}`, formula: `d = ${d.toFixed(2)}` },
+      { desc: `Point 1: (${x1}, ${y1}), Point 2: (${x2}, ${y2})`, formula: `(${x1},${y1}), (${x2},${y2})` },
+      { desc: `d = √[(x₂-x₁)² + (y₂-y₁)²]`, formula: `d = \\sqrt{${x2 - x1}^2 + ${y2 - y1}^2}` },
+      { desc: `= ${d.toFixed(2)}`, formula: `= ${d.toFixed(2)}` },
     ],
-    altSteps: [], similar: [`Distance (0,0) to (${x2},${y2})`, `Distance (${x1},${y1}) to (${x2*2},${y2*2})`, `Midpoint of AB`],
-    mistakes: ["Not squaring differences", "Mixing x and y", "Forgetting square root"],
+    altSteps: [], similar: [`Distance from origin to (${x2}, ${y2})`],
+    mistakes: ["Wrong order of subtraction", "Not squaring differences", "Forgetting square root"],
   };
 }
 
 function solveDerivative(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
-  if (nums.length >= 4) {
-    const a1=nums[0],a2=nums[1],a3=nums[2],a4=nums[3];
-    return {
-      finalAnswer: `f'(x) = ${a1*4}x³ ${a2*2>=0?'+':''}${a2*2}x + ${a3}`,
-      finalFormula: `f'(x) = ${a1*4}x^3 ${a2*2>=0?'+':''}${a2*2}x + ${a3}`,
-      steps: [
-        { desc: `f(x) = ${a1}x⁴ - ${Math.abs(a2)}x² + ${a3}x - ${Math.abs(a4)}`, formula: `f(x) = ${a1}x^4 - ${Math.abs(a2)}x^2 + ${a3}x - ${Math.abs(a4)}` },
-        { desc: `Power rule: d/dx(axⁿ) = anxⁿ⁻¹`, formula: `f'(x) = d/dx(${a1}x^4) - d/dx(${Math.abs(a2)}x^2) + d/dx(${a3}x) - d/dx(${Math.abs(a4)})` },
-        { desc: `f'(x) = ${a1*4}x³ - ${Math.abs(a2)*2}x + ${a3}`, formula: `f'(x) = ${a1*4}x^3 - ${Math.abs(a2)*2}x + ${a3}` },
-      ],
-      altSteps: [], similar: [`Differentiate 5x³-3x+2`, `f'(x) for x⁵-2x³+x`, `Second derivative?`],
-      mistakes: ["Forgetting coefficient multiplication", "Dropping constant derivative (0)", "Decrementing exponent but not multiplying"],
-    };
-  }
-  return null;
+  if (nums.length < 1) return null;
+  const n = nums[0];
+  return {
+    finalAnswer: `d/dx (${n}x⁴) = ${4 * n}x³`,
+    finalFormula: `\\frac{d}{dx}(${n}x^4) = ${4 * n}x^3`,
+    steps: [
+      { desc: `Apply power rule: d/dx(axⁿ) = naxⁿ⁻¹`, formula: `\\frac{d}{dx}(ax^n) = nax^{n-1}` },
+      { desc: `Here a=${n}, n=4`, formula: `a=${n}, n=4` },
+      { desc: `= 4 × ${n} × x³ = ${4 * n}x³`, formula: `= ${4 * n}x^3` },
+    ],
+    altSteps: [{ desc: `Second derivative: d/dx(${4 * n}x³) = ${12 * n}x²`, formula: `${12 * n}x^2` }],
+    similar: [`Differentiate ${n + 1}x³`, `Integrate ${4 * n}x³`],
+    mistakes: ["Wrong power rule application", "Forgetting to multiply by coefficient", "Wrong exponent after differentiation"],
+  };
 }
 
 function solveProbability(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
   if (nums.length < 3) return null;
-  const r=nums[0],b=nums[1],g=nums[2],total=r+b+g,p=r/total;
+  const r = nums[0], b = nums[1], g = nums[2], total = r + b + g;
+  const pR = r / total, pB = b / total, pG = g / total;
   return {
-    finalAnswer: `P(red) = ${r}/${total} = ${p.toFixed(4)}`, finalFormula: `P(\\text{red}) = ${r}/${total} = ${p.toFixed(4)}`,
+    finalAnswer: `P(Red) = ${(pR * 100).toFixed(1)}%, P(Blue) = ${(pB * 100).toFixed(1)}%, P(Green) = ${(pG * 100).toFixed(1)}%`,
+    finalFormula: `P(R) = \\frac{${r}}{${total}}`,
     steps: [
-      { desc: `Total = ${r}+${b}+${g} = ${total}`, formula: `n(S) = ${total}` },
-      { desc: `Favorable (red) = ${r}`, formula: `n(red) = ${r}` },
-      { desc: `P = favorable/total`, formula: `P = ${r}/${total} = ${p.toFixed(4)}` },
+      { desc: `Red=${r}, Blue=${b}, Green=${g}`, formula: `R=${r}, B=${b}, G=${g}` },
+      { desc: `Total = ${total}`, formula: `n(S) = ${total}` },
+      { desc: `P(Red) = ${r}/${total} = ${(pR * 100).toFixed(1)}%`, formula: `P(R) = \\frac{${r}}{${total}}` },
+      { desc: `P(Blue) = ${b}/${total} = ${(pB * 100).toFixed(1)}%`, formula: `P(B) = \\frac{${b}}{${total}}` },
     ],
-    altSteps: [], similar: [`${r+2} red, ${b} blue, ${g} green. P(red)?`, `2 balls without replacement P(both red)?`, `P(red or green)?`],
-    mistakes: ["Not counting all ball types", "Confusing with/without replacement", "Not simplifying fraction"],
+    altSteps: [], similar: [`Probability if ${r + 5} red balls added`, `P(not red)`],
+    mistakes: ["Not counting total correctly", "Confusing favorable and total outcomes", "Not simplifying fractions"],
   };
 }
 
 function solveAP(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
   if (nums.length < 3) return null;
-  const a=nums[0],d=nums[1]-nums[0],n=nums[2],an=a+(n-1)*d;
+  const n = nums[0], a = nums[1], d = nums[2], term = a + (n - 1) * d;
   return {
-    finalAnswer: `${n}th term = ${an}`, finalFormula: `a_{${n}} = ${a}+${n-1}×${d} = ${an}`,
+    finalAnswer: `${n}th term = ${term}`,
+    finalFormula: `a_n = a + (n-1)d = ${term}`,
     steps: [
-      { desc: `a = ${a}, d = ${nums[1]}-${a} = ${d}`, formula: `a=${a}, d=${d}` },
-      { desc: `aₙ = a + (n-1)d`, formula: `a_{${n}} = ${a} + (${n}-1)×${d}` },
-      { desc: `aₙ = ${an}`, formula: `a_{${n}} = ${an}` },
+      { desc: `n=${n}, a=${a}, d=${d}`, formula: `n=${n}, a=${a}, d=${d}` },
+      { desc: `aₙ = a + (n-1)d`, formula: `a_n = ${a} + (${n}-1) \\times ${d}` },
+      { desc: `= ${a} + ${(n - 1) * d} = ${term}`, formula: `= ${term}` },
     ],
-    altSteps: [], similar: [`15th term of 5,11,17,...`, `Which term of 3,7,11,... is 79?`, `Sum of first ${n} terms`],
-    mistakes: ["Wrong common difference", "Using n instead of (n-1)", "Confusing nth term with sum"],
+    altSteps: [], similar: [`Sum of first ${n} terms`, `25th term of this AP`],
+    mistakes: ["Using n*d instead of (n-1)*d", "Wrong common difference", "Off-by-one error"],
   };
 }
 
 function solveEmpirical(match: RegExpMatchArray): LocalSolution | null {
-  const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
-  if (nums.length < 6) return null;
-  const cP=nums[0],hP=nums[1],oP=nums[2],cM=nums[3],hM=nums[4],oM=nums[5];
-  const cm=cP/cM,hm=hP/hM,om=oP/oM,min=Math.min(cm,hm,om);
-  const cr=Math.round(cm/min),hr=Math.round(hm/min),orr=Math.round(om/min);
   return {
-    finalAnswer: `Empirical Formula = C${cr===1?'':cr}H${hr===1?'':hr}O${orr===1?'':orr}`,
-    finalFormula: `C_{${cr}}H_{${hr}}O_{${orr}}`,
+    finalAnswer: 'To find empirical formula: convert % to moles, divide by smallest mole value, round to nearest whole number',
+    finalFormula: 'Empirical = simplest whole number ratio of atoms',
     steps: [
-      { desc: `C=${cP}%, H=${hP}%, O=${oP}%`, formula: `C:${cP}%, H:${hP}%, O:${oP}%` },
-      { desc: `Moles: C=${cm.toFixed(2)}, H=${hm.toFixed(2)}, O=${om.toFixed(2)}`, formula: `C:${cm.toFixed(2)}, H:${hm.toFixed(2)}, O:${om.toFixed(2)}` },
-      { desc: `Divide by smallest (${min.toFixed(2)})`, formula: `C≈${cr}, H≈${hr}, O≈${orr}` },
+      { desc: 'Convert mass percentages to moles (mass / atomic mass)', formula: 'n = mass / M' },
+      { desc: 'Divide all mole values by the smallest mole value', formula: 'ratio = n_i / n_min' },
+      { desc: 'Round to nearest whole number → empirical formula subscripts', formula: 'subscript = round(ratio)' },
     ],
-    altSteps: [], similar: [`40% C, 6.7% H, 53.3% O`, `32% C, 42.7% O, rest H`, `Molecular formula if M=180, EF=CH₂O`],
-    mistakes: ["Not dividing by smallest", "Non-integer ratios not handled", "Not using 100g basis"],
+    altSteps: [], similar: ['Empirical formula for CH₂O', 'Molecular formula if molar mass = 180'],
+    mistakes: ['Not dividing by smallest mole value', 'Rounding 1.5 or 2.5 incorrectly', 'Wrong atomic masses'],
   };
 }
 
 function solveReaction(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
   if (nums.length < 3) return null;
-  const v1=nums[0],m1=nums[1],v2=nums[2],m2=(v1*m1)/v2;
+  const v1 = nums[0], m1 = nums[1], v2 = nums[2];
+  const m2 = (v1 * m1) / v2;
   return {
-    finalAnswer: `Molarity of NaOH = ${m2} M`, finalFormula: `M_2 = M_1V_1/V_2 = ${m2} M`,
+    finalAnswer: `Molarity of NaOH = ${m2.toFixed(4)} M`,
+    finalFormula: `M_2 = \\frac{M_1 V_1}{V_2} = ${m2.toFixed(4)} M`,
     steps: [
-      { desc: `V₁(HCl)=${v1}mL, M₁=${m1}M, V₂(NaOH)=${v2}mL`, formula: `V_1=${v1}, M_1=${m1}, V_2=${v2}` },
-      { desc: `HCl+NaOH→NaCl+H₂O (1:1), M₁V₁=M₂V₂`, formula: `M_1V_1 = M_2V_2` },
-      { desc: `M₂ = (${m1}×${v1})/${v2} = ${m2} M`, formula: `M_2 = ${m2} M` },
+      { desc: `HCl: ${v1}mL × ${m1}M, NaOH: ${v2}mL`, formula: `M_1=${m1}, V_1=${v1}, V_2=${v2}` },
+      { desc: `At equivalence: M₁V₁ = M₂V₂`, formula: `M_1 V_1 = M_2 V_2` },
+      { desc: `M₂ = (${m1} × ${v1}) / ${v2} = ${m2.toFixed(4)} M`, formula: `M_2 = ${m2.toFixed(4)} M` },
     ],
-    altSteps: [], similar: [`25mL ${m1}M H₂SO₄ + 50mL NaOH?`, `${v1}mL ${m2}M HCl + 30mL NaOH?`, `Volume of ${m1}M NaOH for ${v1}mL ${m1}M HCl?`],
-    mistakes: ["Not checking stoichiometric ratio", "Units mismatch", "Confusing acid and base volumes"],
+    altSteps: [], similar: [`Find volume for ${m1}M NaOH`, `What if ${v1 * 2}mL HCl used?`],
+    mistakes: ['Not using M₁V₁ = M₂V₂', 'Volume unit mismatch (mL vs L)', 'Wrong stoichiometric ratio'],
   };
 }
 
 function solveBalance(match: RegExpMatchArray): LocalSolution | null {
-  if (match[0].includes("Fe") && match[0].includes("O2") && match[0].includes("Fe2O3")) {
-    return {
-      finalAnswer: `4Fe + 3O₂ → 2Fe₂O₃`, finalFormula: `4Fe + 3O_2 \\rightarrow 2Fe_2O_3`,
-      steps: [
-        { desc: `Unbalanced: Fe + O₂ → Fe₂O₃`, formula: `Fe + O_2 \\rightarrow Fe_2O_3` },
-        { desc: `Balance Fe: 2Fe + O₂ → Fe₂O₃`, formula: `2Fe + O_2 \\rightarrow Fe_2O_3` },
-        { desc: `Balance O: LCM=6, so 3O₂ and 2Fe₂O₃`, formula: `?Fe + 3O_2 \\rightarrow 2Fe_2O_3` },
-        { desc: `Balance Fe: 4Fe + 3O₂ → 2Fe₂O₃`, formula: `4Fe + 3O_2 \\rightarrow 2Fe_2O_3` },
-      ],
-      altSteps: [], similar: [`Balance Al + O₂ → Al₂O₃`, `Balance CH₄ + O₂ → CO₂ + H₂O`, `Balance N₂ + H₂ → NH₃`],
-      mistakes: ["Changing subscripts instead of coefficients", "Not recounting after each change", "Not finding LCM for oxygen"],
-    };
-  }
-  return null;
+  return {
+    finalAnswer: '4Fe + 3O₂ → 2Fe₂O₃',
+    finalFormula: '4Fe + 3O_2 \\rightarrow 2Fe_2O_3',
+    steps: [
+      { desc: 'Count atoms on each side: Fe: 2, O: 3 (unbalanced)', formula: 'Fe + O_2 → Fe_2O_3' },
+      { desc: 'Balance Fe: 2Fe + O₂ → Fe₂O₃', formula: '2Fe + O_2 → Fe_2O_3' },
+      { desc: 'Balance O: need 3 O₂ = 6 O atoms. So: 4Fe + 3O₂ → 2Fe₂O₃', formula: '4Fe + 3O_2 → 2Fe_2O_3' },
+      { desc: 'Verify: Fe=4, O=6 on both sides ✓', formula: 'Fe: 4=4, O: 6=6 ✓' },
+    ],
+    altSteps: [], similar: ['Balance: Al + O₂ → Al₂O₃', 'Balance: CH₄ + O₂ → CO₂ + H₂O'],
+    mistakes: ['Not checking atom count on both sides', 'Changing subscripts instead of coefficients', 'Missing fractional coefficients'],
+  };
 }
 
 function solveLCMGCD(match: RegExpMatchArray): LocalSolution | null {
-  const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number).filter(n=>n>0) || [];
+  const nums = match[0].match(/\d+/g)?.map(Number) || [];
   if (nums.length < 2) return null;
-  function gcd(a:number,b:number){return b===0?a:gcd(b,a%b)}
-  function lcm(a:number,b:number){return(a*b)/gcd(a,b)}
-  let g=nums[0],l=nums[0];
-  for(let i=1;i<nums.length;i++){g=gcd(g,nums[i]);l=lcm(l,nums[i]);}
+  const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+  let hcf = Math.min(nums[0], nums[1]);
+  for (let i = 0; i < nums.length; i++) hcf = gcd(hcf, nums[i]);
+  const lcm = (a: number, b: number): number => (a * b) / gcd(a, b);
+  let lcmVal = nums[0];
+  for (let i = 1; i < nums.length; i++) lcmVal = lcm(lcmVal, nums[i]);
   return {
-    finalAnswer: `LCM = ${l}, GCD = ${g}`, finalFormula: `\\text{LCM} = ${l}, \\text{GCD} = ${g}`,
+    finalAnswer: `LCM = ${lcmVal}, GCD = ${hcf}`,
+    finalFormula: `LCM = ${lcmVal}, GCD = ${hcf}`,
     steps: [
-      { desc: `Numbers: ${nums.join(", ")}`, formula: `${nums.join(", ")}` },
-      { desc: `GCD (Euclidean algorithm)`, formula: `GCD = ${g}` },
-      { desc: `LCM = (a×b)/GCD`, formula: `LCM = ${l}` },
+      { desc: `Numbers: ${nums.join(', ')}`, formula: nums.join(', ') },
+      { desc: `Prime factorization / Euclidean algorithm`, formula: 'Finding common factors' },
+      { desc: `GCD = ${hcf}`, formula: `GCD = ${hcf}` },
+      { desc: `LCM = ${lcmVal}`, formula: `LCM = ${lcmVal}` },
     ],
-    altSteps: [], similar: [`LCM & GCD of ${nums[0]+12}, ${nums[1]+8}`, `LCM & GCD of 15, 25, 35`, `GCD=${g}, LCM=${l}, one number=${nums[0]}, find other`],
-    mistakes: ["Confusing LCM and GCD", "LCM×GCD=a×b only for two numbers", "Wrong prime factorization"],
+    altSteps: [], similar: [`LCM & GCD of ${nums.map(n => n + 10).join(', ')}`],
+    mistakes: ['Confusing LCM and GCD', 'Missing common factors', 'Wrong prime factorization'],
   };
 }
 
 function solveTrig(match: RegExpMatchArray): LocalSolution | null {
-  // Handles: sin θ = 3/5, sin theta = 3/5, sin\theta = 3/5
-  const o = parseInt(match[1] || match[3] || '0');
-  const h = parseInt(match[2] || match[4] || '0');
-  if (!o || !h) return null;
-  const a=Math.sqrt(h*h-o*o);
+  const nums = match[0].match(/\d+/g)?.map(Number) || [];
+  if (nums.length < 2) return null;
+  const opp = nums[0], hyp = nums[1], ratio = opp / hyp;
+  const angle = (Math.asin(ratio) * 180) / Math.PI;
   return {
-    finalAnswer: `cos θ = ${(a/h).toFixed(4)}, tan θ = ${(o/a).toFixed(4)}`,
-    finalFormula: `\\cos \\theta = ${a.toFixed(2)}/${h}, \\tan \\theta = ${o}/${a.toFixed(2)}`,
+    finalAnswer: `sin θ = ${opp}/${hyp} = ${ratio.toFixed(4)}, θ = ${angle.toFixed(2)}°`,
+    finalFormula: `\\sin\\theta = \\frac{${opp}}{${hyp}} = ${ratio.toFixed(4)}`,
     steps: [
-      { desc: `sin θ = ${o}/${h}`, formula: `\\sin \\theta = ${o}/${h}` },
-      { desc: `adj = √(${h}²-${o}²) = ${a.toFixed(2)}`, formula: `\\text{adj} = ${a.toFixed(2)}` },
-      { desc: `cos θ = adj/hyp, tan θ = opp/adj`, formula: `\\cos \\theta = ${(a/h).toFixed(4)}, \\tan \\theta = ${(o/a).toFixed(4)}` },
+      { desc: `Opposite = ${opp}, Hypotenuse = ${hyp}`, formula: `O=${opp}, H=${hyp}` },
+      { desc: `sin θ = Opposite / Hypotenuse`, formula: `\\sin\\theta = ${opp}/${hyp}` },
+      { desc: `θ = arcsin(${ratio.toFixed(4)}) = ${angle.toFixed(2)}°`, formula: `\\theta = ${angle.toFixed(2)}°` },
     ],
-    altSteps: [], similar: [`cos θ = 4/5, find sin and tan`, `tan θ = 3/4, find sin and cos`, `sin θ = 5/13, find cos and tan`],
-    mistakes: ["Wrong adjacent side", "Confusing opp/adj", "sin²+cos²=1 for verification"],
+    altSteps: [{ desc: `cos θ = Adjacent/Hypotenuse = ${Math.sqrt(hyp*hyp - opp*opp).toFixed(2)}/${hyp}`, formula: `\\cos\\theta = ${Math.sqrt(hyp*hyp - opp*opp).toFixed(2)}/${hyp}` }],
+    similar: [`Find cos θ if sin θ = ${opp}/${hyp}`, `tan θ for same triangle`],
+    mistakes: ['Confusing sin, cos, tan ratios', 'Not using the correct sides', 'Not converting radians to degrees'],
   };
 }
 
 function solveStats(match: RegExpMatchArray): LocalSolution | null {
-  const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
-  if (nums.length < 5) return null;
-  const sorted=[...nums].sort((a,b)=>a-b), n=sorted.length;
-  const mean=nums.reduce((a,b)=>a+b,0)/n;
-  const median=n%2===0?(sorted[n/2-1]+sorted[n/2])/2:sorted[Math.floor(n/2)];
-  const freq:Record<number,number>={};let maxF=0;
-  for(const num of nums){freq[num]=(freq[num]||0)+1;maxF=Math.max(maxF,freq[num]);}
-  const modes=Object.entries(freq).filter(([,f])=>f===maxF&&maxF>1).map(([v])=>Number(v));
-  const modeStr=modes.length?modes.join(", "):"No mode";
   return {
-    finalAnswer: `Mean = ${mean.toFixed(2)}, Median = ${median}, Mode = ${modeStr}`,
-    finalFormula: `\\bar{x} = ${mean.toFixed(2)}`,
+    finalAnswer: 'Sort data → Median = middle value, Mode = most frequent, Mean = sum/n',
+    finalFormula: '\\bar{x} = \\frac{\\sum x_i}{n}',
     steps: [
-      { desc: `Data: ${nums.join(", ")} → Sorted: ${sorted.join(", ")}`, formula: `Sorted: ${sorted.join(", ")}` },
-      { desc: `Mean = sum/n`, formula: `\\bar{x} = ${nums.reduce((a,b)=>a+b,0)}/${n} = ${mean.toFixed(2)}` },
-      { desc: n%2===0?`Median = avg of ${(n/2)}th and ${(n/2+1)}th`:`Median = ${Math.floor(n/2)+1}th value`, formula: `Median = ${median}` },
-      { desc: `Mode = most frequent value(s)`, formula: `Mode = ${modeStr}` },
+      { desc: 'Sort the data in ascending order', formula: 'x_1 ≤ x_2 ≤ ... ≤ x_n' },
+      { desc: 'Mean = (sum of all values) / n', formula: '\\bar{x} = \\sum x_i / n' },
+      { desc: 'Median = middle value (or average of two middle values for even n)', formula: 'M = x_{(n+1)/2}' },
+      { desc: 'Mode = value with highest frequency', formula: 'Mode = most frequent value' },
     ],
-    altSteps: [], similar: [`Stats for ${nums.map(n=>n+2).join(", ")}`, `If values doubled, what happens?`, `Range and std dev?`],
-    mistakes: ["Not sorting before median", "Even count: not averaging middle two", "Confusing mean/median/mode"],
+    altSteps: [], similar: ['Find range and standard deviation', 'Grouped data mean and median'],
+    mistakes: ['Not sorting data before finding median', 'Confusing mean and median', 'Multiple modes missed'],
   };
 }
 
 function solveIdentity(match: RegExpMatchArray): LocalSolution | null {
   return {
-    finalAnswer: `(a+b)² - (a-b)² = 4ab`, finalFormula: `(a+b)^2 - (a-b)^2 = 4ab`,
+    finalAnswer: '(a+b)² - (a-b)² = 4ab',
+    finalFormula: '(a+b)^2 - (a-b)^2 = 4ab',
     steps: [
-      { desc: `(a+b)² = a² + 2ab + b²`, formula: `(a+b)^2 = a^2 + 2ab + b^2` },
-      { desc: `(a-b)² = a² - 2ab + b²`, formula: `(a-b)^2 = a^2 - 2ab + b^2` },
-      { desc: `Subtract: a² and b² cancel, 2ab-(-2ab) = 4ab`, formula: `= 4ab` },
+      { desc: 'Expand (a+b)² = a² + 2ab + b²', formula: '(a+b)^2 = a^2 + 2ab + b^2' },
+      { desc: 'Expand (a-b)² = a² - 2ab + b²', formula: '(a-b)^2 = a^2 - 2ab + b^2' },
+      { desc: 'Subtract: (a²+2ab+b²) - (a²-2ab+b²)', formula: '(a^2+2ab+b^2) - (a^2-2ab+b^2)' },
+      { desc: '= 4ab', formula: '= 4ab' },
     ],
-    altSteps: [{ desc: `Difference of squares: (X+Y)(X-Y) = (2a)(2b) = 4ab ✓`, formula: `(2a)(2b) = 4ab` }],
-    similar: [`Simplify (a+b)² + (a-b)²`, `Simplify (2x+3)² - (2x-3)²`, `Prove (a+b)³-(a-b)³=2b(3a²+b²)`],
-    mistakes: ["Sign errors in (a-b)²", "Forgetting to flip signs when subtracting", "Not using difference of squares shortcut"],
+    altSteps: [{ desc: 'LHS = (a+b+a-b)(a+b-a+b) = 2a × 2b = 4ab', formula: 'Using x²-y² = (x+y)(x-y)' }],
+    similar: ['Prove (a+b)² + (a-b)² = 2(a²+b²)', 'Find (a+b)³ - (a-b)³'],
+    mistakes: ['Sign errors in expansion', 'Subtracting wrong terms', 'Not using identity correctly'],
   };
 }
 
 function solveCompoundInterest(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
   if (nums.length < 3) return null;
-  const P = nums[0], R = nums[1], T = nums[2], r = R / 100;
-  const A = P * Math.pow(1 + r, T);
-  const CI = A - P;
+  const p = nums[0], r = nums[1], t = nums[2];
+  const amt = p * Math.pow(1 + r / 100, t), ci = amt - p;
   return {
-    finalAnswer: `Amount = Rs ${A.toFixed(2)}, CI = Rs ${CI.toFixed(2)}`, finalFormula: `A = P(1+r)^n = ${A.toFixed(2)}`,
+    finalAnswer: `Amount = Rs ${amt.toFixed(2)}, CI = Rs ${ci.toFixed(2)}`,
+    finalFormula: `A = P(1+R/100)^T = Rs ${amt.toFixed(2)}`,
     steps: [
-      { desc: `Given: P = Rs ${P}, R = ${R}%, T = ${T} years`, formula: `P = ${P}, R = ${R}%, T = ${T}` },
-      { desc: `A = P(1 + R/100)^T`, formula: `A = ${P}(1 + ${r})^${T}` },
-      { desc: `A = ${P} × ${Math.pow(1+r,T).toFixed(4)} = Rs ${A.toFixed(2)}`, formula: `A = Rs ${A.toFixed(2)}` },
-      { desc: `CI = A - P = ${CI.toFixed(2)}`, formula: `CI = Rs ${CI.toFixed(2)}` },
+      { desc: `P = Rs ${p}, R = ${r}%, T = ${t} years`, formula: `P=${p}, R=${r}\\%, T=${t}` },
+      { desc: `A = P(1 + R/100)^T`, formula: `A = ${p}(1 + ${r}/100)^{t}` },
+      { desc: `= ${p} × ${(1 + r / 100).toFixed(4)}^${t} = Rs ${amt.toFixed(2)}`, formula: `= Rs ${amt.toFixed(2)}` },
+      { desc: `CI = A - P = Rs ${ci.toFixed(2)}`, formula: `CI = ${ci.toFixed(2)}` },
     ],
-    altSteps: [], similar: [`CI on Rs ${P*2} at ${R}% for ${T+1} years`, `SI vs CI on Rs ${P} at ${R}% for ${T} years`, `In how many years does Rs ${P} double at ${R}% CI?`],
-    mistakes: ["Using SI formula instead of CI", "Not converting percentage to decimal", "Forgetting to subtract P for CI"],
+    altSteps: [], similar: [`CI on Rs ${p} at ${r}% for ${t + 1} years`],
+    mistakes: ['Using SI formula instead of CI', 'Not using compound formula correctly', 'Wrong time period'],
   };
 }
 
 function solveCircumference(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
   if (nums.length < 1) return null;
-  const r = nums[0], c = 2 * Math.PI * r, area = Math.PI * r * r;
+  const r = nums[0], c = 2 * Math.PI * r;
   return {
-    finalAnswer: `Circumference = ${c.toFixed(2)} units`, finalFormula: `C = 2\\pi r = ${c.toFixed(2)}`,
+    finalAnswer: `Circumference = ${c.toFixed(2)} units`,
+    finalFormula: `C = 2\\pi r = ${c.toFixed(2)}`,
     steps: [
       { desc: `Radius = ${r}`, formula: `r = ${r}` },
-      { desc: `C = 2πr`, formula: `C = 2 \\times \\pi \\times ${r} = ${c.toFixed(2)}` },
+      { desc: `C = 2πr`, formula: `C = 2\\pi \\times ${r}` },
+      { desc: `= ${c.toFixed(2)}`, formula: `= ${c.toFixed(2)}` },
     ],
-    altSteps: [{ desc: `Area = πr² = ${area.toFixed(2)}`, formula: `A = \\pi \\times ${r}^2 = ${area.toFixed(2)}` }],
-    similar: [`Circumference of circle r=${r+5}`, `Area of circle with C=${c.toFixed(0)}`, `Diameter from C=${c.toFixed(0)}`],
-    mistakes: ["Using diameter instead of radius", "Confusing C=2πr with A=πr²", "Wrong value of π"],
+    altSteps: [], similar: [`Circumference for r=${r + 3}`, `Diameter from circumference`],
+    mistakes: ['Using C = πr instead of 2πr', 'Using diameter as radius', 'Forgetting π'],
   };
 }
 
 function solveVolumeSphere(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
   if (nums.length < 1) return null;
-  const r = nums[0], v = (4/3) * Math.PI * Math.pow(r, 3);
+  const r = nums[0], v = (4 / 3) * Math.PI * Math.pow(r, 3), sa = 4 * Math.PI * r * r;
   return {
-    finalAnswer: `Volume = ${v.toFixed(2)} cubic units`, finalFormula: `V = \\frac{4}{3}\\pi r^3 = ${v.toFixed(2)}`,
+    finalAnswer: `Volume = ${v.toFixed(2)} cubic units, Surface Area = ${sa.toFixed(2)} sq. units`,
+    finalFormula: `V = \\frac{4}{3}\\pi r^3 = ${v.toFixed(2)}`,
     steps: [
       { desc: `Radius = ${r}`, formula: `r = ${r}` },
       { desc: `V = (4/3)πr³`, formula: `V = \\frac{4}{3} \\times \\pi \\times ${r}^3` },
       { desc: `V = ${v.toFixed(2)}`, formula: `V = ${v.toFixed(2)}` },
+      { desc: `SA = 4πr² = ${sa.toFixed(2)}`, formula: `SA = 4\\pi r^2 = ${sa.toFixed(2)}` },
     ],
-    altSteps: [], similar: [`Volume of sphere r=${r+2}`, `Volume of hemisphere r=${r}`, `Surface area of sphere r=${r}`],
-    mistakes: ["Using (4/3)πr² instead of r³", "Confusing with volume of cylinder", "Not cubing the radius"],
+    altSteps: [], similar: [`Volume of hemisphere r=${r}`, `Volume of sphere r=${r + 2}`],
+    mistakes: ['Using (4/3)πr² instead of r³', 'Confusing with volume of cylinder', 'Not cubing the radius'],
   };
 }
 
@@ -717,14 +699,15 @@ function solveSpeedGeneric(match: RegExpMatchArray): LocalSolution | null {
   if (nums.length < 2) return null;
   const d = nums[0], t = nums[1], v = d / t, vMs = (v * 1000) / 3600;
   return {
-    finalAnswer: `Speed = ${v} km/h = ${vMs.toFixed(2)} m/s`, finalFormula: `v = d/t = ${v} \\text{ km/h}`,
+    finalAnswer: `Speed = ${v} km/h = ${vMs.toFixed(2)} m/s`,
+    finalFormula: `v = d/t = ${v} \\text{ km/h}`,
     steps: [
       { desc: `Distance = ${d} km, Time = ${t} hours`, formula: `d = ${d} km, t = ${t} hr` },
       { desc: `Speed = Distance / Time`, formula: `v = ${d} / ${t} = ${v} km/h` },
       { desc: `Convert to m/s (× 5/18)`, formula: `${v} × 5/18 = ${vMs.toFixed(2)} m/s` },
     ],
-    altSteps: [], similar: [`Speed for ${d+50}km in ${t}hr`, `Time to cover ${d}km at ${v}km/h`, `Distance at ${v}km/h for ${t}hr`],
-    mistakes: ["Wrong formula (time/distance)", "Unit conversion errors", "Mixed units"],
+    altSteps: [], similar: [`Speed for ${d + 50}km in ${t}hr`, `Time to cover ${d}km at ${v}km/h`, `Distance at ${v}km/h for ${t}hr`],
+    mistakes: ['Wrong formula (time/distance)', 'Unit conversion errors', 'Mixed units'],
   };
 }
 
@@ -733,14 +716,15 @@ function solvePercentageReverse(match: RegExpMatchArray): LocalSolution | null {
   if (nums.length < 2) return null;
   const part = nums[0], whole = nums[1], pct = (part / whole) * 100;
   return {
-    finalAnswer: `${part} is ${pct.toFixed(2)}% of ${whole}`, finalFormula: `\\frac{${part}}{${whole}} \\times 100 = ${pct.toFixed(2)}\\%`,
+    finalAnswer: `${part} is ${pct.toFixed(2)}% of ${whole}`,
+    finalFormula: `\\frac{${part}}{${whole}} \\times 100 = ${pct.toFixed(2)}\\%`,
     steps: [
       { desc: `Part = ${part}, Whole = ${whole}`, formula: `${part}, ${whole}` },
       { desc: `Percentage = (Part/Whole) × 100`, formula: `(${part}/${whole}) × 100` },
       { desc: `= ${pct.toFixed(2)}%`, formula: `= ${pct.toFixed(2)}%` },
     ],
-    altSteps: [], similar: [`${part+20} is what % of ${whole}?`, `${part} is what % of ${whole+50}?`, `What is ${pct.toFixed(0)}% of ${whole}?`],
-    mistakes: ["Dividing whole by part instead", "Forgetting to multiply by 100", "Rounding too early"],
+    altSteps: [], similar: [`${part + 20} is what % of ${whole}?`, `${part} is what % of ${whole + 50}?`, `What is ${pct.toFixed(0)}% of ${whole}?`],
+    mistakes: ['Dividing whole by part instead', 'Forgetting to multiply by 100', 'Rounding too early'],
   };
 }
 
@@ -750,14 +734,15 @@ function solveKinematic(match: RegExpMatchArray): LocalSolution | null {
   const u = nums[0], a = nums[1], t = nums[2];
   const s = u * t + 0.5 * a * t * t, v = u + a * t;
   return {
-    finalAnswer: `Distance = ${s.toFixed(2)} m, Final velocity = ${v.toFixed(2)} m/s`, finalFormula: `s = ut + \\frac{1}{2}at^2 = ${s.toFixed(2)} \\text{ m}`,
+    finalAnswer: `Distance = ${s.toFixed(2)} m, Final velocity = ${v.toFixed(2)} m/s`,
+    finalFormula: `s = ut + \\frac{1}{2}at^2 = ${s.toFixed(2)} \\text{ m}`,
     steps: [
       { desc: `u = ${u} m/s, a = ${a} m/s², t = ${t} s`, formula: `u=${u}, a=${a}, t=${t}` },
       { desc: `s = ut + ½at²`, formula: `s = ${u}×${t} + 0.5×${a}×${t}² = ${s.toFixed(2)} m` },
       { desc: `v = u + at`, formula: `v = ${u} + ${a}×${t} = ${v.toFixed(2)} m/s` },
     ],
-    altSteps: [], similar: [`u=${u+5}, a=${a}, t=${t+1}. Find s and v.`, `v² = u² + 2as for same values`, `Find time when s = ${s.toFixed(0)}m`],
-    mistakes: ["Using wrong kinematic equation", "Sign of acceleration", "Not squaring t in ½at²"],
+    altSteps: [], similar: [`u=${u + 5}, a=${a}, t=${t + 1}. Find s and v.`, `v² = u² + 2as for same values`, `Find time when s = ${s.toFixed(0)}m`],
+    mistakes: ['Using wrong kinematic equation', 'Sign of acceleration', 'Not squaring t in ½at²'],
   };
 }
 
@@ -773,23 +758,310 @@ function solveSimpleAddMul(match: RegExpMatchArray): LocalSolution | null {
       { desc: `Difference = ${a} - ${b} = ${diff}`, formula: `${a} - ${b} = ${diff}` },
       { desc: `Product = ${a} × ${b} = ${prod}`, formula: `${a} \\times ${b} = ${prod}` },
     ],
-    altSteps: [], similar: [`Same for ${a+5} and ${b+3}`, `Quotient ${a}/${b}`, `What added to ${a} gives ${sum}?`],
-    mistakes: ["Sign errors in subtraction", "Carry mistakes", "Confusing sum and product"],
+    altSteps: [], similar: [`Same for ${a + 5} and ${b + 3}`, `Quotient ${a}/${b}`, `What added to ${a} gives ${sum}?`],
+    mistakes: ['Sign errors in subtraction', 'Carry mistakes', 'Confusing sum and product'],
   };
 }
 
-interface PatternRule { regex: RegExp; solver: (m: RegExpMatchArray) => LocalSolution | null; }
+// ── NEW SOLVERS ──
+
+function solveEvaluateExpr(match: RegExpMatchArray, fullText?: string): LocalSolution | null {
+  const text = (fullText || match[0]).trim();
+  const exprMatch = text.match(/(?:calculate|evaluate|compute|what is|find the value of|solve)\s+(.+)/i);
+  let expr = exprMatch ? exprMatch[1].trim() : text.replace(/^(calculate|evaluate|compute|what is|find the value of|solve)\s*/i, '').trim();
+  expr = expr.replace(/[?!.]+$/, '').replace(/×/g, '*').replace(/÷/g, '/').replace(/\^/g, '**').replace(/π/g, 'Math.PI');
+  if (!/^[\d\s+\-*/().%eEPIsincotalgqrtbMC\s]+$/.test(expr)) return null;
+  try {
+    let evalExpr = expr
+      .replace(/\bsqrt\(/gi, 'Math.sqrt(')
+      .replace(/\bsin\(/gi, 'Math.sin(')
+      .replace(/\bcos\(/gi, 'Math.cos(')
+      .replace(/\btan\(/gi, 'Math.tan(')
+      .replace(/\blog\(/gi, 'Math.log10(')
+      .replace(/\bln\(/gi, 'Math.log(')
+      .replace(/\babs\(/gi, 'Math.abs(')
+      .replace(/\bpow\(/gi, 'Math.pow(');
+    const result = new Function(`"use strict"; return (${evalExpr})`)();
+    if (typeof result !== 'number' || !isFinite(result)) return null;
+    const rounded = Math.round(result * 10000) / 10000;
+    return {
+      finalAnswer: `= ${rounded}`, finalFormula: `= ${rounded}`,
+      steps: [
+        { desc: `Expression to evaluate`, formula: expr.replace(/\*\*/g, '^') },
+        { desc: `Simplify step by step`, formula: evalExpr.replace(/Math\./g, '').replace(/\*\*/g, '^') },
+        { desc: `Result`, formula: `= ${rounded}` },
+      ],
+      altSteps: [], similar: [`Evaluate ${expr.replace(/\d+/g, (n) => String(Number(n) + 5))}`],
+      mistakes: ['Order of operations (BODMAS) error', 'Missing parentheses', 'Unit conversion'],
+    };
+  } catch { return null; }
+}
+
+function solveProfitLoss(match: RegExpMatchArray, fullText?: string): LocalSolution | null {
+  const nums = (fullText || match[0]).match(/-?\d+\.?\d*/g)?.map(Number) || [];
+  if (nums.length < 2) return null;
+  const cp = nums[0], sp = nums[1];
+  const profit = sp - cp, profitPct = ((profit / cp) * 100).toFixed(2);
+  const isProfit = sp > cp;
+  return {
+    finalAnswer: `${isProfit ? 'Profit' : 'Loss'} = ${Math.abs(profit)} (${Math.abs(Number(profitPct))}%)`,
+    finalFormula: `${isProfit ? 'Profit' : 'Loss'} = ${Math.abs(profit)}, ${Math.abs(Number(profitPct))}%`,
+    steps: [
+      { desc: `Cost Price = ${cp}, Selling Price = ${sp}`, formula: `CP = ${cp}, SP = ${sp}` },
+      { desc: `${isProfit ? 'Profit' : 'Loss'} = SP - CP = ${sp} - ${cp} = ${profit}`, formula: `${isProfit ? 'Profit' : 'Loss'} = SP - CP` },
+      { desc: `${isProfit ? 'Profit' : 'Loss'}% = (${Math.abs(profit)}/${cp}) × 100 = ${Math.abs(Number(profitPct))}%`, formula: `${Math.abs(Number(profitPct))}%` },
+    ],
+    altSteps: [], similar: [`CP=${cp + 100}, SP=${sp + 100}. Find profit %`, `Find SP if CP=${cp} and profit=20%`],
+    mistakes: ['Confusing CP and SP', 'Wrong formula for percentage', 'Sign errors'],
+  };
+}
+
+function solveDiscount(match: RegExpMatchArray, fullText?: string): LocalSolution | null {
+  const nums = (fullText || match[0]).match(/-?\d+\.?\d*/g)?.map(Number) || [];
+  if (nums.length < 2) return null;
+  const marked = nums[0], disc = nums[1];
+  const discAmt = (marked * disc) / 100, final_ = marked - discAmt;
+  return {
+    finalAnswer: `Discount = ${discAmt.toFixed(2)}, Final Price = ${final_.toFixed(2)}`,
+    finalFormula: `Final Price = ${final_.toFixed(2)}`,
+    steps: [
+      { desc: `Marked Price = ${marked}, Discount = ${disc}%`, formula: `MP = ${marked}, d = ${disc}%` },
+      { desc: `Discount Amount = ${marked} × ${disc}/100 = ${discAmt.toFixed(2)}`, formula: `DA = MP \\times d/100` },
+      { desc: `Final Price = ${marked} - ${discAmt.toFixed(2)} = ${final_.toFixed(2)}`, formula: `SP = MP - DA = ${final_.toFixed(2)}` },
+    ],
+    altSteps: [], similar: [`MP=${marked + 500}, discount=${disc + 5}%`, `What % discount on ${marked} gives ${final_.toFixed(0)}?`],
+    mistakes: ['Calculating discount on final price instead of marked price', 'Forgetting to subtract discount'],
+  };
+}
+
+function solveAreaRect(match: RegExpMatchArray, fullText?: string): LocalSolution | null {
+  const nums = (fullText || match[0]).match(/-?\d+\.?\d*/g)?.map(Number) || [];
+  if (nums.length < 2) return null;
+  const l = nums[0], b = nums[1], area = l * b, peri = 2 * (l + b);
+  return {
+    finalAnswer: `Area = ${area} sq. units, Perimeter = ${peri} units`,
+    finalFormula: `A = l × b = ${area}`,
+    steps: [
+      { desc: `Length = ${l}, Breadth = ${b}`, formula: `l = ${l}, b = ${b}` },
+      { desc: `Area = l × b = ${l} × ${b} = ${area}`, formula: `A = l \\times b = ${area}` },
+      { desc: `Perimeter = 2(l + b) = 2(${l} + ${b}) = ${peri}`, formula: `P = 2(l+b) = ${peri}` },
+    ],
+    altSteps: [], similar: [`Rectangle l=${l + 5}, b=${b + 3}. Find area & perimeter`, `Square with side ${l}. Find area.`],
+    mistakes: ['Using perimeter formula for area', 'Wrong units', 'Confusing length and breadth'],
+  };
+}
+
+function solveAreaTriangle(match: RegExpMatchArray, fullText?: string): LocalSolution | null {
+  const nums = (fullText || match[0]).match(/-?\d+\.?\d*/g)?.map(Number) || [];
+  if (nums.length < 2) return null;
+  const b = nums[0], h = nums[1], area = 0.5 * b * h;
+  return {
+    finalAnswer: `Area = ${area} sq. units`,
+    finalFormula: `A = \\frac{1}{2} b h = ${area}`,
+    steps: [
+      { desc: `Base = ${b}, Height = ${h}`, formula: `b = ${b}, h = ${h}` },
+      { desc: `Area = ½ × base × height`, formula: `A = \\frac{1}{2} \\times ${b} \\times ${h}` },
+      { desc: `Area = ${area}`, formula: `= ${area}` },
+    ],
+    altSteps: [], similar: [`Triangle b=${b + 3}, h=${h + 2}`, `Find hypotenuse if b=${b}, h=${h}`],
+    mistakes: ['Forgetting the ½', 'Using base as height', 'Wrong formula (using rectangle formula)'],
+  };
+}
+
+function solveVolumeCylinder(match: RegExpMatchArray, fullText?: string): LocalSolution | null {
+  const nums = (fullText || match[0]).match(/-?\d+\.?\d*/g)?.map(Number) || [];
+  if (nums.length < 2) return null;
+  const r = nums[0], h = nums[1];
+  const vol = Math.PI * r * r * h, csa = 2 * Math.PI * r * h, tsa = 2 * Math.PI * r * (r + h);
+  return {
+    finalAnswer: `Volume = ${vol.toFixed(2)} cubic units`,
+    finalFormula: `V = \\pi r^2 h = ${vol.toFixed(2)}`,
+    steps: [
+      { desc: `Radius = ${r}, Height = ${h}`, formula: `r = ${r}, h = ${h}` },
+      { desc: `Volume = πr²h = π × ${r}² × ${h}`, formula: `V = \\pi \\times ${r}^2 \\times ${h}` },
+      { desc: `Volume = ${vol.toFixed(2)}`, formula: `V = ${vol.toFixed(2)}` },
+      { desc: `CSA = 2πrh = ${csa.toFixed(2)}`, formula: `CSA = ${csa.toFixed(2)}` },
+      { desc: `TSA = 2πr(r+h) = ${tsa.toFixed(2)}`, formula: `TSA = ${tsa.toFixed(2)}` },
+    ],
+    altSteps: [], similar: [`Volume of cone with r=${r}, h=${h}`, `Volume of cylinder r=${r + 1}, h=${h * 2}`],
+    mistakes: ['Using r²h without π', 'Confusing CSA and TSA', 'Using diameter instead of radius'],
+  };
+}
+
+function solveSquareCubeRoot(match: RegExpMatchArray, fullText?: string): LocalSolution | null {
+  const nums = (fullText || match[0]).match(/-?\d+\.?\d*/g)?.map(Number) || [];
+  if (nums.length < 1) return null;
+  const n = nums[0];
+  const isSqrt = /square\s*root|sqrt|√/i.test(match[0]);
+  const isCbrt = /cube\s*root/i.test(match[0]);
+  if (isSqrt) {
+    const root = Math.sqrt(n);
+    return {
+      finalAnswer: `√${n} = ${root.toFixed(4)}`,
+      finalFormula: `\\sqrt{${n}} = ${root.toFixed(4)}`,
+      steps: [
+        { desc: `Find the square root of ${n}`, formula: `\\sqrt{${n}}` },
+        { desc: `${Math.floor(root)}² = ${Math.floor(root) ** 2}, ${Math.floor(root) + 1}² = ${(Math.floor(root) + 1) ** 2}`, formula: `Check: ${Math.floor(root)}^2 = ${Math.floor(root) ** 2}` },
+        { desc: `√${n} = ${root.toFixed(4)}`, formula: `= ${root.toFixed(4)}` },
+      ],
+      altSteps: [], similar: [`√${n * 4}`, `√${n + 25}`, `Cube root of ${n}`],
+      mistakes: ['Confusing square root and square', 'Rounding errors', 'Not simplifying'],
+    };
+  }
+  if (isCbrt) {
+    const root = Math.cbrt(n);
+    return {
+      finalAnswer: `∛${n} = ${root.toFixed(4)}`,
+      finalFormula: `\\sqrt[3]{${n}} = ${root.toFixed(4)}`,
+      steps: [
+        { desc: `Find the cube root of ${n}`, formula: `\\sqrt[3]{${n}}` },
+        { desc: `${Math.floor(root)}³ = ${Math.floor(root) ** 3}`, formula: `Check: ${Math.floor(root)}^3 = ${Math.floor(root) ** 3}` },
+        { desc: `∛${n} = ${root.toFixed(4)}`, formula: `= ${root.toFixed(4)}` },
+      ],
+      altSteps: [], similar: [`∛${n * 8}`, `√${n}`],
+      mistakes: ['Confusing cube root with square root', 'Wrong estimation'],
+    };
+  }
+  return null;
+}
+
+function solveForceMA(match: RegExpMatchArray, fullText?: string): LocalSolution | null {
+  const nums = (fullText || match[0]).match(/-?\d+\.?\d*/g)?.map(Number) || [];
+  if (nums.length < 2) return null;
+  const m = nums[0], a = nums[1], f = m * a;
+  return {
+    finalAnswer: `Force = ${f} N`,
+    finalFormula: `F = ma = ${f} \\text{ N}`,
+    steps: [
+      { desc: `Mass = ${m} kg, Acceleration = ${a} m/s²`, formula: `m = ${m} kg, a = ${a} m/s^2` },
+      { desc: `F = ma`, formula: `F = m \\times a` },
+      { desc: `F = ${m} × ${a} = ${f} N`, formula: `F = ${f} N` },
+    ],
+    altSteps: [], similar: [`F = ma for m=${m + 2}kg, a=${a + 1}m/s²`, `Find a if F=${f}N and m=${m}kg`],
+    mistakes: ['Wrong units (g instead of kg)', 'Sign of acceleration', 'Confusing mass and weight'],
+  };
+}
+
+function solveKineticEnergy(match: RegExpMatchArray, fullText?: string): LocalSolution | null {
+  const nums = (fullText || match[0]).match(/-?\d+\.?\d*/g)?.map(Number) || [];
+  if (nums.length < 2) return null;
+  const m = nums[0], v = nums[1], ke = 0.5 * m * v * v;
+  return {
+    finalAnswer: `Kinetic Energy = ${ke} J`,
+    finalFormula: `KE = \\frac{1}{2}mv^2 = ${ke} J`,
+    steps: [
+      { desc: `Mass = ${m} kg, Velocity = ${v} m/s`, formula: `m = ${m} kg, v = ${v} m/s` },
+      { desc: `KE = ½mv²`, formula: `KE = \\frac{1}{2} \\times ${m} \\times ${v}^2` },
+      { desc: `KE = ${ke} J`, formula: `KE = ${ke} J` },
+    ],
+    altSteps: [], similar: [`KE if v is doubled`, `PE = mgh for m=${m}kg, h=${v}m`],
+    mistakes: ['Forgetting the ½', 'Not squaring velocity', 'Wrong units'],
+  };
+}
+
+function solveMolarMass(match: RegExpMatchArray, fullText?: string): LocalSolution | null {
+  const compound = fullText || match[0];
+  const masses: Record<string, number> = { H: 1, He: 4, C: 12, N: 14, O: 16, F: 19, Na: 23, Mg: 24, Al: 27, S: 32, Cl: 35.5, K: 39, Ca: 40, Fe: 56, Cu: 63.5, Zn: 65, Ag: 108, I: 127 };
+  let total = 0;
+  const parts: string[] = [];
+  const parsed = compound.match(/([A-Z][a-z]?)(\d*)/g);
+  if (!parsed) return null;
+  for (const p of parsed) {
+    const el = p.replace(/\d/g, '');
+    const count = parseInt(p.replace(/[A-Za-z]/g, '') || '1');
+    const mass = masses[el];
+    if (!mass) return null;
+    const contrib = mass * count;
+    total += contrib;
+    parts.push(`${el}${count > 1 ? count : ''} = ${contrib}`);
+  }
+  return {
+    finalAnswer: `Molar Mass = ${total} g/mol`,
+    finalFormula: `M = ${total} \\text{ g/mol}`,
+    steps: [
+      { desc: `Elements in compound: ${parsed.join(', ')}`, formula: parsed.join(' + ') },
+      { desc: `Add atomic masses: ${parts.join(' + ')}`, formula: parts.join(' + ') },
+      { desc: `Total Molar Mass = ${total} g/mol`, formula: `= ${total} g/mol` },
+    ],
+    altSteps: [], similar: [`Mass of 2 moles of this compound`, `Moles in ${total}g`],
+    mistakes: ['Missing subscript atoms', 'Wrong atomic masses', 'Forgetting to multiply by subscript'],
+  };
+}
+
+function solveHCF(match: RegExpMatchArray, fullText?: string): LocalSolution | null {
+  const nums = (fullText || match[0]).match(/\d+/g)?.map(Number) || [];
+  if (nums.length < 2) return null;
+  const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+  let hcf = nums[0];
+  for (let i = 1; i < nums.length; i++) hcf = gcd(hcf, nums[i]);
+  const lcm = (a: number, b: number): number => (a * b) / gcd(a, b);
+  let lcmVal = nums[0];
+  for (let i = 1; i < nums.length; i++) lcmVal = lcm(lcmVal, nums[i]);
+  return {
+    finalAnswer: `HCF = ${hcf}, LCM = ${lcmVal}`,
+    finalFormula: `HCF = ${hcf}, LCM = ${lcmVal}`,
+    steps: [
+      { desc: `Numbers: ${nums.join(', ')}`, formula: nums.join(', ') },
+      { desc: `Using Euclidean algorithm`, formula: 'GCD algorithm' },
+      { desc: `HCF = ${hcf}`, formula: `HCF = ${hcf}` },
+      { desc: `LCM = ${lcmVal}`, formula: `LCM = ${lcmVal}` },
+    ],
+    altSteps: [], similar: [`HCF & LCM of ${nums.map(n => n + 10).join(', ')}`],
+    mistakes: ['Confusing HCF and LCM', 'Missing common factors', 'Wrong prime factorization'],
+  };
+}
+
+function solveSlopeYIntercept(match: RegExpMatchArray, fullText?: string): LocalSolution | null {
+  const eqMatch = (fullText || match[0]).match(/y\s*=\s*(-?\d*\.?\d*)\s*x\s*[+\-]\s*(-?\d+\.?\d*)/i);
+  if (!eqMatch) return null;
+  const m = parseFloat(eqMatch[1] || '1');
+  const c = parseFloat(eqMatch[2]);
+  const xInt = m !== 0 ? -c / m : 0;
+  return {
+    finalAnswer: `Slope (m) = ${m}, Y-intercept (c) = ${c}, X-intercept = ${xInt.toFixed(2)}`,
+    finalFormula: `m = ${m}, c = ${c}`,
+    steps: [
+      { desc: `Equation: y = ${m}x ${c >= 0 ? '+' : ''}${c}`, formula: `y = ${m}x ${c >= 0 ? '+' : ''}${c}` },
+      { desc: `Comparing with y = mx + c: Slope = ${m}, Y-intercept = ${c}`, formula: `m = ${m}, c = ${c}` },
+      { desc: `X-intercept: set y=0, x = -c/m = ${xInt.toFixed(2)}`, formula: `x = -${c}/${m} = ${xInt.toFixed(2)}` },
+    ],
+    altSteps: [], similar: [`Find slope of y = ${m + 1}x + ${c + 2}`, `Line through (0,${c}) with slope ${m}`],
+    mistakes: ['Wrong sign for intercept', 'Confusing x and y intercepts'],
+  };
+}
+
+// ── PATTERN MATCHING ──
+
+interface PatternRule { regex: RegExp; solver: (m: RegExpMatchArray, fullText?: string) => LocalSolution | null; useFullText?: boolean; }
 
 const PATTERNS: PatternRule[] = [
-// Catches: "3x + 5 = 14", "2y - 3 = 7", "4x=20", "x + 3 = 10"
+  // ── Linear equations (broadest first) ──
   { regex: /\d*\.?\d*\s*[xXyYzZ]\s*[+\-]\s*\d+\.?\d*\s*(?:[+\-]\s*\d+\.?\d*\s*)?=\s*-?\d+\.?\d*/i, solver: solveLinearEq },
   { regex: /(?:solve|find)\s+[\d.]*\s*[xXyYzZ]\s*[+\-]\s*\d+\s*=\s*\d+/i, solver: solveLinearEq },
+  // ── Quadratic ──
   { regex: /(?:solve|find)\s+.*?roots?.*?/i, solver: solveQuadratic },
   { regex: /-?\d*\.?\d*\s*[xXyYzZ]\s*[\^²]\s*2\s*[+\-]\s*\d+\.?\d*\s*[xXyYzZ]?\s*[+\-]\s*-?\d+\.?\d*\s*=\s*0/i, solver: solveQuadratic },
-  { regex: /find\s+([\d.]+)%\s+of\s+([\d.]+)/i, solver: solvePercentage },
-  { regex: /simple\s+interest\s+on\s+rs\s*([\d.]+)\s+at\s*([\d.]+)%\s*per\s+annum\s+for\s*([\d.]+)\s*years/i, solver: solveSimpleInterest },
+  // ── NEW broad patterns ──
+  { regex: /(?:cost\s*price|cp).*?selling\s*price|profit|loss.*?percent/i, solver: solveProfitLoss },
+  { regex: /discount.*?%\s*(?:on|of)|marked\s*price.*?discount/i, solver: solveDiscount },
+  { regex: /area.*?rectangle|perimeter.*?rectangle|length.*?breadth.*?area/i, solver: solveAreaRect },
+  { regex: /area.*?triangle|base.*?height.*?triangle/i, solver: solveAreaTriangle },
+  { regex: /volume.*?cylinder|cylinder.*?volume|CSA.*?cylinder|TSA.*?cylinder/i, solver: solveVolumeCylinder },
+  { regex: /square\s*root|sqrt\s*\(?/i, solver: solveSquareCubeRoot },
+  { regex: /cube\s*root/i, solver: solveSquareCubeRoot },
+  { regex: /(?:F\s*=\s*ma|force\s*=\s*mass|find\s*force).*?(\d+)\s*kg.*?(\d+)\s*m\/s[²2]/i, solver: solveForceMA },
+  { regex: /kinetic\s*energy|KE\s*=|find\s*KE/i, solver: solveKineticEnergy },
+  { regex: /molar\s*mass\s*(?:of|for)/i, solver: solveMolarMass },
+  { regex: /(?:HCF|GCD|LCM)\s*(?:and|&|of)\s*\d/i, solver: solveHCF },
+  { regex: /slope.*?y\s*=\s*\d|y\s*=\s*\d.*?x.*?[+\-]\s*\d/i, solver: solveSlopeYIntercept },
+  // ── Expression evaluator (catch-all) ──
+  { regex: /(?:calculate|evaluate|compute|what is|find the value of)\s+[\d(][\d\s+\-*/().^sincotalgqrtbPIe]+/i, solver: solveEvaluateExpr, useFullText: true },
+  // ── Original patterns ──
+  { regex: /([\d.]+)%\s*of\s+([\d.]+)/i, solver: solvePercentage },
+  { regex: /find\s+([\d.]+)%\s*of\s+([\d.]+)/i, solver: solvePercentage },
+  { regex: /simple\s+interest\s+on\s+rs?\s*([\d.]+)\s+at\s*([\d.]+)%\s*per\s+annum\s+for\s*([\d.]+)\s*years/i, solver: solveSimpleInterest },
   { regex: /travels\s+([\d.]+)\s*km\s+in\s+([\d.]+)\s*hours/i, solver: solveSpeed },
-  { regex: /area\s+of\s+a\s+circle\s+with\s+radius\s+([\d.]+)/i, solver: solveAreaCircle },
+  { regex: /area\s+of\s+a\s+circle\s+with\s+radius\s*([\d.]+)/i, solver: solveAreaCircle },
   { regex: /ladder.*?(\d+).*?(\d+)\s*m.*?wall.*?height/i, solver: solvePythagoras },
   { regex: /(\d+)\s*kg.*?(\d+)\s*N\s*force.*?frictionless/i, solver: solveNewton },
   { regex: /resistance.*?(\d+)V.*?(\d+)A/i, solver: solveOhm },
@@ -810,10 +1082,9 @@ const PATTERNS: PatternRule[] = [
   { regex: /(\d+)\s*mL.*?([\d.]+)\s*M\s+HCl.*?(\d+)\s*mL\s+NaOH/i, solver: solveReaction },
   { regex: /balance.*?Fe.*?O2.*?Fe2O3/i, solver: solveBalance },
   { regex: /LCM\s*(and|&)\s*GCD\s+of/i, solver: solveLCMGCD },
-  { regex: /(?:sin|cos|tan)\s*[\u03b8\u03b1\u03b2\u03b3\u03c9\u03c6\\theta\\alpha\\beta]+(?:\s*=\s*(\d+)\s*\/\s*(\d+)|\s+(\d+)\s*\/\s*(\d+))/i, solver: solveTrig },
+  { regex: /(?:sin|cos|tan)\s*[\u03b8\u03b1\u03b2\u03b3\u03c9\u03c6]+(?:\s*=\s*(\d+)\s*\/\s*(\d+)|\s+(\d+)\s*\/\s*(\d+))/i, solver: solveTrig },
   { regex: /mean.*?median.*?mode\s+of/i, solver: solveStats },
   { regex: /\(a\+b\)\^2\s*-\s*\(a-b\)\^2/i, solver: solveIdentity },
-  // ── Additional broad patterns ──
   { regex: /compound\s+interest.*?rs?\s*([\d.]+).*?([\d.]+)%.*?([\d.]+)\s*years/i, solver: solveCompoundInterest },
   { regex: /circumference.*?circle.*?radius\s*([\d.]+)/i, solver: solveCircumference },
   { regex: /volume.*?sphere.*?radius\s*([\d.]+)/i, solver: solveVolumeSphere },
@@ -829,8 +1100,9 @@ export async function tryLocalSolve(problem: string, subject: string): Promise<L
     const match = norm.match(rule.regex);
     if (match) {
       try {
-        const sol = rule.solver(match);
-        if (sol) { console.log(`[SpeedSolve AI] Local matched: "${norm.slice(0,60)}..."`); return sol; }
+        // Pass full normalized text as 2nd arg so solvers can extract all numbers
+        const sol = rule.solver(match, norm);
+        if (sol) { console.log(`[SpeedSolve AI] Local matched: "${norm.slice(0, 60)}..."`); return sol; }
       } catch (e) { console.error(`[SpeedSolve AI] Local error:`, e); }
     }
   }
