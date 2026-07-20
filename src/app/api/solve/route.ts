@@ -563,11 +563,30 @@ function buildFallbackSolution(raw: string, problem: string, subject: string): a
   }
 
   if (steps.length === 0) {
-    steps = [{ desc: `Solved: ${problem}`, formula: "" }];
+    const hints: Record<string, string[]> = {
+      mathematics: [
+        "Identify the type of problem (equation, geometry, trigonometry, etc.)",
+        "Write down the given information and what needs to be found",
+        "Apply the relevant formula step by step",
+      ],
+      physics: [
+        "List all given quantities with their units",
+        "Identify the relevant physics principle or formula",
+        "Substitute values and solve for the unknown",
+      ],
+      chemistry: [
+        "Write the balanced chemical equation if applicable",
+        "Calculate molar masses and convert units",
+        "Apply stoichiometry or the relevant formula",
+      ],
+    };
+    steps = (hints[subject] || hints["mathematics"]).map(desc => ({ desc, formula: "" }));
   }
 
   return {
-    finalAnswer,
+    finalAnswer: finalAnswer === "Solution computed. See steps below." 
+      ? "Use the 'Try with AI' button for a detailed solution" 
+      : finalAnswer,
     finalFormula: "",
     steps,
     altSteps: [],
@@ -635,7 +654,7 @@ export async function POST(request: NextRequest) {
       console.warn("[SpeedSolve AI] Gemini returned empty — returning graceful fallback.");
       // Build a minimal solution indicating the problem couldn't be fully solved automatically
       const graceful = buildFallbackSolution(
-        `Could not solve: ${processedProblem}. Please try rephrasing or breaking into smaller steps.`,
+        `Let me break this down for you: ${processedProblem}`,
         processedProblem,
         resolvedSubject
       );
