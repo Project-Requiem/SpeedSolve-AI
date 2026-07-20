@@ -8,6 +8,7 @@ interface LocalSolution {
   altSteps: { desc: string; formula: string }[];
   similar: string[];
   mistakes: string[];
+  examTips?: string[];
 }
 
 // Comprehensive Unicode → ASCII normalizer for math/science input
@@ -660,11 +661,131 @@ function solveIdentity(match: RegExpMatchArray): LocalSolution | null {
   };
 }
 
+function solveCompoundInterest(match: RegExpMatchArray): LocalSolution | null {
+  const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
+  if (nums.length < 3) return null;
+  const P = nums[0], R = nums[1], T = nums[2], r = R / 100;
+  const A = P * Math.pow(1 + r, T);
+  const CI = A - P;
+  return {
+    finalAnswer: `Amount = Rs ${A.toFixed(2)}, CI = Rs ${CI.toFixed(2)}`, finalFormula: `A = P(1+r)^n = ${A.toFixed(2)}`,
+    steps: [
+      { desc: `Given: P = Rs ${P}, R = ${R}%, T = ${T} years`, formula: `P = ${P}, R = ${R}%, T = ${T}` },
+      { desc: `A = P(1 + R/100)^T`, formula: `A = ${P}(1 + ${r})^${T}` },
+      { desc: `A = ${P} × ${Math.pow(1+r,T).toFixed(4)} = Rs ${A.toFixed(2)}`, formula: `A = Rs ${A.toFixed(2)}` },
+      { desc: `CI = A - P = ${CI.toFixed(2)}`, formula: `CI = Rs ${CI.toFixed(2)}` },
+    ],
+    altSteps: [], similar: [`CI on Rs ${P*2} at ${R}% for ${T+1} years`, `SI vs CI on Rs ${P} at ${R}% for ${T} years`, `In how many years does Rs ${P} double at ${R}% CI?`],
+    mistakes: ["Using SI formula instead of CI", "Not converting percentage to decimal", "Forgetting to subtract P for CI"],
+  };
+}
+
+function solveCircumference(match: RegExpMatchArray): LocalSolution | null {
+  const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
+  if (nums.length < 1) return null;
+  const r = nums[0], c = 2 * Math.PI * r, area = Math.PI * r * r;
+  return {
+    finalAnswer: `Circumference = ${c.toFixed(2)} units`, finalFormula: `C = 2\\pi r = ${c.toFixed(2)}`,
+    steps: [
+      { desc: `Radius = ${r}`, formula: `r = ${r}` },
+      { desc: `C = 2πr`, formula: `C = 2 \\times \\pi \\times ${r} = ${c.toFixed(2)}` },
+    ],
+    altSteps: [{ desc: `Area = πr² = ${area.toFixed(2)}`, formula: `A = \\pi \\times ${r}^2 = ${area.toFixed(2)}` }],
+    similar: [`Circumference of circle r=${r+5}`, `Area of circle with C=${c.toFixed(0)}`, `Diameter from C=${c.toFixed(0)}`],
+    mistakes: ["Using diameter instead of radius", "Confusing C=2πr with A=πr²", "Wrong value of π"],
+  };
+}
+
+function solveVolumeSphere(match: RegExpMatchArray): LocalSolution | null {
+  const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
+  if (nums.length < 1) return null;
+  const r = nums[0], v = (4/3) * Math.PI * Math.pow(r, 3);
+  return {
+    finalAnswer: `Volume = ${v.toFixed(2)} cubic units`, finalFormula: `V = \\frac{4}{3}\\pi r^3 = ${v.toFixed(2)}`,
+    steps: [
+      { desc: `Radius = ${r}`, formula: `r = ${r}` },
+      { desc: `V = (4/3)πr³`, formula: `V = \\frac{4}{3} \\times \\pi \\times ${r}^3` },
+      { desc: `V = ${v.toFixed(2)}`, formula: `V = ${v.toFixed(2)}` },
+    ],
+    altSteps: [], similar: [`Volume of sphere r=${r+2}`, `Volume of hemisphere r=${r}`, `Surface area of sphere r=${r}`],
+    mistakes: ["Using (4/3)πr² instead of r³", "Confusing with volume of cylinder", "Not cubing the radius"],
+  };
+}
+
+function solveSpeedGeneric(match: RegExpMatchArray): LocalSolution | null {
+  const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
+  if (nums.length < 2) return null;
+  const d = nums[0], t = nums[1], v = d / t, vMs = (v * 1000) / 3600;
+  return {
+    finalAnswer: `Speed = ${v} km/h = ${vMs.toFixed(2)} m/s`, finalFormula: `v = d/t = ${v} \\text{ km/h}`,
+    steps: [
+      { desc: `Distance = ${d} km, Time = ${t} hours`, formula: `d = ${d} km, t = ${t} hr` },
+      { desc: `Speed = Distance / Time`, formula: `v = ${d} / ${t} = ${v} km/h` },
+      { desc: `Convert to m/s (× 5/18)`, formula: `${v} × 5/18 = ${vMs.toFixed(2)} m/s` },
+    ],
+    altSteps: [], similar: [`Speed for ${d+50}km in ${t}hr`, `Time to cover ${d}km at ${v}km/h`, `Distance at ${v}km/h for ${t}hr`],
+    mistakes: ["Wrong formula (time/distance)", "Unit conversion errors", "Mixed units"],
+  };
+}
+
+function solvePercentageReverse(match: RegExpMatchArray): LocalSolution | null {
+  const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
+  if (nums.length < 2) return null;
+  const part = nums[0], whole = nums[1], pct = (part / whole) * 100;
+  return {
+    finalAnswer: `${part} is ${pct.toFixed(2)}% of ${whole}`, finalFormula: `\\frac{${part}}{${whole}} \\times 100 = ${pct.toFixed(2)}\\%`,
+    steps: [
+      { desc: `Part = ${part}, Whole = ${whole}`, formula: `${part}, ${whole}` },
+      { desc: `Percentage = (Part/Whole) × 100`, formula: `(${part}/${whole}) × 100` },
+      { desc: `= ${pct.toFixed(2)}%`, formula: `= ${pct.toFixed(2)}%` },
+    ],
+    altSteps: [], similar: [`${part+20} is what % of ${whole}?`, `${part} is what % of ${whole+50}?`, `What is ${pct.toFixed(0)}% of ${whole}?`],
+    mistakes: ["Dividing whole by part instead", "Forgetting to multiply by 100", "Rounding too early"],
+  };
+}
+
+function solveKinematic(match: RegExpMatchArray): LocalSolution | null {
+  const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
+  if (nums.length < 3) return null;
+  const u = nums[0], a = nums[1], t = nums[2];
+  const s = u * t + 0.5 * a * t * t, v = u + a * t;
+  return {
+    finalAnswer: `Distance = ${s.toFixed(2)} m, Final velocity = ${v.toFixed(2)} m/s`, finalFormula: `s = ut + \\frac{1}{2}at^2 = ${s.toFixed(2)} \\text{ m}`,
+    steps: [
+      { desc: `u = ${u} m/s, a = ${a} m/s², t = ${t} s`, formula: `u=${u}, a=${a}, t=${t}` },
+      { desc: `s = ut + ½at²`, formula: `s = ${u}×${t} + 0.5×${a}×${t}² = ${s.toFixed(2)} m` },
+      { desc: `v = u + at`, formula: `v = ${u} + ${a}×${t} = ${v.toFixed(2)} m/s` },
+    ],
+    altSteps: [], similar: [`u=${u+5}, a=${a}, t=${t+1}. Find s and v.`, `v² = u² + 2as for same values`, `Find time when s = ${s.toFixed(0)}m`],
+    mistakes: ["Using wrong kinematic equation", "Sign of acceleration", "Not squaring t in ½at²"],
+  };
+}
+
+function solveSimpleAddMul(match: RegExpMatchArray): LocalSolution | null {
+  const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
+  if (nums.length < 2) return null;
+  const a = nums[0], b = nums[1], sum = a + b, diff = a - b, prod = a * b;
+  return {
+    finalAnswer: `Sum = ${sum}, Difference = ${diff}, Product = ${prod}`, finalFormula: `${a} + ${b} = ${sum}`,
+    steps: [
+      { desc: `Numbers: ${a} and ${b}`, formula: `${a}, ${b}` },
+      { desc: `Sum = ${a} + ${b} = ${sum}`, formula: `${a} + ${b} = ${sum}` },
+      { desc: `Difference = ${a} - ${b} = ${diff}`, formula: `${a} - ${b} = ${diff}` },
+      { desc: `Product = ${a} × ${b} = ${prod}`, formula: `${a} \\times ${b} = ${prod}` },
+    ],
+    altSteps: [], similar: [`Same for ${a+5} and ${b+3}`, `Quotient ${a}/${b}`, `What added to ${a} gives ${sum}?`],
+    mistakes: ["Sign errors in subtraction", "Carry mistakes", "Confusing sum and product"],
+  };
+}
+
 interface PatternRule { regex: RegExp; solver: (m: RegExpMatchArray) => LocalSolution | null; }
 
 const PATTERNS: PatternRule[] = [
-  { regex: /(?:solve|find)\s+[\d.]*\s*[xX]\s*[+\-]\s*\d+\s*=\s*\d+/i, solver: solveLinearEq },
-  { regex: /(?:solve|find|roots?|root)?\s*-?\d*\.?\d*\s*[xXyY]\s*[\^²]\s*2\s*[+\-]\s*\d+\.?\d*\s*[xXyY]?\s*[+\-]\s*-?\d+\.?\d*\s*=\s*0/i, solver: solveQuadratic },
+// Catches: "3x + 5 = 14", "2y - 3 = 7", "4x=20", "x + 3 = 10"
+  { regex: /\d*\.?\d*\s*[xXyYzZ]\s*[+\-]\s*\d+\.?\d*\s*(?:[+\-]\s*\d+\.?\d*\s*)?=\s*-?\d+\.?\d*/i, solver: solveLinearEq },
+  { regex: /(?:solve|find)\s+[\d.]*\s*[xXyYzZ]\s*[+\-]\s*\d+\s*=\s*\d+/i, solver: solveLinearEq },
+  { regex: /(?:solve|find)\s+.*?roots?.*?/i, solver: solveQuadratic },
+  { regex: /-?\d*\.?\d*\s*[xXyYzZ]\s*[\^²]\s*2\s*[+\-]\s*\d+\.?\d*\s*[xXyYzZ]?\s*[+\-]\s*-?\d+\.?\d*\s*=\s*0/i, solver: solveQuadratic },
   { regex: /find\s+([\d.]+)%\s+of\s+([\d.]+)/i, solver: solvePercentage },
   { regex: /simple\s+interest\s+on\s+rs\s*([\d.]+)\s+at\s*([\d.]+)%\s*per\s+annum\s+for\s*([\d.]+)\s*years/i, solver: solveSimpleInterest },
   { regex: /travels\s+([\d.]+)\s*km\s+in\s+([\d.]+)\s*hours/i, solver: solveSpeed },
@@ -692,6 +813,14 @@ const PATTERNS: PatternRule[] = [
   { regex: /(?:sin|cos|tan)\s*[\u03b8\u03b1\u03b2\u03b3\u03c9\u03c6\\theta\\alpha\\beta]+(?:\s*=\s*(\d+)\s*\/\s*(\d+)|\s+(\d+)\s*\/\s*(\d+))/i, solver: solveTrig },
   { regex: /mean.*?median.*?mode\s+of/i, solver: solveStats },
   { regex: /\(a\+b\)\^2\s*-\s*\(a-b\)\^2/i, solver: solveIdentity },
+  // ── Additional broad patterns ──
+  { regex: /compound\s+interest.*?rs?\s*([\d.]+).*?([\d.]+)%.*?([\d.]+)\s*years/i, solver: solveCompoundInterest },
+  { regex: /circumference.*?circle.*?radius\s*([\d.]+)/i, solver: solveCircumference },
+  { regex: /volume.*?sphere.*?radius\s*([\d.]+)/i, solver: solveVolumeSphere },
+  { regex: /(?:average\s+speed|speed)\s*.*?(\d+)\s*km.*?(\d+)\s*(?:hours?|hr)/i, solver: solveSpeedGeneric },
+  { regex: /is\s+what\s+percent.*?of/i, solver: solvePercentageReverse },
+  { regex: /(\d+)\s*m\/s.*?(\d+)\s*m\/s[²2].*?(\d+)\s*s.*?(?:distance|displacement)/i, solver: solveKinematic },
+  { regex: /surface\s+area.*?sphere/i, solver: solveVolumeSphere },
 ];
 
 export async function tryLocalSolve(problem: string, subject: string): Promise<LocalSolution | null> {

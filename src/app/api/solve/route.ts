@@ -579,7 +579,7 @@ function buildFallbackSolution(raw: string, problem: string, subject: string): a
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { problem, subject, board } = body;
+    const { problem, subject, board, forceAI } = body;
 
     if (!problem || typeof problem !== "string") {
       return NextResponse.json(
@@ -608,13 +608,15 @@ export async function POST(request: NextRequest) {
     // Preprocess: normalize Unicode symbols, Greek letters, etc.
     const processedProblem = preprocessProblem(problem);
 
-    // ── Step 1: Try local solver (instant) ──
-    const localResult = await tryLocalSolve(processedProblem, resolvedSubject);
-    if (localResult) {
-      if (localResult.similar.length === 0) localResult.similar = generateSimilarQuestions(problem, resolvedSubject);
-      if (localResult.mistakes.length === 0) localResult.mistakes = generateCommonMistakes(resolvedSubject);
-      localResult.examTips = BOARD_TIPS[resolvedBoard]?.[resolvedSubject] || BOARD_TIPS["icse"]?.[resolvedSubject] || [];
-      return NextResponse.json({ success: true, data: localResult, source: "local" });
+    // ── Step 1: Try local solver (instant) — skip if forceAI ──
+    if (!forceAI) {
+      const localResult = await tryLocalSolve(processedProblem, resolvedSubject);
+      if (localResult) {
+        if (localResult.similar.length === 0) localResult.similar = generateSimilarQuestions(problem, resolvedSubject);
+        if (localResult.mistakes.length === 0) localResult.mistakes = generateCommonMistakes(resolvedSubject);
+        localResult.examTips = BOARD_TIPS[resolvedBoard]?.[resolvedSubject] || BOARD_TIPS["icse"]?.[resolvedSubject] || [];
+        return NextResponse.json({ success: true, data: localResult, source: "local" });
+      }
     }
 
     // ── Step 2: AI Solver (auto-fallback) ──
