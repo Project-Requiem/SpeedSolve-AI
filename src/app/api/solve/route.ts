@@ -630,11 +630,16 @@ export async function POST(request: NextRequest) {
     );
 
     if (!raw) {
-      console.error("[SpeedSolve AI] Gemini returned empty. AI unavailable.");
-      return NextResponse.json(
-        { error: "AI solver is currently unavailable. Please try again in a moment." },
-        { status: 503 }
+      console.warn("[SpeedSolve AI] Gemini returned empty — returning graceful fallback.");
+      // Build a minimal solution indicating the problem couldn't be fully solved automatically
+      const graceful = buildFallbackSolution(
+        `Could not solve: ${processedProblem}. Please try rephrasing or breaking into smaller steps.`,
+        processedProblem,
+        resolvedSubject
       );
+      const solution = sanitizeSolution(graceful, resolvedSubject);
+      solution.examTips = BOARD_TIPS[resolvedBoard]?.[resolvedSubject] || BOARD_TIPS["icse"]?.[resolvedSubject] || [];
+      return NextResponse.json({ success: true, data: solution, source: "fallback" });
     }
 
     let parsed = extractJSON(raw);
@@ -671,10 +676,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data: solution, source: "ai" });
   } catch (err) {
     console.error("Solve API error:", err);
-    return NextResponse.json(
-      { error: "Internal server error. Please try again." },
-      { status: 500 }
-    );
+    // Never show raw errors to user — always return a graceful 200 response
+    const errorMsg = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({
+      success: false,
+      error: "Something went wrong while solving. Please try rephrasing your problem.",
+      debug: process.env.NODE_ENV === "development" ? errorMsg : undefined,
+    }, { status: 200 });
   }
 }
 
