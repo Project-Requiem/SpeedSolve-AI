@@ -1271,7 +1271,7 @@ export default function Home() {
               <canvas ref={cameraCanvasRef} className="hidden-input" />
 
               <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ position: 'relative', flex: 1 }}>
+                <div style={{ display: 'flex', flex: 1, gap: '8px' }}>
                   <textarea
                     className="input-textarea"
                     rows={4}
@@ -1280,18 +1280,18 @@ export default function Home() {
                     onChange={e => setProblem(e.target.value)}
                     onKeyDown={handleKeyDown}
                   />
-                  <div className="input-inline-actions">
+                  {/* Action buttons column */}
+                  <div className="input-actions-col">
                     <div className="upload-btn-wrapper" ref={uploadMenuRef}>
                       <button
-                        className="inline-action-btn"
+                        className="action-btn upload-trigger-btn"
                         onClick={() => setShowUploadMenu(v => !v)}
-                        title="Upload image, PDF, or camera"
+                        title="Upload file"
                         disabled={extracting}
                       >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
                         </svg>
-                        <span>Attach</span>
                       </button>
                       {showUploadMenu && (
                         <div className="upload-popover">
@@ -1312,18 +1312,17 @@ export default function Home() {
                     </div>
                     {voiceSupported && (
                       <button
-                        className={`inline-action-btn voice-btn${isListening ? ' active' : ''}`}
+                        className={`action-btn voice-btn${isListening ? ' active' : ''}`}
                         onClick={toggleVoice}
                         title={isListening ? 'Stop listening' : 'Voice input'}
                         aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
                       >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
                           <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
                           <line x1="12" y1="19" x2="12" y2="23"/>
                           <line x1="8" y1="23" x2="16" y2="23"/>
                         </svg>
-                        <span>{isListening ? 'Stop' : 'Voice'}</span>
                       </button>
                     )}
                   </div>
