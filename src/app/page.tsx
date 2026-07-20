@@ -330,6 +330,7 @@ export default function Home() {
 
   // ── Feature 7: Retry with AI ──
   const [retryingAI, setRetryingAI] = useState(false)
+  const [aiMode, setAiMode] = useState(false) // When true, skip local solver, go straight to AI
 
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const solutionRef = useRef<HTMLDivElement>(null)
@@ -446,7 +447,7 @@ export default function Home() {
       const res = await fetch('/api/solve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ problem: trimmed, subject: activeSubject, board }),
+        body: JSON.stringify({ problem: trimmed, subject: activeSubject, board, forceAI: aiMode }),
       })
       const data = await res.json()
       clearInterval(progressRef.current!)
@@ -1376,8 +1377,16 @@ export default function Home() {
                   disabled={loading || !problem.trim()}
                   style={loading ? { background: SUBJECT_META[subject].gradient, opacity: 0.6 } : { background: SUBJECT_META[subject].gradient }}
                 >
-                  <span className="btn-text">{loading ? 'Solving...' : 'Solve'}</span>
+                  <span className="btn-text">{loading ? 'Solving...' : aiMode ? '🤖 Solve with AI' : 'Solve'}</span>
                   {!loading && <span className="btn-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>}
+                </button>
+                <button
+                  className={`btn-clear${aiMode ? ' ai-mode-active' : ''}`}
+                  onClick={() => setAiMode(!aiMode)}
+                  title={aiMode ? 'AI Mode ON - click to use instant solver' : 'Click to use AI solver'}
+                  style={aiMode ? { borderColor: '#8b5cf6', color: '#8b5cf6', background: 'rgba(139,92,246,0.1)' } : {}}
+                >
+                  🤖 AI Mode {aiMode ? 'ON' : 'OFF'}
                 </button>
                 <button className="btn-clear" onClick={clearAll} title="Clear input">Clear &times;</button>
               </div>
