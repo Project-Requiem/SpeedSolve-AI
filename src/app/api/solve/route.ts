@@ -1,164 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
+import { GoogleGenAI } from "@google/genai";
 import { tryLocalSolve, preprocessProblem } from "./local-solver";
 import { isPromptInjection, INJECTION_MESSAGE } from "@/lib/injection-guard";
 
-// ── AI Provider: Google Gemini (free, works on Vercel) ──
-// Supports multiple API keys with automatic rotation & rate-limit recovery
-const GEMINI_MODEL = "gemini-2.0-flash";
+// ── AI Provider: Google Gemini via official SDK ──
+// Flow: Student → SpeedSolve AI → Vercel /api/solve → Gemini API
+// The SDK handles auth, retries, and key format internally.
 
-// Parse all GEMINI_API_KEY, GEMINI_API_KEY_2, GEMINI_API_KEY_3, ... from env
-function loadGeminiKeys(): string[] {
-  const keys: string[] = [];
-  // Primary key
-  const primary = process.env.GEMINI_API_KEY || "";
-  if (primary.trim()) keys.push(primary.trim());
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY || "",
+});
 
-  // Numbered keys: GEMINI_API_KEY_2, GEMINI_API_KEY_3, ... up to _20
-  for (let i = 2; i <= 20; i++) {
-    const k = process.env[`GEMINI_API_KEY_${i}`] || "";
-    if (k.trim() && !keys.includes(k.trim())) keys.push(k.trim());
-  }
-  return keys;
-}
-
-const ALL_GEMINI_KEYS = loadGeminiKeys();
-
-// Per-key state tracking
-const keyState: Map<string, { cooldownUntil: number; failCount: number }> = new Map();
-
-// Initialize state for all keys
-for (const k of ALL_GEMINI_KEYS) {
-  keyState.set(k, { cooldownUntil: 0, failCount: 0 });
-}
-
-function getAvailableKey(): string | null {
-  const now = Date.now();
-  for (const k of ALL_GEMINI_KEYS) {
-    const state = keyState.get(k)!;
-    if (now >= state.cooldownUntil) return k;
-  }
-  return null; // all keys in cooldown
-}
-
-function markKeyFailure(key: string) {
-  const state = keyState.get(key);
-  if (!state) return;
-  state.failCount++;
-  // Exponential backoff: 60s, 120s, 240s, 480s... max 30 min
-  const cooldown = Math.min(60 * Math.pow(2, state.failCount - 1), 1800);
-  state.cooldownUntil = Date.now() + cooldown * 1000;
-  console.warn(`[Gemini] Key #${ALL_GEMINI_KEYS.indexOf(key) + 1} rate-limited, cooldown ${cooldown}s`);
-}
-
-function markKeySuccess(key: string) {
-  const state = keyState.get(key);
-  if (state) {
-    state.failCount = 0;
-    state.cooldownUntil = 0;
-  }
-}
-
-async function solveWithGemini(systemPrompt: string, userPrompt: string): Promise<string> {
-  if (ALL_GEMINI_KEYS.length === 0) return "";
-
-  // Try each available key
-  const maxAttempts = Math.min(ALL_GEMINI_KEYS.length, 3);
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const key = getAvailableKey();
-    if (!key) {
-      console.warn("[Gemini] All keys in cooldown");
-      break;
-    }
-
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
-      const body = {
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-        generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 4096,
-          responseMimeType: "application/json",
-        },
-      };
-
-      // Support both old (AIzaSy) and new (AQ.) API key formats
-      // New AQ. keys MUST go in x-goog-api-key header, not as URL param
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (key.startsWith("AQ.")) {
-        headers["x-goog-api-key"] = key;
-      } else {
-        // Legacy AIzaSy keys — append as query param
-        headers["Content-Type"] = "application/json";
-      }
-      const fetchUrl = key.startsWith("AQ.") ? url : `${url}?key=${key}`;
-
-      const res = await fetch(fetchUrl, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(body),
-      });
-
-      if (res.status === 429 || res.status === 503) {
-        const errBody = await res.text().catch(() => "");
-        const isGeoBlock = errBody.includes("location is not supported") || errBody.includes("limit: 0");
-        if (isGeoBlock) {
-          console.error("[Gemini] Geo-blocked: server region not supported. Will work on Vercel (US)." );
-        } else {
-          console.warn(`[Gemini] Key #${ALL_GEMINI_KEYS.indexOf(key) + 1} rate-limited, rotating...`);
-        }
-        markKeyFailure(key);
-        continue;
-      }
-
-      if (!res.ok) {
-        const errText = await res.text().catch(() => "");
-        console.error("[Gemini] API error", res.status, errText.slice(0, 300));
-        markKeyFailure(key);
-        continue;
-      }
-
-      const data = await res.json();
-
-      // Check for safety blocks or empty responses
-      const content = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      if (!content) {
-        // Empty response, might be blocked — try next key
-        continue;
-      }
-
-      markKeySuccess(key);
-      return content;
-    } catch (err) {
-      console.error(`[Gemini] Key #${ALL_GEMINI_KEYS.indexOf(key) + 1} error:`, err);
-      markKeyFailure(key);
-      continue;
-    }
-  }
-  return "";
-}
-
-// ── Unified AI call: Gemini API only ──
-async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
-  if (ALL_GEMINI_KEYS.length === 0) {
+async function callGemini(systemPrompt: string, userPrompt: string): Promise<string> {
+  if (!process.env.GEMINI_API_KEY) {
     console.error("[SpeedSolve AI] No GEMINI_API_KEY set in environment");
     return "";
   }
 
-  const result = await solveWithGemini(systemPrompt, userPrompt);
-  if (result) return result;
-  console.error("[SpeedSolve AI] All Gemini keys failed or in cooldown");
-  return "";
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: userPrompt,
+      config: {
+        systemInstruction: systemPrompt,
+        temperature: 0.1,
+        maxOutputTokens: 4096,
+        responseMimeType: "application/json",
+      },
+    });
+    return response.text || "";
+  } catch (err) {
+    console.error("[SpeedSolve AI] Gemini error:", err);
+    return "";
+  }
 }
 
-// Hybrid solver: tries local fast solver first, falls back to LLM
-
-const SUBJECT_META: Record<string, { label: string; icon: string; color: string }> = {
-  mathematics: { label: "Mathematics", icon: "\u03A3", color: "#6366f1" },
-  physics: { label: "Physics", icon: "\u269B\uFE0F", color: "#ea580c" },
-  chemistry: { label: "Chemistry", icon: "\u2697\uFE0F", color: "#059669" },
-};
-
+// ── Board-specific exam tips ──
 const BOARD_TIPS: Record<string, Record<string, string[]>> = {
   icse: {
     mathematics: [
@@ -279,7 +156,7 @@ CRITICAL RULES:
 OUTPUT FORMAT: Return ONLY valid JSON (no markdown, no code blocks, no commentary):
 {
   "finalAnswer": "The final answer with units, e.g. x = 3 or v = 14 m/s",
-  "finalFormula": "LaTeX formula for the final answer, e.g. x = 3 or v = 14\\text{ m/s}",
+  "finalFormula": "LaTeX formula for the final answer, e.g. x = 3 or v = 14 m/s",
   "steps": [
     {
       "desc": "Clear explanation of this step in plain English suitable for a student",
@@ -294,9 +171,9 @@ OUTPUT FORMAT: Return ONLY valid JSON (no markdown, no code blocks, no commentar
   ],
   "similar": ["Similar problem 1", "Similar problem 2", "Similar problem 3"],
   "mistakes": ["Common mistake 1 students make", "Common mistake 2", "Common mistake 3"]
+}
 
 IMPORTANT: The "similar" array MUST contain 3 specific, solvable practice problems (not generic advice). The "mistakes" array MUST contain 3 specific mistakes related to THIS problem type.
-}
 
 STEP-BY-STEP REQUIREMENTS:
 - Step 1: Identify what is given and what needs to be found
@@ -312,7 +189,14 @@ ACCURACY CHECKLIST (mentally verify before responding):
 - Is the final answer reasonable (check order of magnitude)?
 - Are units consistent throughout?`;
 
-async function solveWithLLM(
+const SUBJECT_META: Record<string, { label: string; icon: string; color: string }> = {
+  mathematics: { label: "Mathematics", icon: "\u03A3", color: "#6366f1" },
+  physics: { label: "Physics", icon: "\u269B\uFE0F", color: "#ea580c" },
+  chemistry: { label: "Chemistry", icon: "\u2697\uFE0F", color: "#059669" },
+};
+
+// ── AI solver: sends problem to Gemini for structured JSON solution ──
+async function solveWithAI(
   problem: string,
   subject: string,
   board: string
@@ -332,174 +216,14 @@ Problem: ${problem}
 
 Solve this problem step-by-step. Return ONLY the JSON response as specified.`;
 
-  return callAI(SOLVER_SYSTEM_PROMPT, userPrompt);
-}
-
-function extractJSON(text: string): object | null {
-  if (!text || typeof text !== 'string') return null;
-
-  // Strip markdown code fences if present
-  let cleaned = text.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim();
-
-  // Try direct parse first
-  try { return JSON.parse(cleaned); } catch {}
-
-  // Find JSON by brace matching
-  const start = cleaned.indexOf("{");
-  if (start === -1) return null;
-  let depth = 0;
-  for (let i = start; i < cleaned.length; i++) {
-    if (cleaned[i] === "{") depth++;
-    else if (cleaned[i] === "}") {
-      depth--;
-      if (depth === 0) {
-        let candidate = cleaned.slice(start, i + 1);
-        // Aggressive cleanup
-        candidate = candidate
-          .replace(/,\s*([\]}])/g, "$1")       // trailing commas
-          .replace(/\\n/g, " ")                   // literal newlines in strings
-          .replace(/\n/g, " ")                    // actual newlines
-          .replace(/\t/g, " ")                    // tabs
-          .replace(/  +/g, " ")                   // collapse spaces
-          .trim();
-        try { return JSON.parse(candidate); } catch {}
-        // More aggressive: remove control chars
-        candidate = candidate.replace(/[\x00-\x1f\x7f]/g, '');
-        try { return JSON.parse(candidate); } catch {}
-        return null;
-      }
-    }
-  }
-  return null;
-}
-
-function validateSolution(data: any): boolean {
-  if (!data || typeof data !== "object") return false;
-  if (
-    !data.finalAnswer ||
-    typeof data.finalAnswer !== "string"
-  )
-    return false;
-  if (!Array.isArray(data.steps) || data.steps.length === 0) return false;
-  return true;
-}
-
-function cleanLatexField(text: string): string {
-  if (!text || typeof text !== 'string') return text
-  // Remove \text{...} wrappers - keep content
-  text = text.replace(/\\text\{([^}]*)\}/g, '$1')
-  text = text.replace(/\\mathrm\{([^}]*)\}/g, '$1')
-  text = text.replace(/\\mathbf\{([^}]*)\}/g, '$1')
-  return text
-}
-
-function sanitizeSolution(data: any, subject: string) {
-  // Ensure all fields exist
-  return {
-    finalAnswer: cleanLatexField(data.finalAnswer) || "",
-    finalFormula: cleanLatexField(data.finalFormula || data.finalAnswer || ""),
-    steps: (data.steps || []).map(
-      (s: any) => ({
-        desc: cleanLatexField(s.desc || ""),
-        formula: cleanLatexField(s.formula || ""),
-      })
-    ),
-    altSteps: (data.altSteps || []).map(
-      (s: any) => ({
-        desc: cleanLatexField(s.desc || ""),
-        formula: cleanLatexField(s.formula || ""),
-      })
-    ),
-    similar: Array.isArray(data.similar)
-      ? data.similar.slice(0, 4)
-      : [],
-    mistakes: Array.isArray(data.mistakes)
-      ? data.mistakes.slice(0, 5)
-      : [],
-    examTips:
-      BOARD_TIPS["icse"]?.[subject] ||
-      BOARD_TIPS["cbse"]?.[subject] ||
-      [],
-  };
-}
-
-// ── AI-as-Parser: lightweight AI call to rephrase/extract, then solve locally ──
-async function tryAIRephrase(
-  problem: string,
-  subject: string
-): Promise<string | null> {
-  const REPHRASE_PROMPT = `You are a question rephraser. Your ONLY job is to rewrite the given problem into a clean, standard format that a pattern-matching solver can recognize.
-
-Rules:
-- Output ONLY the rephrased problem text. No explanation, no JSON, no commentary.
-- Use standard mathematical notation (x^2 for x², sqrt for √, etc.)
-- For word problems, extract the core mathematical question and write it in a standard format.
-- For physics/chemistry, include all numerical values with proper units.
-- Keep it in one sentence if possible.
-- If the problem is not a numerical/mathematical question (e.g. "explain photosynthesis", "what is democracy"), output EXACTLY: "__NOT_NUMERICAL__"
-
-Subject: ${subject.toUpperCase()}
-Problem: ${problem}
-
-Rephrased problem:`;
-
-  const content = (await callAI(
-    "You rephrase math/science problems into standard formats. Output ONLY the rephrased text, nothing else.",
-    REPHRASE_PROMPT
-  )).trim();
-  if (!content || content.includes("__NOT_NUMERICAL__")) return null;
-  console.log(`[SpeedSolve AI] AI rephrased: "${problem.slice(0, 50)}..." → "${content.slice(0, 80)}..."`);
-  return content;
-}
-
-function generateSimilarQuestions(problem: string, subject: string): string[] {
-  const templates: Record<string, string[]> = {
-    mathematics: [
-      `Try solving: If the values in this problem were doubled, what would the answer be?`,
-      `Practice: Solve a similar problem with different numbers.`,
-      `Challenge: Can you verify this answer using an alternative method?`,
-    ],
-    physics: [
-      `Try: What happens if you double the mass/force in this problem?`,
-      `Practice: Solve using a different physics formula.`,
-      `Challenge: How does the answer change if g = 10 m/s² instead of 9.8?`,
-    ],
-    chemistry: [
-      `Try: What if the concentration was halved?`,
-      `Practice: Solve a similar stoichiometry problem.`,
-      `Challenge: Balance the equation and verify with conservation of mass.`,
-    ],
-  };
-  return templates[subject] || templates.mathematics;
-}
-
-function generateCommonMistakes(subject: string): string[] {
-  const mistakes: Record<string, string[]> = {
-    mathematics: [
-      'Not following BODMAS/PEMDAS order of operations correctly',
-      'Making sign errors when moving terms across the equals sign',
-      'Forgetting to apply the correct formula for the given problem type',
-    ],
-    physics: [
-      'Forgetting to convert units (e.g., km/h to m/s) before substituting',
-      'Using the wrong kinematic equation for the given conditions',
-      'Not including proper units in the final answer',
-    ],
-    chemistry: [
-      'Forgetting to balance the chemical equation before calculations',
-      'Using incorrect molar masses or atomic weights',
-      'Not converting volume to liters when calculating molarity',
-    ],
-  };
-  return mistakes[subject] || mistakes.mathematics;
+  return callGemini(SOLVER_SYSTEM_PROMPT, userPrompt);
 }
 
 // ── Strict retry: tells the LLM its previous output was broken ──
-async function solveWithLLMStrict(
+async function solveWithAIStrict(
   problem: string,
   subject: string,
-  board: string,
-  failedRaw: string
+  board: string
 ): Promise<string> {
   const boardContext =
     board === "icse" ? "ICSE Board"
@@ -521,72 +245,153 @@ RULES:
 - Do NOT use \\text{} or \\mathrm{} in any formula.
 - Test your JSON mentally before outputting — it must parse with JSON.parse().`;
 
-  return callAI(SOLVER_SYSTEM_PROMPT, strictPrompt);
+  return callGemini(SOLVER_SYSTEM_PROMPT, strictPrompt);
 }
 
-// ── Fallback: extract whatever we can from raw LLM text ──
-function buildFallbackSolution(raw: string, problem: string, subject: string): any {
-  const lines = raw.split("\n").map(l => l.trim()).filter(Boolean);
-  let finalAnswer = "Solution computed. See steps below.";
-  let steps: { desc: string; formula: string }[] = [];
+function extractJSON(text: string): object | null {
+  if (!text || typeof text !== "string") return null;
 
-  // Look for common answer patterns
-  for (const line of lines) {
-    const lower = line.toLowerCase();
-    if (
-      lower.startsWith("final answer") ||
-      lower.startsWith("answer:") ||
-      lower.startsWith("answer =") ||
-      lower.startsWith("therefore") ||
-      lower.startsWith("hence") ||
-      lower.startsWith("result") ||
-      lower.startsWith("solution:")
-    ) {
-      finalAnswer = line.replace(/^(final answer|answer|answer =|therefore|hence|result|solution)[:\s]*/i, "").trim();
-      break;
+  // Strip markdown code fences if present
+  let cleaned = text.replace(/```(?:json)?\s*/gi, "").replace(/```/g, "").trim();
+
+  // Try direct parse first
+  try { return JSON.parse(cleaned); } catch {}
+
+  // Find JSON by brace matching
+  const start = cleaned.indexOf("{");
+  if (start === -1) return null;
+
+  let depth = 0;
+  for (let i = start; i < cleaned.length; i++) {
+    if (cleaned[i] === "{") depth++;
+    else if (cleaned[i] === "}") {
+      depth--;
+      if (depth === 0) {
+        let candidate = cleaned.slice(start, i + 1);
+        // Aggressive cleanup
+        candidate = candidate
+          .replace(/,\s*([\]}])/g, "$1")
+          .replace(/\\n/g, " ")
+          .replace(/\n/g, " ")
+          .replace(/\t/g, " ")
+          .replace(/  +/g, " ")
+          .trim();
+        try { return JSON.parse(candidate); } catch {}
+        // More aggressive: remove control chars
+        candidate = candidate.replace(/[\x00-\x1f\x7f]/g, "");
+        try { return JSON.parse(candidate); } catch {}
+        return null;
+      }
     }
   }
+  return null;
+}
 
-  if (finalAnswer === "Solution computed. See steps below." && lines.length > 0) {
-    const lastMeaningful = lines.filter(l => l.length > 5);
-    if (lastMeaningful.length > 0) {
-      finalAnswer = lastMeaningful[lastMeaningful.length - 1].replace(/^[-\u2022*]\s*/, "");
-    }
-  }
+function validateSolution(data: any): boolean {
+  if (!data || typeof data !== "object") return false;
+  if (!data.finalAnswer || typeof data.finalAnswer !== "string") return false;
+  if (!Array.isArray(data.steps) || data.steps.length === 0) return false;
+  return true;
+}
 
-  const meaningfulLines = lines.filter(l => l.length > 10 && !l.startsWith("{") && !l.startsWith("}"));
-  if (meaningfulLines.length > 0) {
-    steps = meaningfulLines.slice(0, 6).map(line => ({
-      desc: line.replace(/^[-\u2022*#*]\s*/, "").replace(/^Step \d+[:.\s]*/i, ""),
-      formula: "",
-    }));
-  }
+function cleanLatexField(text: string): string {
+  if (!text || typeof text !== "string") return text;
+  text = text.replace(/\\text\{([^}]*)\}/g, "$1");
+  text = text.replace(/\\mathrm\{([^}]*)\}/g, "$1");
+  text = text.replace(/\\mathbf\{([^}]*)\}/g, "$1");
+  return text;
+}
 
-  if (steps.length === 0) {
-    const hints: Record<string, string[]> = {
-      mathematics: [
-        "Identify the type of problem (equation, geometry, trigonometry, etc.)",
-        "Write down the given information and what needs to be found",
-        "Apply the relevant formula step by step",
-      ],
-      physics: [
-        "List all given quantities with their units",
-        "Identify the relevant physics principle or formula",
-        "Substitute values and solve for the unknown",
-      ],
-      chemistry: [
-        "Write the balanced chemical equation if applicable",
-        "Calculate molar masses and convert units",
-        "Apply stoichiometry or the relevant formula",
-      ],
-    };
-    steps = (hints[subject] || hints["mathematics"]).map(desc => ({ desc, formula: "" }));
-  }
+function sanitizeSolution(data: any, subject: string) {
+  return {
+    finalAnswer: cleanLatexField(data.finalAnswer) || "",
+    finalFormula: cleanLatexField(data.finalFormula || data.finalAnswer || ""),
+    steps: (data.steps || []).map(
+      (s: any) => ({
+        desc: cleanLatexField(s.desc || ""),
+        formula: cleanLatexField(s.formula || ""),
+      })
+    ),
+    altSteps: (data.altSteps || []).map(
+      (s: any) => ({
+        desc: cleanLatexField(s.desc || ""),
+        formula: cleanLatexField(s.formula || ""),
+      })
+    ),
+    similar: Array.isArray(data.similar) ? data.similar.slice(0, 4) : [],
+    mistakes: Array.isArray(data.mistakes) ? data.mistakes.slice(0, 5) : [],
+    examTips:
+      BOARD_TIPS["icse"]?.[subject] ||
+      BOARD_TIPS["cbse"]?.[subject] ||
+      [],
+  };
+}
+
+function generateSimilarQuestions(problem: string, subject: string): string[] {
+  const templates: Record<string, string[]> = {
+    mathematics: [
+      "Try solving: If the values in this problem were doubled, what would the answer be?",
+      "Practice: Solve a similar problem with different numbers.",
+      "Challenge: Can you verify this answer using an alternative method?",
+    ],
+    physics: [
+      "Try: What happens if you double the mass/force in this problem?",
+      "Practice: Solve using a different physics formula.",
+      "Challenge: How does the answer change if g = 10 m/s² instead of 9.8?",
+    ],
+    chemistry: [
+      "Try: What if the concentration was halved?",
+      "Practice: Solve a similar stoichiometry problem.",
+      "Challenge: Balance the equation and verify with conservation of mass.",
+    ],
+  };
+  return templates[subject] || templates.mathematics;
+}
+
+function generateCommonMistakes(subject: string): string[] {
+  const mistakes: Record<string, string[]> = {
+    mathematics: [
+      "Not following BODMAS/PEMDAS order of operations correctly",
+      "Making sign errors when moving terms across the equals sign",
+      "Forgetting to apply the correct formula for the given problem type",
+    ],
+    physics: [
+      "Forgetting to convert units (e.g., km/h to m/s) before substituting",
+      "Using the wrong kinematic equation for the given conditions",
+      "Not including proper units in the final answer",
+    ],
+    chemistry: [
+      "Forgetting to balance the chemical equation before calculations",
+      "Using incorrect molar masses or atomic weights",
+      "Not converting volume to liters when calculating molarity",
+    ],
+  };
+  return mistakes[subject] || mistakes.mathematics;
+}
+
+// ── Fallback: build a graceful solution when AI is unavailable ──
+function buildFallbackSolution(problem: string, subject: string): any {
+  const hints: Record<string, string[]> = {
+    mathematics: [
+      "Identify the type of problem (equation, geometry, trigonometry, etc.)",
+      "Write down the given information and what needs to be found",
+      "Apply the relevant formula step by step",
+    ],
+    physics: [
+      "List all given quantities with their units",
+      "Identify the relevant physics principle or formula",
+      "Substitute values and solve for the unknown",
+    ],
+    chemistry: [
+      "Write the balanced chemical equation if applicable",
+      "Calculate molar masses and convert units",
+      "Apply stoichiometry or the relevant formula",
+    ],
+  };
+  const steps = (hints[subject] || hints["mathematics"]).map(desc => ({ desc, formula: "" }));
 
   return {
-    finalAnswer: finalAnswer === "Solution computed. See steps below." 
-      ? "Use the 'Try with AI' button for a detailed solution" 
-      : finalAnswer,
+    finalAnswer: "Use the 'Try with AI' button for a detailed solution",
     finalFormula: "",
     steps,
     altSteps: [],
@@ -595,6 +400,7 @@ function buildFallbackSolution(raw: string, problem: string, subject: string): a
   };
 }
 
+// ── MAIN POST HANDLER ──
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -613,10 +419,7 @@ export async function POST(request: NextRequest) {
     }
 
     const resolvedSubject =
-      subject &&
-      ["mathematics", "physics", "chemistry"].includes(
-        subject
-      )
+      subject && ["mathematics", "physics", "chemistry"].includes(subject)
         ? subject
         : "mathematics";
     const resolvedBoard =
@@ -638,26 +441,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── Step 2: AI Solver (auto-fallback) ──
-    console.log(`[SpeedSolve AI] Local miss, using Gemini AI for: "${processedProblem.slice(0, 80)}..."`);
-    // Pass ORIGINAL problem to AI (preserves Greek letters), processedProblem as fallback
-    const aiProblem = problem.includes('θ') || problem.includes('α') || problem.includes('β') ||
-                       problem.includes('ω') || problem.includes('λ') || problem.includes('μ') ||
-                       problem.includes('Δ') || problem.includes('π') ? problem : processedProblem;
-    const raw = await solveWithLLM(
-      aiProblem,
-      resolvedSubject,
-      resolvedBoard
-    );
+    // ── Step 2: AI Solver (Gemini via SDK) ──
+    console.log(`[SpeedSolve AI] Using Gemini AI for: "${processedProblem.slice(0, 80)}..."`);
+
+    // Preserve Greek letters from original input
+    const aiProblem = problem.includes("θ") || problem.includes("α") || problem.includes("β") ||
+                       problem.includes("ω") || problem.includes("λ") || problem.includes("μ") ||
+                       problem.includes("Δ") || problem.includes("π") ? problem : processedProblem;
+
+    const raw = await solveWithAI(aiProblem, resolvedSubject, resolvedBoard);
 
     if (!raw) {
       console.warn("[SpeedSolve AI] Gemini returned empty — returning graceful fallback.");
-      // Build a minimal solution indicating the problem couldn't be fully solved automatically
-      const graceful = buildFallbackSolution(
-        `Let me break this down for you: ${processedProblem}`,
-        processedProblem,
-        resolvedSubject
-      );
+      const graceful = buildFallbackSolution(processedProblem, resolvedSubject);
       const solution = sanitizeSolution(graceful, resolvedSubject);
       solution.examTips = BOARD_TIPS[resolvedBoard]?.[resolvedSubject] || BOARD_TIPS["icse"]?.[resolvedSubject] || [];
       return NextResponse.json({ success: true, data: solution, source: "fallback" });
@@ -667,8 +463,8 @@ export async function POST(request: NextRequest) {
 
     // Retry once with stricter prompt if parsing failed
     if (!parsed || !validateSolution(parsed)) {
-      console.log(`[SpeedSolve AI] First LLM attempt unparseable, retrying with strict prompt...`);
-      const retryRaw = await solveWithLLMStrict(processedProblem, resolvedSubject, resolvedBoard, raw);
+      console.log("[SpeedSolve AI] First attempt unparseable, retrying with strict prompt...");
+      const retryRaw = await solveWithAIStrict(processedProblem, resolvedSubject, resolvedBoard);
       if (retryRaw) {
         parsed = extractJSON(retryRaw);
       }
@@ -677,18 +473,13 @@ export async function POST(request: NextRequest) {
     // Last resort: build a minimal solution from raw text
     if (!parsed || !validateSolution(parsed)) {
       console.error("LLM response unparseable after retry:", raw.slice(0, 300));
-      const fallback = buildFallbackSolution(raw, processedProblem, resolvedSubject);
+      const fallback = buildFallbackSolution(processedProblem, resolvedSubject);
       const solution = sanitizeSolution(fallback, resolvedSubject);
       solution.examTips = BOARD_TIPS[resolvedBoard]?.[resolvedSubject] || BOARD_TIPS["icse"]?.[resolvedSubject] || [];
       return NextResponse.json({ success: true, data: solution, source: "ai" });
     }
 
-    const solution = sanitizeSolution(
-      parsed,
-      resolvedSubject
-    );
-
-    // Add board-specific exam tips
+    const solution = sanitizeSolution(parsed, resolvedSubject);
     solution.examTips =
       BOARD_TIPS[resolvedBoard]?.[resolvedSubject] ||
       BOARD_TIPS["icse"]?.[resolvedSubject] ||
@@ -697,7 +488,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data: solution, source: "ai" });
   } catch (err) {
     console.error("Solve API error:", err);
-    // Never show raw errors to user — always return a graceful 200 response
     const errorMsg = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({
       success: false,
