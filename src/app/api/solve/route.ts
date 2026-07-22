@@ -12,9 +12,9 @@ const ai = new GoogleGenAI({
 
 const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"];
 const MAX_RETRIES = 3;
-const RETRY_DELAYS = [1000, 2500, 5000]; // ms
+const RETRY_DELAYS = [1000, 2500, 5000];
 
-async function callGemini(systemPrompt: string, userPrompt: string): Promise<string> {
+async function callGemini(systemPrompt: string, userPrompt: string, useThinking = true): Promise<string> {
   if (!process.env.GEMINI_API_KEY) {
     console.error("[SpeedSolve AI] GEMINI_API_KEY is not set in Vercel environment variables!");
     return "";
@@ -23,22 +23,25 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<str
   for (const model of MODELS) {
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       try {
-        // On 3rd retry of the primary model, try without responseMimeType
-        // (sometimes responseMimeType causes the API to reject)
         const isLastAttempt = model === MODELS[MODELS.length - 1] && attempt === MAX_RETRIES - 1;
         const useJsonMode = !isLastAttempt;
+        // gemini-2.0-flash doesn't support thinking config
+        const canThink = useThinking && model === MODELS[0];
 
-        console.log(`[SpeedSolve AI] Calling ${model} (attempt ${attempt + 1}/${MAX_RETRIES}, jsonMode=${useJsonMode})`);
+        console.log(`[SpeedSolve AI] Calling ${model} (attempt ${attempt + 1}/${MAX_RETRIES}, jsonMode=${useJsonMode}, thinking=${canThink})`);
+
+        const config: any = {
+          systemInstruction: systemPrompt,
+          temperature: canThink ? 1.0 : 0.1,
+          maxOutputTokens: 8192,
+        };
+        if (useJsonMode) config.responseMimeType = "application/json";
+        if (canThink) config.thinkingConfig = { thinkingBudget: 10000 };
 
         const response = await ai.models.generateContent({
           model,
           contents: userPrompt,
-          config: {
-            systemInstruction: systemPrompt,
-            temperature: 0.1,
-            maxOutputTokens: 8192,
-            ...(useJsonMode ? { responseMimeType: "application/json" as const } : {}),
-          },
+          config,
         });
 
         const text = response.text || "";
@@ -52,7 +55,6 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<str
         console.error(`[SpeedSolve AI] ${model} attempt ${attempt + 1} failed: ${msg}`);
       }
 
-      // Wait before next retry (skip on last attempt of last model)
       if (!(model === MODELS[MODELS.length - 1] && attempt === MAX_RETRIES - 1)) {
         await new Promise(r => setTimeout(r, RETRY_DELAYS[attempt] || 1000));
       }
@@ -163,87 +165,128 @@ const SAMPLE_PROBLEMS: Record<
   ],
 };
 
-// ── Enhanced System Prompt ──
+// ── System Prompt: Computation-First Numerical Solver ──
+// Key insight: LLMs produce correct math when shown worked examples
+// and told to SUBSTITUTE VALUES and COMPUTE, not just explain.
+
+const MATH_EXAMPLE = `{
+  "finalAnswer": "x = 3",
+  "finalFormula": "$3x + 5 = 14$",
+  "steps": [
+    {"desc": "Given: The equation $3x + 5 = 14$. We need to find the value of x.", "formula": "$3x + 5 = 14$"},
+    {"desc": "Subtract 5 from both sides to isolate the term with x.", "formula": "$3x = 14 - 5 = 9$"},
+    {"desc": "Divide both sides by 3 to solve for x.", "formula": "$x = 9 / 3 = 3$"},
+    {"desc": "Therefore, the solution is x = 3. Verification: $3(3) + 5 = 9 + 5 = 14$ which matches the original equation.", "formula": "$x = 3$"}
+  ],
+  "altSteps": [
+    {"desc": "Alternate verification: Substitute x = 3 back into the left-hand side.", "formula": "$3(3) + 5 = 9 + 5 = 14$"},
+    {"desc": "Since LHS = RHS = 14, our answer x = 3 is confirmed correct.", "formula": "$14 = 14$"}
+  ],
+  "similar": ["Solve 5x - 7 = 18", "Solve 2x + 3 = x + 8", "If 4(x - 1) = 20, find x"],
+  "mistakes": ["Forgetting to perform the same operation on both sides of the equation", "Making sign errors when moving terms (e.g., +5 becomes -5 when moved)", "Dividing incorrectly — always double-check arithmetic"]
+}`;
+
+const PHYSICS_EXAMPLE = `{
+  "finalAnswer": "v = 19.6 m/s",
+  "finalFormula": "$v = u + at = 0 + 9.8 \times 2$",
+  "steps": [
+    {"desc": "Given: Initial velocity u = 0 m/s (object dropped from rest), acceleration a = g = 9.8 m/s^2, time t = 2 s. Find: final velocity v.", "formula": ""},
+    {"desc": "Identify the correct kinematic equation. Since we have u, a, t and need v, we use the first equation of motion.", "formula": "$v = u + at$"},
+    {"desc": "Substitute the given values: u = 0, a = 9.8, t = 2.", "formula": "$v = 0 + (9.8)(2)$"},
+    {"desc": "Compute: v = 0 + 19.6 = 19.6 m/s. The object is moving downward, so the velocity is 19.6 m/s.", "formula": "$v = 19.6$ m/s}",
+    {"desc": "Verification using third equation: $v^2 = u^2 + 2as$. With s = 0.5(9.8)(4) = 19.6 m, we get $v = \\sqrt{0 + 2(9.8)(19.6)} = \\sqrt{384.16} = 19.6$ m/s. Confirmed.", "formula": "$v^2 = u^2 + 2as$"}
+  ],
+  "altSteps": [
+    {"desc": "Using v^2 = u^2 + 2as. First find distance: s = ut + 0.5at^2 = 0 + 0.5(9.8)(4) = 19.6 m.", "formula": "$s = 0.5 \times 9.8 \times 4 = 19.6$ m"},
+    {"desc": "Now find v: v^2 = 0 + 2(9.8)(19.6) = 384.16, so v = 19.6 m/s. Same answer confirmed.", "formula": "$v = \\sqrt{384.16} = 19.6$ m/s}",
+    {"desc": "This method is useful when time is not directly given but distance is available.", "formula": ""}
+  ],
+  "similar": ["A stone is dropped from 30 m height. Find the time to reach the ground (g=9.8)", "A ball is thrown upward at 15 m/s. Find max height (g=10)", "An object starts from rest and accelerates at 5 m/s^2 for 6 s. Find final velocity"],
+  "mistakes": ["Using g = 10 when the problem does not specify — default is g = 9.8 m/s^2", "Forgetting to convert units (e.g., km/h to m/s) before substituting into the formula", "Using the wrong kinematic equation — always check which quantities are given and which is unknown"]
+}`;
+
+const CHEM_EXAMPLE = `{
+  "finalAnswer": "Molarity = 0.2 M",
+  "finalFormula": "$M = n/V = 0.1 / 0.5$",
+  "steps": [
+    {"desc": "Given: Mass of NaOH = 4 g, Volume of solution = 500 mL = 0.5 L. Atomic masses: Na = 23, O = 16, H = 1. Find: Molarity (M).", "formula": ""},
+    {"desc": "Convert volume to litres: 500 mL = 500/1000 = 0.5 L. (Molarity formula requires volume in litres.)", "formula": "$V = 500 / 1000 = 0.5$ L"},
+    {"desc": "Calculate molar mass of NaOH = 23 + 16 + 1 = 40 g/mol.", "formula": "$M_{NaOH} = 23 + 16 + 1 = 40$ g/mol"},
+    {"desc": "Calculate number of moles: n = mass / molar mass = 4 / 40 = 0.1 mol.", "formula": "$n = 4 / 40 = 0.1$ mol"},
+    {"desc": "Apply molarity formula: M = n / V = 0.1 / 0.5 = 0.2 M. The molarity of the NaOH solution is 0.2 M.", "formula": "$M = 0.1 / 0.5 = 0.2$ M}",
+    {"desc": "Check: 0.2 mol/L means 0.1 mol in 0.5 L, which matches our given 4 g of NaOH (4/40 = 0.1 mol). Correct.", "formula": ""}
+  ],
+  "altSteps": [
+    {"desc": "Using the direct formula: M = (mass in g) / (molar mass x volume in L).", "formula": "$M = W / (M_w \times V)$"},
+    {"desc": "Substitute: M = 4 / (40 x 0.5) = 4 / 20 = 0.2 M. Same answer, fewer steps.", "formula": "$M = 4 / 20 = 0.2$ M}",
+    {"desc": "This shortcut formula is useful for quick calculations in exams.", "formula": ""}
+  ],
+  "similar": ["Find the molarity of 9.8 g H2SO4 in 250 mL solution (H=1, S=32, O=16)", "How many grams of KOH are needed to prepare 200 mL of 0.5 M solution? (K=39, O=16, H=1)", "What volume of 0.1 M HCl contains 0.73 g of HCl gas? (H=1, Cl=35.5)"],
+  "mistakes": ["Forgetting to convert mL to L before using M = n/V — this is the most common error", "Using incorrect atomic masses (e.g., O=16 not O=8)", "Confusing molarity (mol/L) with molality (mol/kg) — they are different"]
+}`;
+
 function buildSystemPrompt(board: string, subject: string): string {
   const boardName = board === "icse" ? "ICSE" : board === "cbse" ? "CBSE" : "State Board";
   const boardTips = BOARD_TIPS[board]?.[subject] || [];
   const tipsStr = boardTips.length > 0
-    ? "\nBoard-Specific Tips for this problem type:\n" + boardTips.map((t, i) => `  ${i + 1}. ${t}`).join("\n")
+    ? "\nBoard tips for this problem type:\n" + boardTips.map(t => `  - ${t}`).join("\n")
     : "";
 
-  return `You are SpeedSolve AI, an expert numerical solver for Indian school students in Grades 6–12 (${boardName}).
+  // Pick the example matching the subject
+  const example = subject === "physics" ? PHYSICS_EXAMPLE
+    : subject === "chemistry" ? CHEM_EXAMPLE
+    : MATH_EXAMPLE;
 
-Your job is to solve the given problem with 100% accuracy and return a structured JSON response.
+  return `You are SpeedSolve AI — a NUMERICAL SOLVER for Indian students (Grades 6-12, ${boardName}).
 
-CRITICAL RULES:
-1. Every numerical answer MUST be mathematically correct. Double-check all calculations.
-2. Use standard formulas and methods taught in Indian ${boardName} school curricula.
-3. For trigonometric values, use exact values (e.g., sin 30° = 1/2, cos 60° = 1/2).
-4. Use g = 9.8 m/s² unless the problem specifies g = 10.
-5. Always include units in final answers for Physics and Chemistry.
-6. NEVER use \\text{} or \\mathrm{} in formulas — just write units directly (e.g., "14 m/s" not "14 \\text{ m/s}").
-7. Greek letters (θ, α, β, ω, λ, μ, Δ, π, Σ) are standard notation — use them directly.
-8. If the user writes x^2 or x², treat it as x squared.
+YOUR #1 JOB: Substitute the given numbers into the correct formula and COMPUTE the exact numerical answer.
+You are NOT an explainer. You are a CALCULATOR that shows its work.
 
-STEP-BY-STEP SOLUTION REQUIREMENTS:
-- Step 1: "Identify what is given and what needs to be found" — list every given value with its unit
-- Next steps: State the formula you are about to use (write it in LaTeX $...$), explain WHY this formula applies, then substitute values
-- Show every intermediate calculation — do not skip steps
-- Final step: State the final answer clearly with proper units
-- Each step.desc must be 2-4 sentences of clear, student-friendly explanation
-- Each step.formula must have the LaTeX expression for that step's calculation (can be empty string if purely textual)
-
-ALTERNATE SOLUTION REQUIREMENTS:
-- Provide a COMPLETE alternate method to solve the same problem (different formula, approach, or verification)
-- The alternate solution must also have clear steps with explanations and formulas
-- Explain WHY this alternate method works and when a student might prefer it
-- If the problem allows, use the alternate to verify the answer matches
-
-FORMULA HIGHLIGHTING:
-- Every important formula used MUST appear in step.formula wrapped in $...$
-- The main formula for the problem should also appear in finalFormula
-- Label formulas clearly in the step description (e.g., "Using the quadratic formula: $x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$")
-
-EXPLANATION QUALITY:
-- Explain concepts in simple language a Grade 8-10 student can understand
-- Use analogies where helpful (e.g., "Think of voltage like water pressure in a pipe")
-- After writing each formula, briefly explain what each variable represents
-- Point out common pitfalls or things students often forget
+MANDATORY WORKFLOW FOR EVERY PROBLEM:
+1. LIST GIVEN VALUES with units (e.g., "m = 2 kg, F = 10 N")
+2. STATE THE FORMULA in LaTeX (e.g., $F = ma$)
+3. IDENTIFY each variable (e.g., "where F = force, m = mass, a = acceleration")
+4. SUBSTITUTE each given value into the formula (e.g., $a = F/m = 10/2$)
+5. COMPUTE the result step by step — show the arithmetic
+6. STATE the final answer with units
+7. VERIFY by plugging the answer back or using an alternate method
 ${tipsStr}
 
-OUTPUT FORMAT — Return ONLY valid JSON, no markdown fences, no commentary:
+RULES:
+- Every step.formula MUST contain actual numbers being substituted and computed, not just the generic formula
+- WRONG: formula="$F=ma$" in every step  |  RIGHT: step 3 has "$F=ma$", step 4 has "$a=10/2=5$"
+- NEVER use \\text{} or \\mathrm{} — write units as plain text after the math
+- Greek letters (theta, alpha, pi, etc.) are standard — use them directly in LaTeX
+- Use g = 9.8 m/s^2 unless the problem says g = 10
+- Trig exact values: sin30=1/2, cos60=1/2, sin45=1/sqrt(2), tan60=sqrt(3)
+- Show unit conversions explicitly (e.g., "Convert 360 km to m: 360 x 1000 = 360000 m")
+- For Chemistry: always show molar mass calculation, balanced equations, mole conversions
+- For Physics: always show SI unit conversions, dimension checking
+- Round final answers to 2 decimal places unless exact form is cleaner
+
+OUTPUT FORMAT — Return ONLY this JSON structure:
 {
-  "finalAnswer": "The final answer with units, e.g. x = 3 or v = 14 m/s or CH₂O",
-  "finalFormula": "LaTeX for the key formula used, e.g. $x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$",
+  "finalAnswer": "The computed answer with units e.g. x = 3 or v = 19.6 m/s",
+  "finalFormula": "The key formula with numbers substituted, e.g. $v = 0 + 9.8 \\times 2$",
   "steps": [
-    {
-      "desc": "2-4 sentence clear explanation of this step — identify given, state formula, explain why, substitute, compute",
-      "formula": "$LaTeX expression for this step's calculation$"
-    }
+    {"desc": "What is given and what to find. List values with units.", "formula": ""},
+    {"desc": "State the formula and explain which variables map to given values.", "formula": "$Formula = ...$"},
+    {"desc": "Substitute the actual numerical values into the formula.", "formula": "$... = value1 ... value2$"},
+    {"desc": "Compute the result. Show the arithmetic.", "formula": "$result = ...$"},
+    {"desc": "State final answer and verify.", "formula": "$answer$"}
   ],
   "altSteps": [
-    {
-      "desc": "Clear explanation of the alternate approach — different method to reach same answer",
-      "formula": "$LaTeX expression for the alternate method$"
-    }
+    {"desc": "Alternate method or verification approach.", "formula": "$...$"},
+    {"desc": "Compute using alternate method to confirm same answer.", "formula": "$...$"}
   ],
-  "similar": ["Specific practice problem 1", "Specific practice problem 2", "Specific practice problem 3"],
-  "mistakes": ["Specific common mistake 1 for this problem type", "Specific common mistake 2", "Specific common mistake 3"]
+  "similar": ["Specific solvable practice problem 1", "Specific problem 2", "Specific problem 3"],
+  "mistakes": ["Specific common mistake 1", "Specific mistake 2", "Specific mistake 3"]
 }
 
-IMPORTANT:
-- "similar" MUST contain 3 specific, solvable practice problems (not generic advice)
-- "mistakes" MUST contain 3 specific mistakes students make for THIS exact problem type
-- "altSteps" MUST have at least 2 steps showing a complete alternate solution method
-- Every formula MUST be wrapped in $...$
+WORKED EXAMPLE (follow this EXACT style for ${subject.toUpperCase()}):
+${example}
 
-ACCURACY CHECKLIST (verify before responding):
-- Did I use the correct formula for this board's syllabus?
-- Did I substitute the right values in the right places?
-- Are all arithmetic operations correct?
-- Is the final answer reasonable (check order of magnitude)?
-- Are units consistent throughout?
-- Does my alternate method give the same final answer?`;
+CRITICAL: Look at the example above. Notice how each step SUBSTITUTES ACTUAL NUMBERS and SHOWS THE COMPUTATION. Do the same. The finalAnswer must be a specific number, never vague text.`;
 }
 
 const SUBJECT_META: Record<string, { label: string; icon: string; color: string }> = {
