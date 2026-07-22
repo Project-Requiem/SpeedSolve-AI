@@ -5,7 +5,6 @@ import { isPromptInjection, INJECTION_MESSAGE } from "@/lib/injection-guard";
 
 // ── AI Provider: Google Gemini via official SDK ──
 // Flow: Student → SpeedSolve AI → Vercel /api/solve → Gemini API
-// The SDK handles auth, retries, and key format internally.
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || "",
@@ -24,10 +23,12 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<str
       config: {
         systemInstruction: systemPrompt,
         temperature: 0.1,
-        maxOutputTokens: 4096,
+        maxOutputTokens: 8192,
         responseMimeType: "application/json",
       },
     });
+    // response.text should be pure JSON when responseMimeType is set
+    // but defensively handle cases where Gemini adds preamble
     return response.text || "";
   } catch (err) {
     console.error("[SpeedSolve AI] Gemini error:", err);
@@ -103,7 +104,7 @@ const SAMPLE_PROBLEMS: Record<
     { text: "Find the LCM and GCD of 48, 72, 108", label: "LCM & GCD" },
     { text: "A train travels 360 km in 4 hours. Find its speed in m/s.", label: "Speed" },
     { text: "Find the area of a circle with radius 14 cm.", label: "Area" },
-    { text: "If sin \u03B8 = 3/5, find cos \u03B8 and tan \u03B8.", label: "Trigonometry" },
+    { text: "If sin θ = 3/5, find cos θ and tan θ.", label: "Trigonometry" },
     { text: "Find the mean, median, mode of: 5, 3, 7, 3, 5, 9, 3, 1", label: "Statistics" },
     { text: "A ladder 10 m long leans against a wall. If the foot of the ladder is 6 m from the wall, find the height.", label: "Pythagoras" },
     { text: "Differentiate f(x) = 3x^4 - 2x^2 + 5x - 7", label: "Derivative" },
@@ -127,7 +128,7 @@ const SAMPLE_PROBLEMS: Record<
   chemistry: [
     { text: "Find the pH of 0.01 M HCl solution.", label: "pH" },
     { text: "How many moles of NaOH are in 80 g? (Na=23, O=16, H=1)", label: "Moles" },
-    { text: "Balance: Fe + O2 \u2192 Fe2O3", label: "Balance" },
+    { text: "Balance: Fe + O2 → Fe2O3", label: "Balance" },
     { text: "A gas at 2 atm and 300 K occupies 5 L. What volume at 1 atm and 300 K?", label: "Gas Law" },
     { text: "Find the molarity of 4g NaOH in 500 mL solution. (Na=23, O=16, H=1)", label: "Molarity" },
     { text: "What is the empirical formula of a compound with 40% C, 6.7% H, 53.3% O? (C=12, H=1, O=16)", label: "Empirical" },
@@ -135,64 +136,93 @@ const SAMPLE_PROBLEMS: Record<
   ],
 };
 
-const SOLVER_SYSTEM_PROMPT = `You are SpeedSolve AI, an expert numerical solver for Indian school students in Grades 6–12 (CBSE, ICSE, and State Boards).
+// ── Enhanced System Prompt ──
+function buildSystemPrompt(board: string, subject: string): string {
+  const boardName = board === "icse" ? "ICSE" : board === "cbse" ? "CBSE" : "State Board";
+  const boardTips = BOARD_TIPS[board]?.[subject] || [];
+  const tipsStr = boardTips.length > 0
+    ? "\nBoard-Specific Tips for this problem type:\n" + boardTips.map((t, i) => `  ${i + 1}. ${t}`).join("\n")
+    : "";
+
+  return `You are SpeedSolve AI, an expert numerical solver for Indian school students in Grades 6–12 (${boardName}).
 
 Your job is to solve the given problem with 100% accuracy and return a structured JSON response.
 
 CRITICAL RULES:
 1. Every numerical answer MUST be mathematically correct. Double-check all calculations.
-2. Use standard formulas and methods taught in Indian school curricula.
+2. Use standard formulas and methods taught in Indian ${boardName} school curricula.
 3. For trigonometric values, use exact values (e.g., sin 30° = 1/2, cos 60° = 1/2).
 4. Use g = 9.8 m/s² unless the problem specifies g = 10.
 5. Always include units in final answers for Physics and Chemistry.
-6. Show complete step-by-step working that a student can follow.
-7. LaTeX formulas must use standard KaTeX-compatible syntax. ALWAYS wrap every formula in $...$ or $$...$$.
-8. For math formulas in steps, wrap each formula in $...$ (inline) or $$...$$ (display).
-9. NEVER use \\text{} or \\mathrm{} in formulas - just write units directly (e.g., "14 m/s" not "14 \\text{ m/s}").
-10. Handle quadratic equations (ax²+bx+c=0) using the quadratic formula: x = (-b ± √(b²-4ac)) / 2a
-11. Greek letters in problems (θ, α, β, ω, λ, μ, Δ, π, Σ) are standard math/science notation — use them directly in formulas.
-12. If the user writes x^2 or x², treat it as x squared.
+6. NEVER use \\text{} or \\mathrm{} in formulas — just write units directly (e.g., "14 m/s" not "14 \\text{ m/s}").
+7. Greek letters (θ, α, β, ω, λ, μ, Δ, π, Σ) are standard notation — use them directly.
+8. If the user writes x^2 or x², treat it as x squared.
 
-OUTPUT FORMAT: Return ONLY valid JSON (no markdown, no code blocks, no commentary):
+STEP-BY-STEP SOLUTION REQUIREMENTS:
+- Step 1: "Identify what is given and what needs to be found" — list every given value with its unit
+- Next steps: State the formula you are about to use (write it in LaTeX $...$), explain WHY this formula applies, then substitute values
+- Show every intermediate calculation — do not skip steps
+- Final step: State the final answer clearly with proper units
+- Each step.desc must be 2-4 sentences of clear, student-friendly explanation
+- Each step.formula must have the LaTeX expression for that step's calculation (can be empty string if purely textual)
+
+ALTERNATE SOLUTION REQUIREMENTS:
+- Provide a COMPLETE alternate method to solve the same problem (different formula, approach, or verification)
+- The alternate solution must also have clear steps with explanations and formulas
+- Explain WHY this alternate method works and when a student might prefer it
+- If the problem allows, use the alternate to verify the answer matches
+
+FORMULA HIGHLIGHTING:
+- Every important formula used MUST appear in step.formula wrapped in $...$
+- The main formula for the problem should also appear in finalFormula
+- Label formulas clearly in the step description (e.g., "Using the quadratic formula: $x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$")
+
+EXPLANATION QUALITY:
+- Explain concepts in simple language a Grade 8-10 student can understand
+- Use analogies where helpful (e.g., "Think of voltage like water pressure in a pipe")
+- After writing each formula, briefly explain what each variable represents
+- Point out common pitfalls or things students often forget
+${tipsStr}
+
+OUTPUT FORMAT — Return ONLY valid JSON, no markdown fences, no commentary:
 {
-  "finalAnswer": "The final answer with units, e.g. x = 3 or v = 14 m/s",
-  "finalFormula": "LaTeX formula for the final answer, e.g. x = 3 or v = 14 m/s",
+  "finalAnswer": "The final answer with units, e.g. x = 3 or v = 14 m/s or CH₂O",
+  "finalFormula": "LaTeX for the key formula used, e.g. $x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$",
   "steps": [
     {
-      "desc": "Clear explanation of this step in plain English suitable for a student",
-      "formula": "LaTeX formula for this step (or empty string if no formula)"
+      "desc": "2-4 sentence clear explanation of this step — identify given, state formula, explain why, substitute, compute",
+      "formula": "$LaTeX expression for this step's calculation$"
     }
   ],
   "altSteps": [
     {
-      "desc": "Alternative approach or verification step",
-      "formula": "LaTeX formula (or empty string)"
+      "desc": "Clear explanation of the alternate approach — different method to reach same answer",
+      "formula": "$LaTeX expression for the alternate method$"
     }
   ],
-  "similar": ["Similar problem 1", "Similar problem 2", "Similar problem 3"],
-  "mistakes": ["Common mistake 1 students make", "Common mistake 2", "Common mistake 3"]
+  "similar": ["Specific practice problem 1", "Specific practice problem 2", "Specific practice problem 3"],
+  "mistakes": ["Specific common mistake 1 for this problem type", "Specific common mistake 2", "Specific common mistake 3"]
 }
 
-IMPORTANT: The "similar" array MUST contain 3 specific, solvable practice problems (not generic advice). The "mistakes" array MUST contain 3 specific mistakes related to THIS problem type.
+IMPORTANT:
+- "similar" MUST contain 3 specific, solvable practice problems (not generic advice)
+- "mistakes" MUST contain 3 specific mistakes students make for THIS exact problem type
+- "altSteps" MUST have at least 2 steps showing a complete alternate solution method
+- Every formula MUST be wrapped in $...$
 
-STEP-BY-STEP REQUIREMENTS:
-- Step 1: Identify what is given and what needs to be found
-- Middle steps: Apply formulas, substitute values, compute intermediate results
-- Final step: State the answer clearly with units
-- Each step.desc should be 2-3 sentences explaining the reasoning
-- Each step.formula should be a LaTeX expression (can be empty if no math in that step)
-
-ACCURACY CHECKLIST (mentally verify before responding):
-- Did I use the correct formula?
+ACCURACY CHECKLIST (verify before responding):
+- Did I use the correct formula for this board's syllabus?
 - Did I substitute the right values in the right places?
 - Are all arithmetic operations correct?
 - Is the final answer reasonable (check order of magnitude)?
-- Are units consistent throughout?`;
+- Are units consistent throughout?
+- Does my alternate method give the same final answer?`;
+}
 
 const SUBJECT_META: Record<string, { label: string; icon: string; color: string }> = {
-  mathematics: { label: "Mathematics", icon: "\u03A3", color: "#6366f1" },
-  physics: { label: "Physics", icon: "\u269B\uFE0F", color: "#ea580c" },
-  chemistry: { label: "Chemistry", icon: "\u2697\uFE0F", color: "#059669" },
+  mathematics: { label: "Mathematics", icon: "Σ", color: "#6366f1" },
+  physics: { label: "Physics", icon: "⚗️", color: "#ea580c" },
+  chemistry: { label: "Chemistry", icon: "⚗️", color: "#059669" },
 };
 
 // ── AI solver: sends problem to Gemini for structured JSON solution ──
@@ -208,15 +238,17 @@ async function solveWithAI(
         ? "CBSE Board"
         : "State Board";
 
+  const systemPrompt = buildSystemPrompt(board, subject);
+
   const userPrompt = `Subject: ${subject.toUpperCase()}
 Board: ${boardContext}
 Grade Level: 6-12
 
 Problem: ${problem}
 
-Solve this problem step-by-step. Return ONLY the JSON response as specified.`;
+Solve this problem step-by-step with clear explanations. Show every formula used. Provide an alternate solution method. Return ONLY the JSON response as specified.`;
 
-  return callGemini(SOLVER_SYSTEM_PROMPT, userPrompt);
+  return callGemini(systemPrompt, userPrompt);
 }
 
 // ── Strict retry: tells the LLM its previous output was broken ──
@@ -230,6 +262,8 @@ async function solveWithAIStrict(
     : board === "cbse" ? "CBSE Board"
     : "State Board";
 
+  const systemPrompt = buildSystemPrompt(board, subject);
+
   const strictPrompt = `Your previous response was NOT valid JSON and could not be parsed. You MUST fix this.
 
 Subject: ${subject.toUpperCase()}
@@ -238,16 +272,19 @@ Board: ${boardContext}
 Problem: ${problem}
 
 RULES:
-- Return ONLY raw JSON. No markdown, no code blocks (no \`\`\`), no explanation before or after.
-- The JSON must have exactly these keys: "finalAnswer" (string), "steps" (array of {desc, formula}), "altSteps" (array), "similar" (array of 3 strings), "mistakes" (array of 3 strings).
-- "finalFormula" is optional.
+- Return ONLY raw JSON. No markdown code fences, no explanation before or after the JSON.
+- Start your response with { and end with }
+- The JSON must have exactly these keys: "finalAnswer" (string), "finalFormula" (string), "steps" (array of {desc, formula}), "altSteps" (array of {desc, formula}), "similar" (array of 3 strings), "mistakes" (array of 3 strings).
 - Every value must be a string or array of strings. No nested objects inside steps.
 - Do NOT use \\text{} or \\mathrm{} in any formula.
-- Test your JSON mentally before outputting — it must parse with JSON.parse().`;
+- Every formula must be wrapped in $...$
+- Test your JSON mentally before outputting — it must parse with JSON.parse().
+- The finalAnswer must be the COMPUTED ANSWER, not a restatement of the question.`;
 
-  return callGemini(SOLVER_SYSTEM_PROMPT, strictPrompt);
+  return callGemini(systemPrompt, strictPrompt);
 }
 
+// ── Robust JSON extraction ──
 function extractJSON(text: string): object | null {
   if (!text || typeof text !== "string") return null;
 
@@ -257,40 +294,77 @@ function extractJSON(text: string): object | null {
   // Try direct parse first
   try { return JSON.parse(cleaned); } catch {}
 
-  // Find JSON by brace matching
-  const start = cleaned.indexOf("{");
-  if (start === -1) return null;
+  // Find JSON by brace matching — find the FIRST { that starts a valid JSON object
+  let searchFrom = 0;
+  while (searchFrom < cleaned.length) {
+    const start = cleaned.indexOf("{", searchFrom);
+    if (start === -1) return null;
 
-  let depth = 0;
-  for (let i = start; i < cleaned.length; i++) {
-    if (cleaned[i] === "{") depth++;
-    else if (cleaned[i] === "}") {
-      depth--;
-      if (depth === 0) {
-        let candidate = cleaned.slice(start, i + 1);
-        // Aggressive cleanup
-        candidate = candidate
-          .replace(/,\s*([\]}])/g, "$1")
-          .replace(/\\n/g, " ")
-          .replace(/\n/g, " ")
-          .replace(/\t/g, " ")
-          .replace(/  +/g, " ")
-          .trim();
-        try { return JSON.parse(candidate); } catch {}
-        // More aggressive: remove control chars
-        candidate = candidate.replace(/[\x00-\x1f\x7f]/g, "");
-        try { return JSON.parse(candidate); } catch {}
-        return null;
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    let end = -1;
+
+    for (let i = start; i < cleaned.length; i++) {
+      const ch = cleaned[i];
+
+      if (escape) { escape = false; continue; }
+      if (ch === "\\") { escape = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+
+      if (ch === "{") depth++;
+      else if (ch === "}") {
+        depth--;
+        if (depth === 0) { end = i; break; }
       }
     }
+
+    if (end !== -1) {
+      let candidate = cleaned.slice(start, end + 1);
+      // Clean up common issues
+      candidate = candidate
+        .replace(/,\s*([\]}])/g, "$1")  // trailing commas
+        .replace(/\\n/g, " ")
+        .replace(/\n/g, " ")
+        .replace(/\t/g, " ")
+        .replace(/  +/g, " ")
+        .trim();
+      try { return JSON.parse(candidate); } catch {}
+      // More aggressive: remove control chars
+      candidate = candidate.replace(/[\x00-\x1f\x7f]/g, "");
+      try { return JSON.parse(candidate); } catch {}
+    }
+
+    // Try next { in case the first one isn't the JSON we want
+    searchFrom = start + 1;
   }
+
   return null;
 }
 
-function validateSolution(data: any): boolean {
+function validateSolution(data: any, originalProblem?: string): boolean {
   if (!data || typeof data !== "object") return false;
   if (!data.finalAnswer || typeof data.finalAnswer !== "string") return false;
   if (!Array.isArray(data.steps) || data.steps.length === 0) return false;
+
+  // SAFETY: If finalAnswer contains the original problem text, it's a parse failure
+  // (AI echoed the question instead of solving it)
+  if (originalProblem) {
+    const problemWords = originalProblem
+      .toLowerCase()
+      .replace(/[^a-z0-9 ]/g, " ")
+      .split(/\s+/)
+      .filter(w => w.length > 3);
+    const answerLower = data.finalAnswer.toLowerCase();
+    // If more than 60% of the significant problem words appear in the answer, it's likely the question
+    const matchCount = problemWords.filter(w => answerLower.includes(w)).length;
+    if (problemWords.length >= 3 && matchCount / problemWords.length > 0.6) {
+      console.warn("[SpeedSolve AI] finalAnswer contains too much of the original problem text — treating as parse failure");
+      return false;
+    }
+  }
+
   return true;
 }
 
@@ -302,7 +376,7 @@ function cleanLatexField(text: string): string {
   return text;
 }
 
-function sanitizeSolution(data: any, subject: string) {
+function sanitizeSolution(data: any, subject: string, board: string) {
   return {
     finalAnswer: cleanLatexField(data.finalAnswer) || "",
     finalFormula: cleanLatexField(data.finalFormula || data.finalAnswer || ""),
@@ -321,8 +395,8 @@ function sanitizeSolution(data: any, subject: string) {
     similar: Array.isArray(data.similar) ? data.similar.slice(0, 4) : [],
     mistakes: Array.isArray(data.mistakes) ? data.mistakes.slice(0, 5) : [],
     examTips:
+      BOARD_TIPS[board]?.[subject] ||
       BOARD_TIPS["icse"]?.[subject] ||
-      BOARD_TIPS["cbse"]?.[subject] ||
       [],
   };
 }
@@ -415,14 +489,22 @@ export async function POST(request: NextRequest) {
     if (!forceAI) {
       const localResult = await tryLocalSolve(processedProblem, resolvedSubject);
       if (localResult) {
+        // Local solver found a quick answer — return it with source "local"
+        // so the UI shows "Try with AI" button
         if (localResult.similar.length === 0) localResult.similar = generateSimilarQuestions(problem, resolvedSubject);
         if (localResult.mistakes.length === 0) localResult.mistakes = generateCommonMistakes(resolvedSubject);
         localResult.examTips = BOARD_TIPS[resolvedBoard]?.[resolvedSubject] || BOARD_TIPS["icse"]?.[resolvedSubject] || [];
         return NextResponse.json({ success: true, data: localResult, source: "local" });
       }
+
+      // Local solver could NOT solve this — it's a hard question.
+      // AUTO-SHIFT TO AI: Don't return fallback, go straight to AI.
+      // The user wants correct answer in 1 try.
+      console.log(`[SpeedSolve AI] Local solver couldn't handle — auto-shifting to AI for: "${processedProblem.slice(0, 80)}..."`);
     }
 
     // ── Step 2: AI Solver (Gemini via SDK) ──
+    // This runs when: (a) local solver returned null (auto-shift) or (b) forceAI=true (user clicked retry)
     console.log(`[SpeedSolve AI] Using Gemini AI for: "${processedProblem.slice(0, 80)}..."`);
 
     // Preserve Greek letters from original input
@@ -440,28 +522,40 @@ export async function POST(request: NextRequest) {
 
     let parsed = extractJSON(raw);
 
-    // Retry once with stricter prompt if parsing failed
-    if (!parsed || !validateSolution(parsed)) {
-      console.log("[SpeedSolve AI] First attempt unparseable, retrying with strict prompt...");
-      const retryRaw = await solveWithAIStrict(processedProblem, resolvedSubject, resolvedBoard);
+    // Validate: check that finalAnswer isn't just the question echoed back
+    if (parsed && !validateSolution(parsed, problem)) {
+      parsed = null; // Force retry
+    }
+
+    // Retry once with stricter prompt if parsing failed or answer is suspect
+    if (!parsed || !validateSolution(parsed, problem)) {
+      console.log("[SpeedSolve AI] First attempt unparseable or answer suspicious, retrying with strict prompt...");
+      const retryRaw = await solveWithAIStrict(aiProblem, resolvedSubject, resolvedBoard);
       if (retryRaw) {
         parsed = extractJSON(retryRaw);
+        // Double-check the retry too
+        if (parsed && !validateSolution(parsed, problem)) {
+          console.warn("[SpeedSolve AI] Retry also returned suspicious finalAnswer");
+          parsed = null;
+        }
       }
     }
 
-    // Last resort: try to extract answer from raw text
-    if (!parsed || !validateSolution(parsed)) {
+    // Last resort: build graceful error (never 503, never expose raw text)
+    if (!parsed || !validateSolution(parsed, problem)) {
       console.error("LLM response unparseable after retry:", raw.slice(0, 300));
       const errSolution = buildErrorSolution(processedProblem, resolvedSubject);
       return NextResponse.json({ success: true, data: errSolution, source: "error" });
     }
 
-    const solution = sanitizeSolution(parsed, resolvedSubject);
+    const solution = sanitizeSolution(parsed, resolvedSubject, resolvedBoard);
     solution.examTips =
       BOARD_TIPS[resolvedBoard]?.[resolvedSubject] ||
       BOARD_TIPS["icse"]?.[resolvedSubject] ||
       [];
 
+    // When auto-shifted (local failed), source is "ai" so UI knows NOT to show "Try with AI"
+    // When user manually retried (forceAI), source is also "ai"
     return NextResponse.json({ success: true, data: solution, source: "ai" });
   } catch (err) {
     console.error("Solve API error:", err);

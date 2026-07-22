@@ -1395,7 +1395,7 @@ export default function Home() {
                 {/* Feature 8: solveSource badge */}
                 {solution && (
                   <span className={`solve-source-badge ${solveSource}`}>
-                    {solveSource === 'local' ? '⚡ Instant' : solveSource === 'error' ? '⚠️ AI Unavailable' : '🤖 AI Powered'}
+                    {solveSource === 'local' ? '⚡ Instant' : '🤖 AI Powered'}
                   </span>
                 )}
                 {/* Feature 7: Try with AI — only after a local solve */}
