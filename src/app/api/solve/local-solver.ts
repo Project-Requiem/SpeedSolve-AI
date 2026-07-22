@@ -520,19 +520,8 @@ function solveAP(match: RegExpMatchArray): LocalSolution | null {
   };
 }
 
-function solveEmpirical(match: RegExpMatchArray): LocalSolution | null {
-  return {
-    finalAnswer: 'To find empirical formula: convert % to moles, divide by smallest mole value, round to nearest whole number',
-    finalFormula: 'Empirical = simplest whole number ratio of atoms',
-    steps: [
-      { desc: 'Convert mass percentages to moles (mass / atomic mass)', formula: 'n = mass / M' },
-      { desc: 'Divide all mole values by the smallest mole value', formula: 'ratio = n_i / n_min' },
-      { desc: 'Round to nearest whole number → empirical formula subscripts', formula: 'subscript = round(ratio)' },
-    ],
-    altSteps: [], similar: ['Empirical formula for CH₂O', 'Molecular formula if molar mass = 180'],
-    mistakes: ['Not dividing by smallest mole value', 'Rounding 1.5 or 2.5 incorrectly', 'Wrong atomic masses'],
-  };
-}
+// solveEmpirical REMOVED — this requires actual number substitution which varies per question.
+// Let AI handle ALL empirical formula questions for correct computed answers.
 
 function solveReaction(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/-?\d+\.?\d*/g)?.map(Number) || [];
@@ -552,20 +541,8 @@ function solveReaction(match: RegExpMatchArray): LocalSolution | null {
   };
 }
 
-function solveBalance(match: RegExpMatchArray): LocalSolution | null {
-  return {
-    finalAnswer: '4Fe + 3O₂ → 2Fe₂O₃',
-    finalFormula: '4Fe + 3O_2 \\rightarrow 2Fe_2O_3',
-    steps: [
-      { desc: 'Count atoms on each side: Fe: 2, O: 3 (unbalanced)', formula: 'Fe + O_2 → Fe_2O_3' },
-      { desc: 'Balance Fe: 2Fe + O₂ → Fe₂O₃', formula: '2Fe + O_2 → Fe_2O_3' },
-      { desc: 'Balance O: need 3 O₂ = 6 O atoms. So: 4Fe + 3O₂ → 2Fe₂O₃', formula: '4Fe + 3O_2 → 2Fe_2O_3' },
-      { desc: 'Verify: Fe=4, O=6 on both sides ✓', formula: 'Fe: 4=4, O: 6=6 ✓' },
-    ],
-    altSteps: [], similar: ['Balance: Al + O₂ → Al₂O₃', 'Balance: CH₄ + O₂ → CO₂ + H₂O'],
-    mistakes: ['Not checking atom count on both sides', 'Changing subscripts instead of coefficients', 'Missing fractional coefficients'],
-  };
-}
+// solveBalance REMOVED — hardcoded to one specific equation (Fe+O2).
+// Let AI handle ALL balancing questions.
 
 function solveLCMGCD(match: RegExpMatchArray): LocalSolution | null {
   const nums = match[0].match(/\d+/g)?.map(Number) || [];
@@ -1078,9 +1055,8 @@ const PATTERNS: PatternRule[] = [
   { regex: /differentiate.*?(\d+)x\^4/i, solver: solveDerivative },
   { regex: /(\d+)\s*red.*?(\d+)\s*blue.*?(\d+)\s*green.*?probability/i, solver: solveProbability },
   { regex: /(\d+)th\s+term\s+of\s+AP/i, solver: solveAP },
-  { regex: /empirical\s+formula/i, solver: solveEmpirical },
+  // empirical formula and balance patterns REMOVED — these need AI for correct computed answers
   { regex: /(\d+)\s*mL.*?([\d.]+)\s*M\s+HCl.*?(\d+)\s*mL\s+NaOH/i, solver: solveReaction },
-  { regex: /balance.*?Fe.*?O2.*?Fe2O3/i, solver: solveBalance },
   { regex: /LCM\s*(and|&)\s*GCD\s+of/i, solver: solveLCMGCD },
   { regex: /(?:sin|cos|tan)\s*[\u03b8\u03b1\u03b2\u03b3\u03c9\u03c6]+(?:\s*=\s*(\d+)\s*\/\s*(\d+)|\s+(\d+)\s*\/\s*(\d+))/i, solver: solveTrig },
   { regex: /mean.*?median.*?mode\s+of/i, solver: solveStats },
