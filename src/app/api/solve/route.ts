@@ -14,7 +14,7 @@ const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"];
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [1000, 2500, 5000];
 
-async function callGemini(systemPrompt: string, userPrompt: string, useThinking = true): Promise<string> {
+async function callGemini(systemPrompt: string, userPrompt: string): Promise<string> {
   if (!process.env.GEMINI_API_KEY) {
     console.error("[SpeedSolve AI] GEMINI_API_KEY is not set in Vercel environment variables!");
     return "";
@@ -23,25 +23,16 @@ async function callGemini(systemPrompt: string, userPrompt: string, useThinking 
   for (const model of MODELS) {
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       try {
-        const isLastAttempt = model === MODELS[MODELS.length - 1] && attempt === MAX_RETRIES - 1;
-        const useJsonMode = !isLastAttempt;
-        // gemini-2.0-flash doesn't support thinking config
-        const canThink = useThinking && model === MODELS[0];
-
-        console.log(`[SpeedSolve AI] Calling ${model} (attempt ${attempt + 1}/${MAX_RETRIES}, jsonMode=${useJsonMode}, thinking=${canThink})`);
-
-        const config: any = {
-          systemInstruction: systemPrompt,
-          temperature: canThink ? 1.0 : 0.1,
-          maxOutputTokens: 8192,
-        };
-        if (useJsonMode) config.responseMimeType = "application/json";
-        if (canThink) config.thinkingConfig = { thinkingBudget: 10000 };
+        console.log(`[SpeedSolve AI] Calling ${model} (attempt ${attempt + 1}/${MAX_RETRIES})`);
 
         const response = await ai.models.generateContent({
           model,
           contents: userPrompt,
-          config,
+          config: {
+            systemInstruction: systemPrompt,
+            temperature: 0.1,
+            maxOutputTokens: 8192,
+          },
         });
 
         const text = response.text || "";
@@ -316,7 +307,8 @@ Grade Level: 6-12
 
 Problem: ${problem}
 
-Solve this problem step-by-step with clear explanations. Show every formula used. Provide an alternate solution method. Return ONLY the JSON response as specified.`;
+Substitute the given values into the correct formula and compute the answer step by step.
+Output your response as a single JSON object starting with { and ending with }. No markdown, no code fences, no text before or after the JSON.`;
 
   return callGemini(systemPrompt, userPrompt);
 }
