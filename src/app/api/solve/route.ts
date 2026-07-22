@@ -10,30 +10,57 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || "",
 });
 
+const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"];
+const MAX_RETRIES = 3;
+const RETRY_DELAYS = [1000, 2500, 5000]; // ms
+
 async function callGemini(systemPrompt: string, userPrompt: string): Promise<string> {
   if (!process.env.GEMINI_API_KEY) {
-    console.error("[SpeedSolve AI] No GEMINI_API_KEY set in environment");
+    console.error("[SpeedSolve AI] GEMINI_API_KEY is not set in Vercel environment variables!");
     return "";
   }
 
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: userPrompt,
-      config: {
-        systemInstruction: systemPrompt,
-        temperature: 0.1,
-        maxOutputTokens: 8192,
-        responseMimeType: "application/json",
-      },
-    });
-    // response.text should be pure JSON when responseMimeType is set
-    // but defensively handle cases where Gemini adds preamble
-    return response.text || "";
-  } catch (err) {
-    console.error("[SpeedSolve AI] Gemini error:", err);
-    return "";
+  for (const model of MODELS) {
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        // On 3rd retry of the primary model, try without responseMimeType
+        // (sometimes responseMimeType causes the API to reject)
+        const isLastAttempt = model === MODELS[MODELS.length - 1] && attempt === MAX_RETRIES - 1;
+        const useJsonMode = !isLastAttempt;
+
+        console.log(`[SpeedSolve AI] Calling ${model} (attempt ${attempt + 1}/${MAX_RETRIES}, jsonMode=${useJsonMode})`);
+
+        const response = await ai.models.generateContent({
+          model,
+          contents: userPrompt,
+          config: {
+            systemInstruction: systemPrompt,
+            temperature: 0.1,
+            maxOutputTokens: 8192,
+            ...(useJsonMode ? { responseMimeType: "application/json" as const } : {}),
+          },
+        });
+
+        const text = response.text || "";
+        if (text.trim().length > 10) {
+          console.log(`[SpeedSolve AI] ${model} succeeded on attempt ${attempt + 1} (${text.length} chars)`);
+          return text;
+        }
+        console.warn(`[SpeedSolve AI] ${model} returned empty/short on attempt ${attempt + 1}`);
+      } catch (err: any) {
+        const msg = err?.message || String(err);
+        console.error(`[SpeedSolve AI] ${model} attempt ${attempt + 1} failed: ${msg}`);
+      }
+
+      // Wait before next retry (skip on last attempt of last model)
+      if (!(model === MODELS[MODELS.length - 1] && attempt === MAX_RETRIES - 1)) {
+        await new Promise(r => setTimeout(r, RETRY_DELAYS[attempt] || 1000));
+      }
+    }
   }
+
+  console.error("[SpeedSolve AI] ALL Gemini calls failed after every retry and fallback model");
+  return "";
 }
 
 // ── Board-specific exam tips ──
@@ -443,18 +470,6 @@ function generateCommonMistakes(subject: string): string[] {
   return mistakes[subject] || mistakes.mathematics;
 }
 
-// ── Error solution: shown when AI is completely unavailable ──
-function buildErrorSolution(problem: string, subject: string): any {
-  return {
-    finalAnswer: "AI solver is currently unavailable. Please try again in a moment.",
-    finalFormula: "",
-    steps: [{ desc: "SpeedSolve AI could not reach the AI service. This is usually a temporary issue.", formula: "" }],
-    altSteps: [],
-    similar: [],
-    mistakes: [],
-  };
-}
-
 // ── MAIN POST HANDLER ──
 export async function POST(request: NextRequest) {
   try {
@@ -515,9 +530,26 @@ export async function POST(request: NextRequest) {
     const raw = await solveWithAI(aiProblem, resolvedSubject, resolvedBoard);
 
     if (!raw) {
-      console.warn("[SpeedSolve AI] Gemini returned empty — AI service unavailable.");
-      const errSolution = buildErrorSolution(processedProblem, resolvedSubject);
-      return NextResponse.json({ success: true, data: errSolution, source: "error" });
+      // AI completely failed after all retries — try local solver as absolute last resort
+      console.warn("[SpeedSolve AI] AI failed, trying local solver as last resort...");
+      const lastResortLocal = await tryLocalSolve(processedProblem, resolvedSubject);
+      if (lastResortLocal) {
+        if (lastResortLocal.similar.length === 0) lastResortLocal.similar = generateSimilarQuestions(problem, resolvedSubject);
+        if (lastResortLocal.mistakes.length === 0) lastResortLocal.mistakes = generateCommonMistakes(resolvedSubject);
+        lastResortLocal.examTips = BOARD_TIPS[resolvedBoard]?.[resolvedSubject] || [];
+        return NextResponse.json({ success: true, data: lastResortLocal, source: "local" });
+      }
+      // Truly nothing worked — return a non-scary 200 with retry hint
+      const fallback = {
+        finalAnswer: "Could not solve this problem right now. Please try again.",
+        finalFormula: "",
+        steps: [{ desc: "We hit a snag processing your question. This is rare — please try submitting it again and it should work.", formula: "" }],
+        altSteps: [],
+        similar: [],
+        mistakes: [],
+        examTips: [],
+      };
+      return NextResponse.json({ success: true, data: fallback, source: "error" });
     }
 
     let parsed = extractJSON(raw);
@@ -541,11 +573,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Last resort: build graceful error (never 503, never expose raw text)
+    // Last resort: AI gave text but we couldn't parse it — try local solver
     if (!parsed || !validateSolution(parsed, problem)) {
-      console.error("LLM response unparseable after retry:", raw.slice(0, 300));
-      const errSolution = buildErrorSolution(processedProblem, resolvedSubject);
-      return NextResponse.json({ success: true, data: errSolution, source: "error" });
+      console.error("[SpeedSolve AI] AI response unparseable after retry, trying local solver...");
+      const lastResortLocal = await tryLocalSolve(processedProblem, resolvedSubject);
+      if (lastResortLocal) {
+        if (lastResortLocal.similar.length === 0) lastResortLocal.similar = generateSimilarQuestions(problem, resolvedSubject);
+        if (lastResortLocal.mistakes.length === 0) lastResortLocal.mistakes = generateCommonMistakes(resolvedSubject);
+        lastResortLocal.examTips = BOARD_TIPS[resolvedBoard]?.[resolvedSubject] || [];
+        return NextResponse.json({ success: true, data: lastResortLocal, source: "local" });
+      }
+      // Truly unparseable — return a non-scary message
+      const fallback = {
+        finalAnswer: "Could not solve this problem right now. Please try again.",
+        finalFormula: "",
+        steps: [{ desc: "We had trouble understanding the AI response for this question. Please try rephrasing and submitting again.", formula: "" }],
+        altSteps: [],
+        similar: [],
+        mistakes: [],
+        examTips: [],
+      };
+      return NextResponse.json({ success: true, data: fallback, source: "error" });
     }
 
     const solution = sanitizeSolution(parsed, resolvedSubject, resolvedBoard);
