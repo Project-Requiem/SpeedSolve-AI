@@ -12,7 +12,7 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<str
     console.error("[SpeedSolve] GEMINI_API_KEY not set");
     return "";
   }
-  const models = ["gemini-2.5-flash", "gemini-2.0-flash"];
+  const models = ["gemini-2.0-flash", "gemini-2.5-pro"];
   for (const model of models) {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
