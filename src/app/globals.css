@@ -1043,6 +1043,7 @@ body {
 .solve-source-badge { font-size:0.62rem;font-weight:600;padding:3px 10px;border-radius:100px;white-space:nowrap;letter-spacing:0.3px;text-transform:uppercase;font-family:var(--font); }
 .solve-source-badge.local { background:rgba(5,150,105,0.12);color:#34d399;border:1px solid rgba(5,150,105,0.25); }
 .solve-source-badge.ai { background:rgba(245,158,11,0.12);color:#fbbf24;border:1px solid rgba(245,158,11,0.25); }
+.solve-source-badge.error { background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.25); }
 
 /* ── Try AI Button ── */
 .try-ai-btn { display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 14px;border-radius:8px;border:1px dashed var(--border-color);background:transparent;color:var(--text-muted);cursor:pointer;font-size:0.75rem;font-weight:600;font-family:var(--font);transition:all 0.2s ease;white-space:nowrap; }

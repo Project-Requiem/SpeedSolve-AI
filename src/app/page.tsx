@@ -268,7 +268,7 @@ export default function Home() {
   }, [solution]) // re-observe when solution changes (panel may not exist before)
   const [scrolled, setScrolled] = useState(false)
   const [flashAnswer, setFlashAnswer] = useState(false)
-  const [solveSource, setSolveSource] = useState<'local' | 'ai' | 'fallback'>('local')
+  const [solveSource, setSolveSource] = useState<'local' | 'ai' | 'error'>('local')
   const [autoSwitched, setAutoSwitched] = useState<string | null>(null)
 
   // ── Feature 1: Voice Typing ──
@@ -455,7 +455,7 @@ export default function Home() {
         setLoading(false)
       } else if (data.data) {
         setSolution(data.data)
-        setSolveSource(data.source === 'ai' ? 'ai' : data.source === 'fallback' ? 'fallback' : 'local')
+        setSolveSource(data.source === 'ai' ? 'ai' : data.source === 'error' ? 'error' : 'local')
         setProgress(100)
         // Small delay so loading → solution transition is smooth
         setTimeout(() => {
@@ -1395,7 +1395,7 @@ export default function Home() {
                 {/* Feature 8: solveSource badge */}
                 {solution && (
                   <span className={`solve-source-badge ${solveSource}`}>
-                    {solveSource === 'local' ? '⚡ Instant' : solveSource === 'fallback' ? '🤖 AI (retry)' : '🤖 AI Powered'}
+                    {solveSource === 'local' ? '⚡ Instant' : solveSource === 'error' ? '⚠️ AI Unavailable' : '🤖 AI Powered'}
                   </span>
                 )}
                 {/* Feature 7: Try with AI — only after a local solve */}
@@ -1409,17 +1409,6 @@ export default function Home() {
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a4 4 0 0 1 4 4v2H8V6a4 4 0 0 1 4-4z"/><rect x="3" y="8" width="18" height="12" rx="2"/><circle cx="12" cy="15" r="1.5"/></svg>
                     {retryingAI ? 'Solving with AI...' : 'Try with AI'}
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                  </button>
-                )}
-                {solution && solveSource === 'fallback' && (
-                  <button
-                    className="try-ai-btn"
-                    onClick={retryWithAI}
-                    disabled={retryingAI}
-                    title="Retry with AI for a better solution"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-                    {retryingAI ? 'Retrying AI...' : 'Retry with AI'}
                   </button>
                 )}
                 {/* Feature 2: Copy answer button */}

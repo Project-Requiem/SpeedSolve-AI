@@ -369,34 +369,15 @@ function generateCommonMistakes(subject: string): string[] {
   return mistakes[subject] || mistakes.mathematics;
 }
 
-// ── Fallback: build a graceful solution when AI is unavailable ──
-function buildFallbackSolution(problem: string, subject: string): any {
-  const hints: Record<string, string[]> = {
-    mathematics: [
-      "Identify the type of problem (equation, geometry, trigonometry, etc.)",
-      "Write down the given information and what needs to be found",
-      "Apply the relevant formula step by step",
-    ],
-    physics: [
-      "List all given quantities with their units",
-      "Identify the relevant physics principle or formula",
-      "Substitute values and solve for the unknown",
-    ],
-    chemistry: [
-      "Write the balanced chemical equation if applicable",
-      "Calculate molar masses and convert units",
-      "Apply stoichiometry or the relevant formula",
-    ],
-  };
-  const steps = (hints[subject] || hints["mathematics"]).map(desc => ({ desc, formula: "" }));
-
+// ── Error solution: shown when AI is completely unavailable ──
+function buildErrorSolution(problem: string, subject: string): any {
   return {
-    finalAnswer: "Use the 'Try with AI' button for a detailed solution",
+    finalAnswer: "AI solver is currently unavailable. Please try again in a moment.",
     finalFormula: "",
-    steps,
+    steps: [{ desc: "SpeedSolve AI could not reach the AI service. This is usually a temporary issue.", formula: "" }],
     altSteps: [],
-    similar: generateSimilarQuestions(problem, subject),
-    mistakes: generateCommonMistakes(subject),
+    similar: [],
+    mistakes: [],
   };
 }
 
@@ -452,11 +433,9 @@ export async function POST(request: NextRequest) {
     const raw = await solveWithAI(aiProblem, resolvedSubject, resolvedBoard);
 
     if (!raw) {
-      console.warn("[SpeedSolve AI] Gemini returned empty — returning graceful fallback.");
-      const graceful = buildFallbackSolution(processedProblem, resolvedSubject);
-      const solution = sanitizeSolution(graceful, resolvedSubject);
-      solution.examTips = BOARD_TIPS[resolvedBoard]?.[resolvedSubject] || BOARD_TIPS["icse"]?.[resolvedSubject] || [];
-      return NextResponse.json({ success: true, data: solution, source: "fallback" });
+      console.warn("[SpeedSolve AI] Gemini returned empty — AI service unavailable.");
+      const errSolution = buildErrorSolution(processedProblem, resolvedSubject);
+      return NextResponse.json({ success: true, data: errSolution, source: "error" });
     }
 
     let parsed = extractJSON(raw);
@@ -470,13 +449,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Last resort: build a minimal solution from raw text
+    // Last resort: try to extract answer from raw text
     if (!parsed || !validateSolution(parsed)) {
       console.error("LLM response unparseable after retry:", raw.slice(0, 300));
-      const fallback = buildFallbackSolution(processedProblem, resolvedSubject);
-      const solution = sanitizeSolution(fallback, resolvedSubject);
-      solution.examTips = BOARD_TIPS[resolvedBoard]?.[resolvedSubject] || BOARD_TIPS["icse"]?.[resolvedSubject] || [];
-      return NextResponse.json({ success: true, data: solution, source: "ai" });
+      const errSolution = buildErrorSolution(processedProblem, resolvedSubject);
+      return NextResponse.json({ success: true, data: errSolution, source: "error" });
     }
 
     const solution = sanitizeSolution(parsed, resolvedSubject);
