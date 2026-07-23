@@ -1096,6 +1096,17 @@ body {
   .try-ai-btn { height:34px; padding:0 10px; font-size:0.7rem; }
   .btn-icon-only { height:34px; min-width:34px; }
   .solve-source-badge { font-size:0.58rem; padding:2px 8px; }
+  /* Sticky output header on mobile so Copy/Download stay visible */
+  .panel-output > .panel-header {
+    position: sticky;
+    top: 60px;
+    z-index: 10;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    margin: -16px -16px 0;
+    padding: 12px 16px;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
 }
 @media (max-width: 640px) {
   .subject-cards { gap: 8px; }
