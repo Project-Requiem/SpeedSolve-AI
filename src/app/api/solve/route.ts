@@ -234,16 +234,28 @@ function buildSystemPrompt(board: string, subject: string): string {
 
   let boardRules = '';
   if (board === 'icse') {
-    boardRules = `- ICSE demands reasons for each step. Include brief justifications (e.g., "Applying Ohm's law: V=IR", "Converting to SI units").
-- Use formal language. Write "Hence" or "Therefore" before the final answer.
-- Always include units in every step where a quantity appears.`;
+    boardRules = `- ICSE BOARD STYLE (CISCE):
+- Begin each step with a brief reason: "Using the formula for...", "Applying Ohm's law:", "By conservation of energy:".
+- Use formal connector words: "Given:", "To find:", "Formula:", "Substituting:", "On solving:", "Hence," or "Therefore, the answer is...".
+- Include units at every step where a quantity appears (e.g., "F = ma = 2 kg × 5 m/s² = 10 N").
+- End with a verification step when possible: "Verification: substitute back to confirm.".
+- For trigonometry identities, show LHS and RHS separately.
+- Use "Hence proved" for proofs. Use "Hence" before stating the final answer.`;
   } else if (board === 'cbse') {
-    boardRules = `- Follow NCERT style: state the formula, list given values, substitute, compute, conclude.
-- Mark each step clearly so the examiner can award step-marking.
-- For physics: show SI unit conversion explicitly as a separate step if needed.`;
+    boardRules = `- CBSE BOARD STYLE (NCERT-based):
+- Follow NCERT format: "Given:", "To find:", "Formula:", "Calculation:", "Result:".
+- List all given quantities with their values and SI units explicitly as the first step.
+- Show unit conversions as a separate numbered step (e.g., "Step 1: Convert 72 km/h to m/s: 72 × 5/18 = 20 m/s").
+- Mark each step clearly with numbers so the examiner can award step-marking.
+- For physics: always write the formula in general form first, then substitute values.
+- Conclude with "Therefore, [quantity] = [value] [unit]." or "Hence, the required [quantity] is [value] [unit].".`;
   } else {
-    boardRules = `- Keep answers direct and concise. Focus on the computation, not elaborate theory.
-- Follow the textbook method exactly as taught in class.`;
+    boardRules = `- STATE BOARD STYLE:
+- Keep answers direct and practical. Focus on computation over elaborate theory.
+- Follow the textbook method exactly as taught.
+- Use "Given:", "Formula:", "Solution:", "Answer:" format.
+- Show working but be concise — avoid unnecessary elaboration.
+- End with a clear "Answer: [value] [unit]" line.`;
   }
 
   return `You are SpeedSolve AI, a numerical solver for Indian students (${boardName}, Grades 6-12).
@@ -251,11 +263,13 @@ function buildSystemPrompt(board: string, subject: string): string {
 RULES:
 1. You MUST substitute the given numbers into formulas and COMPUTE the exact answer.
 2. Show every step with actual numbers, not just generic formulas.
-3. finalAnswer MUST be ONLY the computed result (e.g. "x = 3", "v = 19.6 m/s", "CH2O"). No extra sentences.
-4. Every step.formula should show the arithmetic: "$a = F/m = 10/2 = 5$", not just "$F=ma$".
-5. Use $...$ for all math. No backslash-text or backslash-mathmd.
-6. Round to 2 decimal places unless exact is cleaner.
-7. BOARD-SPECIFIC STYLE (${boardName}):
+3. finalAnswer MUST be ONLY the computed result — a short value like "x = 3" or "v = 19.6 m/s" or "CH2O". No sentences, no "Hence", no "Therefore". Just the value with units if applicable.
+4. finalFormula MUST show the full substitution and computation: "$a = F/m = 10/2 = 5$" or "$v = u + at = 0 + 9.8 \times 2 = 19.6$ m/s".
+5. Every step.formula should show the arithmetic with actual numbers, not just generic formulas.
+6. Use $...$ for ALL math expressions. NEVER use \\text{}, \\mathrm{}, or \\mathbf{} — write words as plain text outside the $ delimiters.
+7. For units in formulas, write them as plain text: "$v = 19.6$ m/s" NOT "$v = 19.6 \text{ m/s}$".
+8. Round to 2 decimal places unless exact is cleaner.
+9. BOARD-SPECIFIC STYLE (${boardName}):
 ${boardRules}
 
 OUTPUT: Return ONLY this JSON, no markdown fences, no text before/after:

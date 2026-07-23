@@ -150,12 +150,27 @@ function detectSubject(text: string): Subject | null {
 }
 
 // ─── KaTeX Helper ────────────────────────────────────────────────
+// Strip problematic LaTeX commands that cause rendering issues
+function sanitizeLatexForKatex(text: string): string {
+  if (!text) return ''
+  let t = text
+  // Remove \text{...} — content spills into plain text outside $
+  t = t.replace(/\\text\{[^}]*\}/g, '')
+  // Remove \mathrm{...} and \mathbf{...} — same issue
+  t = t.replace(/\\mathrm\{[^}]*\}/g, '')
+  t = t.replace(/\\mathbf\{[^}]*\}/g, '')
+  // Remove \textbf{...}
+  t = t.replace(/\\textbf\{[^}]*\}/g, '')
+  return t
+}
+
 function renderLatex(text: string): string {
   if (!text) return ''
+  // Pre-sanitize to remove problematic commands before any processing
+  text = sanitizeLatexForKatex(text)
   // Fix double-escaped backslashes from LLM JSON output
   text = text.replace(/\\\\/g, '\\')
   // Split by math delimiters, clean non-math parts separately, then render math
-  // This prevents cleanBareLatex from corrupting KaTeX HTML output
   const mathBlockRegex = /\$\$([\s\S]+?)\$\$|\$([^$]+?)\$/g
   const parts: string[] = []
   let lastIndex = 0
@@ -169,13 +184,15 @@ function renderLatex(text: string): string {
     const displayTex = match[1]
     const inlineTex = match[2]
     if (displayTex) {
+      const sanitized = sanitizeLatexForKatex(displayTex.trim())
       try {
-        parts.push(katex.renderToString(displayTex.trim(), { displayMode: true, throwOnError: false }))
-      } catch { parts.push(match[0]) }
+        parts.push(katex.renderToString(sanitized, { displayMode: true, throwOnError: false }))
+      } catch { parts.push(cleanBareLatex(match[0])) }
     } else if (inlineTex) {
+      const sanitized = sanitizeLatexForKatex(inlineTex.trim())
       try {
-        parts.push(katex.renderToString(inlineTex.trim(), { displayMode: false, throwOnError: false }))
-      } catch { parts.push(match[0]) }
+        parts.push(katex.renderToString(sanitized, { displayMode: false, throwOnError: false }))
+      } catch { parts.push(cleanBareLatex(match[0])) }
     }
     lastIndex = match.index + match[0].length
   }
@@ -199,11 +216,9 @@ function normalizeLatex(s: string): string {
 
 function renderFormulaToHtml(formula: string): React.ReactNode {
   if (!formula) return null
-  // Pre-clean \text{} and \mathrm{} so KaTeX doesn't choke
-  let cleaned = formula
-    .replace(/\\text\{([^}]*)\}/g, ' $1 ')
-    .replace(/\\mathrm\{([^}]*)\}/g, ' $1 ')
-  const normalized = normalizeLatex(cleaned)
+  // Sanitize problematic commands before passing to KaTeX
+  const sanitized = sanitizeLatexForKatex(formula)
+  const normalized = normalizeLatex(sanitized)
   if (!normalized) return <span>{cleanBareLatex(formula)}</span>
   if (normalized.includes('$')) {
     return <span dangerouslySetInnerHTML={{ __html: renderLatex(normalized) }} />
@@ -534,7 +549,7 @@ export default function Home() {
     lines.push(`Problem: ${cleanBareLatex(problem)}`)
     lines.push('')
 
-    // Final Answer
+    // Final Answer — use finalFormula (computed result) preferentially
     const answer = cleanBareLatex(solution.finalFormula || solution.finalAnswer)
     lines.push(`Final Answer: ${answer}`)
     lines.push('')
@@ -982,11 +997,11 @@ export default function Home() {
               {/* Solution Content */}
               {solution && !loading && (
                 <div className="solution-content" ref={solutionRef}>
-                  {/* Final Answer */}
+                  {/* Final Answer — show ONLY the final computed result */}
                   <div className="solution-section final-answer-section fade-up visible">
                     <div className="section-label">Final Answer</div>
                     <div className={`final-answer-box${flashAnswer ? ' flash' : ''}`}>
-                      <span dangerouslySetInnerHTML={{ __html: renderLatex(solution.finalAnswer) }} />
+                      <span dangerouslySetInnerHTML={{ __html: renderLatex(solution.finalFormula || solution.finalAnswer) }} />
                     </div>
                   </div>
 
