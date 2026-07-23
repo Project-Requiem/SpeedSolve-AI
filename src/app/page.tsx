@@ -462,10 +462,16 @@ export default function Home() {
               el.classList.add('reveal')
             })
           }, 100)
-          // Scroll to solution on mobile
+          // Scroll to solution only if it's below the viewport on mobile
           if (window.innerWidth <= 1024) {
             setTimeout(() => {
-              outputBodyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              const el = outputBodyRef.current
+              if (!el) return
+              const rect = el.getBoundingClientRect()
+              // Only scroll if the top of the output is below the visible area
+              if (rect.top > window.innerHeight * 0.3) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }
             }, 200)
           }
         }, 150)
@@ -527,7 +533,12 @@ export default function Home() {
           }, 100)
           if (window.innerWidth <= 1024) {
             setTimeout(() => {
-              outputBodyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              const el = outputBodyRef.current
+              if (!el) return
+              const rect = el.getBoundingClientRect()
+              if (rect.top > window.innerHeight * 0.3) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }
             }, 200)
           }
         }, 150)
