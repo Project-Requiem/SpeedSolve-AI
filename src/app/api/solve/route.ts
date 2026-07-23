@@ -3,40 +3,86 @@ import { GoogleGenAI } from "@google/genai";
 import { tryLocalSolve, preprocessProblem } from "./local-solver";
 import { isPromptInjection, INJECTION_MESSAGE } from "@/lib/injection-guard";
 
-const ai = new GoogleGenAI({
+const geminiAI = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || "",
 });
 
+// ── AI Provider 1: Google Gemini ──
 async function callGemini(systemPrompt: string, userPrompt: string): Promise<string> {
-  if (!process.env.GEMINI_API_KEY) {
-    console.error("[SpeedSolve] GEMINI_API_KEY not set");
-    return "";
-  }
+  if (!process.env.GEMINI_API_KEY) return "";
   const models = ["gemini-2.0-flash", "gemini-2.5-pro"];
   for (const model of models) {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const response = await ai.models.generateContent({
+        const response = await geminiAI.models.generateContent({
           model,
           contents: userPrompt,
-          config: {
-            systemInstruction: systemPrompt,
-            temperature: 0.1,
-            maxOutputTokens: 8192,
-          },
+          config: { systemInstruction: systemPrompt, temperature: 0.1, maxOutputTokens: 8192 },
         });
         const text = response.text || "";
         if (text.trim().length > 20) {
-          console.log(`[SpeedSolve] ${model} OK (${text.length} chars)`);
+          console.log(`[SpeedSolve] Gemini ${model} OK (${text.length} chars)`);
           return text;
         }
-        console.warn(`[SpeedSolve] ${model} empty on attempt ${attempt + 1}`);
       } catch (err: any) {
-        console.error(`[SpeedSolve] ${model} attempt ${attempt + 1}: ${err?.message}`);
+        console.error(`[SpeedSolve] Gemini ${model}: ${err?.message?.slice(0, 100)}`);
       }
-      await new Promise(r => setTimeout(r, 1500));
+      await new Promise(r => setTimeout(r, 1000));
     }
   }
+  return "";
+}
+
+// ── AI Provider 2: Groq (free, fast, OpenAI-compatible) ──
+async function callGroq(systemPrompt: string, userPrompt: string): Promise<string> {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) return "";
+  const models = ["llama-3.3-70b-versatile", "deepseek-r1-distill-llama-70b"];
+  for (const model of models) {
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          temperature: 0.1,
+          max_tokens: 8192,
+        }),
+        signal: AbortSignal.timeout(30000),
+      });
+      if (!res.ok) {
+        console.error(`[SpeedSolve] Groq ${model}: ${res.status} ${await res.text().catch(() => "")}`);
+        continue;
+      }
+      const data = await res.json();
+      const text = data?.choices?.[0]?.message?.content || "";
+      if (text.trim().length > 20) {
+        console.log(`[SpeedSolve] Groq ${model} OK (${text.length} chars)`);
+        return text;
+      }
+    } catch (err: any) {
+      console.error(`[SpeedSolve] Groq ${model}: ${err?.message?.slice(0, 100)}`);
+    }
+  }
+  return "";
+}
+
+// ── Try all AI providers in sequence ──
+async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
+  // Try Gemini first
+  const geminiResult = await callGemini(systemPrompt, userPrompt);
+  if (geminiResult) return geminiResult;
+
+  // Fallback to Groq
+  console.log("[SpeedSolve] Gemini failed, trying Groq...");
+  const groqResult = await callGroq(systemPrompt, userPrompt);
+  if (groqResult) return groqResult;
+
+  console.error("[SpeedSolve] ALL AI providers failed");
   return "";
 }
 
@@ -97,10 +143,7 @@ const BOARD_TIPS: Record<string, Record<string, string[]>> = {
   },
 };
 
-const SAMPLE_PROBLEMS: Record<
-  string,
-  { text: string; label: string }[]
-> = {
+const SAMPLE_PROBLEMS: Record<string, { text: string; label: string }[]> = {
   mathematics: [
     { text: "Solve 3x + 5 = 14", label: "Linear Equation" },
     { text: "Solve x^2 - 5x + 6 = 0", label: "Quadratic" },
@@ -108,7 +151,7 @@ const SAMPLE_PROBLEMS: Record<
     { text: "Find the LCM and GCD of 48, 72, 108", label: "LCM & GCD" },
     { text: "A train travels 360 km in 4 hours. Find its speed in m/s.", label: "Speed" },
     { text: "Find the area of a circle with radius 14 cm.", label: "Area" },
-    { text: "If sin θ = 3/5, find cos θ and tan θ.", label: "Trigonometry" },
+    { text: "If sin theta = 3/5, find cos theta and tan theta.", label: "Trigonometry" },
     { text: "Find the mean, median, mode of: 5, 3, 7, 3, 5, 9, 3, 1", label: "Statistics" },
     { text: "A ladder 10 m long leans against a wall. If the foot of the ladder is 6 m from the wall, find the height.", label: "Pythagoras" },
     { text: "Differentiate f(x) = 3x^4 - 2x^2 + 5x - 7", label: "Derivative" },
@@ -132,7 +175,7 @@ const SAMPLE_PROBLEMS: Record<
   chemistry: [
     { text: "Find the pH of 0.01 M HCl solution.", label: "pH" },
     { text: "How many moles of NaOH are in 80 g? (Na=23, O=16, H=1)", label: "Moles" },
-    { text: "Balance: Fe + O2 → Fe2O3", label: "Balance" },
+    { text: "Balance: Fe + O2 = Fe2O3", label: "Balance" },
     { text: "A gas at 2 atm and 300 K occupies 5 L. What volume at 1 atm and 300 K?", label: "Gas Law" },
     { text: "Find the molarity of 4g NaOH in 500 mL solution. (Na=23, O=16, H=1)", label: "Molarity" },
     { text: "What is the empirical formula of a compound with 40% C, 6.7% H, 53.3% O? (C=12, H=1, O=16)", label: "Empirical" },
@@ -149,27 +192,23 @@ const EXAMPLES: Record<string, string> = {
       { desc: "Given: $3x + 5 = 14$. Find x.", formula: "$3x + 5 = 14$" },
       { desc: "Subtract 5 from both sides.", formula: "$3x = 14 - 5 = 9$" },
       { desc: "Divide by 3.", formula: "$x = 9 / 3 = 3$" },
-      { desc: "Verify: $3(3) + 5 = 9 + 5 = 14$ matches. Answer: x = 3", formula: "$x = 3$" },
+      { desc: "Verify: $3(3) + 5 = 9 + 5 = 14$. Answer: x = 3", formula: "$x = 3$" },
     ],
-    altSteps: [
-      { desc: "Check: LHS = $3(3)+5 = 14$, RHS = 14. Confirmed.", formula: "$14 = 14$" },
-    ],
+    altSteps: [{ desc: "Check: LHS = $3(3)+5 = 14$, RHS = 14. Confirmed.", formula: "$14 = 14$" }],
     similar: ["Solve 5x - 7 = 18", "Solve 2x + 3 = x + 8"],
     mistakes: ["Sign errors when moving terms", "Forgetting to divide both sides"],
   }),
   physics: JSON.stringify({
     finalAnswer: "v = 19.6 m/s",
-    finalFormula: "$v = u + at = 0 + 9.8 \times 2 = 19.6$",
+    finalFormula: "$v = u + at = 0 + 9.8 * 2 = 19.6$",
     steps: [
       { desc: "Given: u = 0 m/s (dropped from rest), a = g = 9.8 m/s^2, t = 2 s. Find v.", formula: "" },
       { desc: "Use first equation of motion.", formula: "$v = u + at$" },
-      { desc: "Substitute: $v = 0 + (9.8)(2)$", formula: "$v = 0 + 9.8 \times 2$" },
+      { desc: "Substitute: $v = 0 + (9.8)(2)$", formula: "$v = 0 + 9.8 * 2$" },
       { desc: "Compute: v = 19.6 m/s", formula: "$v = 19.6$ m/s" },
-      { desc: "Verify with $v^2 = u^2 + 2as$: s = 0.5(9.8)(4) = 19.6 m, $v = \sqrt{2(9.8)(19.6)} = 19.6$ m/s. Confirmed.", formula: "$v^2 = u^2 + 2as$" },
+      { desc: "Verify: $v^2 = u^2 + 2as$, s = 0.5(9.8)(4) = 19.6 m, $v = sqrt(2*9.8*19.6) = 19.6$ m/s.", formula: "$v^2 = u^2 + 2as$" },
     ],
-    altSteps: [
-      { desc: "Using energy: mgh = 0.5mv^2, so $v = \sqrt{2gh} = \sqrt{2(9.8)(19.6)} = 19.6$ m/s", formula: "$v = \sqrt{2gh} = 19.6$ m/s" },
-    ],
+    altSteps: [{ desc: "Energy method: $v = sqrt(2gh) = sqrt(2*9.8*19.6) = 19.6$ m/s", formula: "$v = sqrt(2gh) = 19.6$ m/s" }],
     similar: ["A stone dropped from 30m. Find time to reach ground (g=9.8)", "Ball thrown up at 15 m/s. Find max height (g=10)"],
     mistakes: ["Using wrong g value", "Forgetting unit conversions", "Wrong kinematic equation"],
   }),
@@ -183,9 +222,7 @@ const EXAMPLES: Record<string, string> = {
       { desc: "Molarity = 0.1/0.5 = 0.2 M", formula: "$M = 0.1 / 0.5 = 0.2$ M" },
       { desc: "Check: 0.2 mol/L in 0.5 L = 0.1 mol = 4/40. Correct.", formula: "" },
     ],
-    altSteps: [
-      { desc: "Direct: M = mass/(molar mass x volume) = 4/(40 x 0.5) = 0.2 M", formula: "$M = 4/20 = 0.2$ M" },
-    ],
+    altSteps: [{ desc: "Direct: M = mass/(molar mass * volume) = 4/(40 * 0.5) = 0.2 M", formula: "$M = 4/20 = 0.2$ M" }],
     similar: ["Find molarity of 9.8g H2SO4 in 250 mL (H=1,S=32,O=16)", "How many grams of KOH for 200 mL of 0.5 M? (K=39,O=16,H=1)"],
     mistakes: ["Forgetting mL to L conversion", "Wrong atomic masses", "Confusing molarity with molality"],
   }),
@@ -202,13 +239,13 @@ RULES:
 2. Show every step with actual numbers, not just generic formulas.
 3. finalAnswer MUST be the computed numerical result (e.g. "x = 3", "v = 19.6 m/s", "CH2O").
 4. Every step.formula should show the arithmetic: "$a = F/m = 10/2 = 5$", not just "$F=ma$".
-5. Use $...$ for all math. No \\text{} or \\mathrm{}.
+5. Use $...$ for all math. No backslash-text or backslash-mathrm.
 6. Round to 2 decimal places unless exact is cleaner.
 
 OUTPUT: Return ONLY this JSON, no markdown fences, no text before/after:
 ${example}
 
-Now solve the student's problem the same way — substitute values, compute, show the answer.`;
+Now solve the student's problem the same way - substitute values, compute, show the answer.`;
 }
 
 // ── JSON extraction ──
@@ -217,7 +254,6 @@ function extractJSON(text: string): any | null {
   let cleaned = text.replace(/```(?:json)?\s*/gi, "").replace(/```/g, "").trim();
   try { return JSON.parse(cleaned); } catch {}
 
-  // Brace-matching extraction
   let searchFrom = 0;
   while (searchFrom < cleaned.length) {
     const start = cleaned.indexOf("{", searchFrom);
@@ -256,9 +292,7 @@ function buildSolutionFromText(rawText: string, subject: string, board: string):
     finalAnswer: steps.length > 0 ? steps[steps.length - 1].desc : rawText.slice(0, 200),
     finalFormula: "",
     steps: steps.length > 0 ? steps : [{ desc: rawText.slice(0, 300), formula: "" }],
-    altSteps: [],
-    similar: [],
-    mistakes: [],
+    altSteps: [], similar: [], mistakes: [],
     examTips: BOARD_TIPS[board]?.[subject] || [],
   };
 }
@@ -312,7 +346,7 @@ export async function POST(request: NextRequest) {
     const brd = ["icse", "cbse", "state"].includes(board) ? board : "icse";
     const processed = preprocessProblem(problem);
 
-    // Step 1: Try local solver (instant) — skip if forceAI
+    // Step 1: Try local solver (instant) - skip if forceAI
     if (!forceAI) {
       const local = await tryLocalSolve(processed, sub);
       if (local) {
@@ -323,7 +357,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Step 2: AI Solver
+    // Step 2: AI Solver (tries Gemini, then Groq)
     const systemPrompt = buildSystemPrompt(brd, sub);
     const boardLabel = brd === "icse" ? "ICSE" : brd === "cbse" ? "CBSE" : "State Board";
     const userPrompt = `Subject: ${sub.toUpperCase()}
@@ -333,10 +367,9 @@ Problem: ${problem}
 Substitute the given values into the formula and compute. Return JSON only.`;
 
     console.log(`[SpeedSolve] AI solving: "${processed.slice(0, 80)}..."`);
-    const raw = await callGemini(systemPrompt, userPrompt);
+    const raw = await callAI(systemPrompt, userPrompt);
 
     if (!raw) {
-      // AI failed — try local as last resort
       const lastLocal = await tryLocalSolve(processed, sub);
       if (lastLocal) {
         if (lastLocal.similar.length === 0) lastLocal.similar = generateSimilarQuestions(sub);
@@ -360,7 +393,6 @@ Substitute the given values into the formula and compute. Return JSON only.`;
     let parsed = extractJSON(raw);
 
     if (parsed && parsed.finalAnswer && Array.isArray(parsed.steps) && parsed.steps.length > 0) {
-      // Valid JSON — clean and return
       const solution = {
         finalAnswer: cleanLatex(parsed.finalAnswer) || "",
         finalFormula: cleanLatex(parsed.finalFormula || "") || "",
@@ -379,7 +411,7 @@ Substitute the given values into the formula and compute. Return JSON only.`;
       return NextResponse.json({ success: true, data: solution, source: "ai" });
     }
 
-    // JSON parse failed but we have text — build solution from raw text
+    // JSON parse failed but we have text - build solution from raw text
     console.warn(`[SpeedSolve] JSON parse failed, building from raw text (${raw.length} chars)`);
     const textSolution = buildSolutionFromText(raw, sub, brd);
     return NextResponse.json({ success: true, data: textSolution, source: "ai" });
