@@ -1090,6 +1090,15 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Built by Project Requiem badge */}
+      <div className="built-by-badge fade-up visible">
+        <a href="https://github.com/Project-Requiem" target="_blank" rel="noopener noreferrer" className="badge-link">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <span>Built by <strong>Project Requiem</strong></span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+      </div>
+
       {/* Board Selector */}
       <div className="board-row fade-up visible">
         <div className="selector-group">
@@ -1502,6 +1511,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="footer fade-up visible">
+        <p className="footer-tagline">By the Students, For the Students</p>
         <p>SpeedSolve AI &copy; 2026 &mdash; Built for students in Grades 6&ndash;12</p>
       </footer>
     </div>

@@ -248,6 +248,58 @@ body {
 }
 
 /* ===========================
+   BUILT BY BADGE
+   =========================== */
+.built-by-badge {
+  display: flex; justify-content: center;
+  padding: 10px 0 0;
+  position: relative; z-index: 1;
+}
+.badge-link {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 16px 7px 12px;
+  border-radius: 100px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 1px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.badge-link:hover {
+  border-color: var(--accent-start);
+  color: var(--accent-start);
+  box-shadow: 0 2px 16px rgba(79,70,229,0.15), inset 0 1px 0 rgba(255,255,255,0.08);
+  transform: translateY(-1px);
+}
+.badge-link strong {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.badge-link:hover strong {
+  color: var(--accent-start);
+}
+.badge-link svg:first-child {
+  color: #fbbf24;
+  flex-shrink: 0;
+}
+.badge-link svg:last-child {
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+.badge-link:hover svg:last-child {
+  opacity: 0.8;
+}
+@media (max-width: 768px) {
+  .badge-link { font-size: 0.66rem; padding: 6px 12px 6px 10px; gap: 5px; }
+  .badge-link svg:first-child { width: 12px; height: 12px; }
+  .badge-link svg:last-child { width: 10px; height: 10px; }
+}
+
+/* ===========================
    BOARD SELECTOR
    =========================== */
 .board-row {
@@ -734,6 +786,16 @@ body {
   font-size: clamp(0.65rem, 0.68vw, 0.72rem);
   color: var(--text-muted); border-top: 1px solid var(--border-color);
   margin-top: 40px; position: relative; z-index: 1;
+  display: flex; flex-direction: column; gap: 6px; align-items: center;
+}
+.footer-tagline {
+  font-size: clamp(0.8rem, 0.85vw, 0.92rem);
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 0.3px;
 }
 
 /* ===========================
