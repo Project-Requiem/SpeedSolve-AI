@@ -659,28 +659,333 @@ export default function Home() {
   }
 
   const exportPDF = async () => {
-    if (!solutionRef.current) return
+    if (!solution) return
     try {
-      const html2canvas = (await import('html2canvas')).default
       const jsPDF = (await import('jspdf')).default
-      const canvas = await html2canvas(solutionRef.current, {
-        scale: 2, useCORS: true, backgroundColor: '#ffffff',
-        logging: false,
-      })
-      const imgData = canvas.toDataURL('image/png')
-      const pdf = new jsPDF('p', 'mm', 'a4')
-      const pdfWidth = pdf.internal.pageSize.getWidth()
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width
-      let heightLeft = pdfHeight
-      let position = 0
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight)
-      heightLeft -= pdf.internal.pageSize.getHeight()
-      while (heightLeft > 0) {
-        position = heightLeft - pdfHeight
-        pdf.addPage()
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight)
-        heightLeft -= pdf.internal.pageSize.getHeight()
+      const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' })
+      const pageW = pdf.internal.pageSize.getWidth()
+      const pageH = pdf.internal.pageSize.getHeight()
+      const margin = 20
+      const contentW = pageW - margin * 2
+      let y = margin
+
+      const ensureSpace = (needed: number) => {
+        if (y + needed > pageH - 15) {
+          pdf.addPage()
+          y = margin
+        }
       }
+
+      // Simple LaTeX-to-plain-text for PDF (no rendering engine needed)
+      const texToPlain = (s: string): string => {
+        if (!s) return ''
+        let t = s
+          .replace(/\\\\/g, '\\')
+          .replace(/\$\$([\s\\S]+?)\$\$|\$([^$]+?)\$/g, (_, a, b) => a || b || '')
+          .replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, '($1)/($2)')
+          .replace(/\\sqrt\{([^}]*)\}/g, 'sqrt($1)')
+          .replace(/\\times/g, ' x ')
+          .replace(/\\div/g, ' / ')
+          .replace(/\\pm/g, ' +/- ')
+          .replace(/\\neq/g, ' != ')
+          .replace(/\\leq/g, ' <= ')
+          .replace(/\\geq/g, ' >= ')
+          .replace(/\\approx/g, ' ~ ')
+          .replace(/\\rightarrow/g, ' -> ')
+          .replace(/\\Rightarrow/g, ' => ')
+          .replace(/\\infty/g, 'inf')
+          .replace(/\\partial/g, 'd')
+          .replace(/\\cdot/g, '.')
+          .replace(/\\theta/g, 'theta')
+          .replace(/\\alpha/g, 'alpha')
+          .replace(/\\beta/g, 'beta')
+          .replace(/\\gamma/g, 'gamma')
+          .replace(/\\delta/g, 'delta')
+          .replace(/\\lambda/g, 'lambda')
+          .replace(/\\mu/g, 'mu')
+          .replace(/\\sigma/g, 'sigma')
+          .replace(/\\omega/g, 'omega')
+          .replace(/\\pi/g, 'pi')
+          .replace(/\\sum/g, 'Sum')
+          .replace(/\\int/g, 'Int')
+          .replace(/\\prod/g, 'Prod')
+          .replace(/\\lim/g, 'lim')
+          .replace(/\\log/g, 'log')
+          .replace(/\\ln/g, 'ln')
+          .replace(/\\sin/g, 'sin')
+          .replace(/\\cos/g, 'cos')
+          .replace(/\\tan/g, 'tan')
+          .replace(/\\text\{[^}]*\}/g, '')
+          .replace(/\\mathrm\{[^}]*\}/g, '')
+          .replace(/\\mathbf\{[^}]*\}/g, '')
+          .replace(/\\left/g, '').replace(/\\right/g, '')
+          .replace(/\\,/g, ' ')
+          .replace(/\\; /g, ' ')
+          .replace(/\{([^}]*)\}/g, '$1')
+          .replace(/\\/g, '')
+          .trim()
+        return t
+      }
+
+      // Word-wrap helper
+      const wrapText = (doc: any, text: string, maxWidth: number): string[] => {
+        const lines: string[] = []
+        const words = text.split(' ')
+        let line = ''
+        for (const word of words) {
+          const test = line ? line + ' ' + word : word
+          if (doc.getTextWidth(test) > maxWidth && line) {
+            lines.push(line)
+            line = word
+          } else {
+            line = test
+          }
+        }
+        if (line) lines.push(line)
+        return lines.length ? lines : ['']
+      }
+
+      const addWrapped = (text: string, x: number, fontSize: number, maxWidth: number, lineHeight?: number) => {
+        pdf.setFontSize(fontSize)
+        const lh = lineHeight || fontSize * 0.45
+        const lines = wrapText(pdf, text, maxWidth)
+        for (const l of lines) {
+          ensureSpace(lh + 2)
+          pdf.text(l, x, y)
+          y += lh
+        }
+      }
+
+      const addBullet = (text: string, fontSize: number) => {
+        pdf.setFontSize(fontSize)
+        const lh = fontSize * 0.45
+        const lines = wrapText(pdf, text, contentW - 8)
+        ensureSpace(lh + 2)
+        pdf.text('•', margin + 2, y)
+        pdf.text(lines[0], margin + 6, y)
+        y += lh
+        for (let i = 1; i < lines.length; i++) {
+          ensureSpace(lh + 2)
+          pdf.text(lines[i], margin + 6, y)
+          y += lh
+        }
+      }
+
+      // ─── HEADER ───
+      pdf.setFillColor(37, 99, 235)
+      pdf.rect(0, 0, pageW, 32, 'F')
+      pdf.setTextColor(255, 255, 255)
+      pdf.setFontSize(18)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('SpeedSolve AI', margin, 14)
+      pdf.setFontSize(9)
+      pdf.setFont('helvetica', 'normal')
+      const boardLabel = board === 'icse' ? 'ICSE' : board === 'cbse' ? 'CBSE' : 'State Board'
+      pdf.text(`${SUBJECT_META[subject].name}  |  ${boardLabel}  |  ${new Date().toLocaleDateString('en-IN')}`, margin, 22)
+
+      // Source badge
+      if (solveSource === 'ai') {
+        pdf.setFillColor(16, 185, 129)
+        pdf.roundedRect(pageW - margin - 38, 8, 38, 7, 2, 2, 'F')
+        pdf.setTextColor(255, 255, 255)
+        pdf.setFontSize(7)
+        pdf.setFont('helvetica', 'bold')
+        pdf.text('AI POWERED', pageW - margin - 36, 13)
+      } else {
+        pdf.setFillColor(139, 92, 246)
+        pdf.roundedRect(pageW - margin - 30, 8, 30, 7, 2, 2, 'F')
+        pdf.setTextColor(255, 255, 255)
+        pdf.setFontSize(7)
+        pdf.setFont('helvetica', 'bold')
+        pdf.text('INSTANT', pageW - margin - 28, 13)
+      }
+
+      y = 42
+      pdf.setTextColor(30, 30, 30)
+
+      // ─── PROBLEM ───
+      pdf.setFontSize(11)
+      pdf.setFont('helvetica', 'bold')
+      ensureSpace(16)
+      pdf.text('Problem:', margin, y)
+      y += 5
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(10)
+      addWrapped(cleanBareLatex(problem), margin, 10, contentW)
+      y += 4
+
+      // ─── FINAL ANSWER ───
+      ensureSpace(22)
+      pdf.setDrawColor(37, 99, 235)
+      pdf.setFillColor(240, 244, 255)
+      pdf.roundedRect(margin, y - 3, contentW, 16, 3, 3, 'FD')
+      pdf.setTextColor(30, 30, 246)
+      pdf.setFontSize(10)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('Final Answer:', margin + 4, y + 2)
+      pdf.setFont('helvetica', 'normal')
+      const answerText = texToPlain(solution.finalFormula || solution.finalAnswer)
+      const ansLines = wrapText(pdf, answerText, contentW - 12)
+      if (ansLines[0]) pdf.text(ansLines[0], margin + 4, y + 8)
+      y += 18
+      pdf.setTextColor(30, 30, 30)
+
+      // ─── STEPS ───
+      if (solution.steps && solution.steps.length > 0) {
+        ensureSpace(12)
+        pdf.setFontSize(11)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setDrawColor(37, 99, 235)
+        pdf.line(margin, y - 1, margin + 30, y - 1)
+        pdf.text('Step-by-Step Solution', margin, y + 3)
+        y += 8
+
+        solution.steps.forEach((step, i) => {
+          ensureSpace(10)
+          pdf.setFontSize(10)
+          pdf.setFont('helvetica', 'bold')
+          pdf.setTextColor(37, 99, 235)
+          pdf.text(`Step ${i + 1}`, margin, y)
+          y += 4.5
+          pdf.setTextColor(30, 30, 30)
+          pdf.setFont('helvetica', 'normal')
+          pdf.setFontSize(9.5)
+
+          // Description
+          const descText = texToPlain(cleanBareLatex(step.desc))
+          addWrapped(descText, margin + 2, 9.5, contentW - 4)
+
+          // Formula (highlighted box)
+          if (step.formula) {
+            const formulaText = texToPlain(cleanBareLatex(step.formula))
+            if (formulaText.trim()) {
+              ensureSpace(12)
+              const fLines = wrapText(pdf, formulaText, contentW - 16)
+              const boxH = Math.max(fLines.length * 4.5 + 6, 10)
+              pdf.setFillColor(245, 247, 255)
+              pdf.roundedRect(margin + 2, y - 3, contentW - 4, boxH, 2, 2, 'F')
+              pdf.setTextColor(67, 56, 202)
+              pdf.setFontSize(9.5)
+              pdf.setFont('helvetica', 'bold')
+              let fy = y + 1
+              for (const fl of fLines) {
+                pdf.text(fl, margin + 6, fy)
+                fy += 4.5
+              }
+              y += boxH + 2
+              pdf.setTextColor(30, 30, 30)
+            }
+          }
+          y += 3
+        })
+      }
+
+      // ─── ALTERNATE SOLUTION ───
+      if (solution.altSteps && solution.altSteps.length > 0) {
+        ensureSpace(12)
+        pdf.setFontSize(11)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setDrawColor(139, 92, 246)
+        pdf.line(margin, y - 1, margin + 40, y - 1)
+        pdf.text('Alternate Solution', margin, y + 3)
+        y += 8
+
+        solution.altSteps.forEach((step, i) => {
+          ensureSpace(10)
+          pdf.setFontSize(10)
+          pdf.setFont('helvetica', 'bold')
+          pdf.setTextColor(139, 92, 246)
+          pdf.text(`Alt Step ${i + 1}`, margin, y)
+          y += 4.5
+          pdf.setTextColor(30, 30, 30)
+          pdf.setFont('helvetica', 'normal')
+          pdf.setFontSize(9.5)
+          addWrapped(texToPlain(cleanBareLatex(step.desc)), margin + 2, 9.5, contentW - 4)
+          if (step.formula) {
+            const ft = texToPlain(cleanBareLatex(step.formula))
+            if (ft.trim()) {
+              ensureSpace(10)
+              const fl = wrapText(pdf, ft, contentW - 16)
+              const bh = Math.max(fl.length * 4.5 + 6, 10)
+              pdf.setFillColor(248, 245, 255)
+              pdf.roundedRect(margin + 2, y - 3, contentW - 4, bh, 2, 2, 'F')
+              pdf.setTextColor(67, 56, 202)
+              pdf.setFontSize(9.5)
+              pdf.setFont('helvetica', 'bold')
+              let fy = y + 1
+              for (const l of fl) { pdf.text(l, margin + 6, fy); fy += 4.5 }
+              y += bh + 2
+              pdf.setTextColor(30, 30, 30)
+            }
+          }
+          y += 3
+        })
+      }
+
+      // ─── COMMON MISTAKES ───
+      if (solution.mistakes && solution.mistakes.length > 0) {
+        ensureSpace(14)
+        pdf.setFontSize(11)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setDrawColor(245, 158, 11)
+        pdf.line(margin, y - 1, margin + 42, y - 1)
+        pdf.text('Common Mistakes to Avoid', margin, y + 3)
+        y += 8
+        pdf.setFont('helvetica', 'normal')
+        pdf.setFontSize(9)
+        for (const m of solution.mistakes) {
+          addBullet(texToPlain(cleanBareLatex(m)), 9)
+          y += 1.5
+        }
+        y += 3
+      }
+
+      // ─── EXAM TIPS ───
+      if (solution.examTips && solution.examTips.length > 0) {
+        ensureSpace(14)
+        pdf.setFontSize(11)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setDrawColor(16, 185, 129)
+        pdf.line(margin, y - 1, margin + 30, y - 1)
+        pdf.text(`Exam Tips (${boardLabel})`, margin, y + 3)
+        y += 8
+        pdf.setFont('helvetica', 'normal')
+        pdf.setFontSize(9)
+        for (const tip of solution.examTips) {
+          addBullet(tip, 9)
+          y += 1.5
+        }
+        y += 3
+      }
+
+      // ─── SIMILAR QUESTIONS ───
+      if (solution.similar && solution.similar.length > 0) {
+        ensureSpace(14)
+        pdf.setFontSize(11)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setDrawColor(6, 182, 212)
+        pdf.line(margin, y - 1, margin + 30, y - 1)
+        pdf.text('Practice - Similar Questions', margin, y + 3)
+        y += 8
+        pdf.setFont('helvetica', 'normal')
+        pdf.setFontSize(9)
+        for (const q of solution.similar) {
+          addBullet(texToPlain(cleanBareLatex(q)), 9)
+          y += 1.5
+        }
+      }
+
+      // ─── FOOTER ───
+      const totalPages = pdf.getNumberOfPages()
+      for (let p = 1; p <= totalPages; p++) {
+        pdf.setPage(p)
+        pdf.setFontSize(7)
+        pdf.setFont('helvetica', 'normal')
+        pdf.setTextColor(150, 150, 150)
+        pdf.text('Generated by SpeedSolve AI  |  speedsolve.vercel.app', margin, pageH - 8)
+        pdf.text(`Page ${p} of ${totalPages}`, pageW - margin, pageH - 8)
+      }
+
       pdf.save('speedsolve-solution.pdf')
     } catch (err) {
       console.error('PDF export failed:', err)
