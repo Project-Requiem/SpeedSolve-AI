@@ -17,7 +17,7 @@ function getClientIP(request: NextRequest): string {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, feedback, subject, board, problem } = body;
+    const { name, feedback, subject, board, problem, grade } = body;
 
     if (!feedback || typeof feedback !== "string" || feedback.trim().length < 1) {
       return NextResponse.json({ error: "Feedback text is required" }, { status: 400 });
@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
         subject: (subject || "").trim().slice(0, 50),
         board: (board || "").trim().slice(0, 50),
         problem: (problem || "").trim().slice(0, 500),
+        grade: (grade || "").trim().slice(0, 10),
       },
     });
 
