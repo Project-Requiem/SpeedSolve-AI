@@ -638,18 +638,25 @@ export default function Home() {
   }, [solution, problem, board])
 
   // ── Feature 5: Submit feedback ──
+  const [fbSubmitting, setFbSubmitting] = useState(false)
   const submitFeedback = useCallback(async () => {
     if (!fbName.trim()) {
       setFbError('Please enter your name.')
       return
     }
+    if (!fbMsg.trim()) {
+      setFbError('Please enter a feedback message.')
+      return
+    }
     setFbError('')
+    setFbSubmitting(true)
     try {
       const res = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: fbName.trim(), feedback: fbMsg.trim(), subject, board, problem: problem.trim(), grade: fbGrade }),
+        body: JSON.stringify({ name: fbName.trim(), feedback: fbMsg.trim(), subject, board, problem, grade: fbGrade }),
       })
+      const data = await res.json()
       if (res.ok) {
         setFbSubmitted(true)
         setTimeout(() => {
@@ -658,11 +665,15 @@ export default function Home() {
           setFbName('')
           setFbMsg('')
         }, 1500)
+      } else {
+        setFbError(data.error || 'Failed to submit. Please try again.')
       }
     } catch {
-      setFbError('Failed to submit. Please try again.')
+      setFbError('Network error. Check your connection and try again.')
+    } finally {
+      setFbSubmitting(false)
     }
-  }, [fbName, fbMsg, subject, board, fbGrade])
+  }, [fbName, fbMsg, subject, board, fbGrade, problem])
 
   const clearAll = () => {
     setProblem('')
@@ -1581,7 +1592,6 @@ export default function Home() {
                       value={fbName}
                       onChange={e => { setFbName(e.target.value); setFbError('') }}
                     />
-                    {fbError && <div className="fb-error">{fbError}</div>}
                   </div>
                   <div className="fb-field fb-field-half">
                     <label htmlFor="fb-grade">Grade</label>
@@ -1591,6 +1601,7 @@ export default function Home() {
                     </select>
                   </div>
                 </div>
+                {fbError && <div className="fb-error">{fbError}</div>}
                 <div className="fb-field">
                   <label htmlFor="fb-msg">Message</label>
                   <textarea
@@ -1602,8 +1613,8 @@ export default function Home() {
                   />
                 </div>
                 <div className="fb-actions">
-                  <button className="fb-btn-cancel" onClick={() => { setShowFeedback(false); setFbError('') }}>Cancel</button>
-                  <button className="fb-btn-submit" onClick={submitFeedback}>Submit</button>
+                  <button className="fb-btn-cancel" onClick={() => { setShowFeedback(false); setFbError('') }} disabled={fbSubmitting}>Cancel</button>
+                  <button className="fb-btn-submit" onClick={submitFeedback} disabled={fbSubmitting}>{fbSubmitting ? 'Sending...' : 'Submit'}</button>
                 </div>
               </>
             )}

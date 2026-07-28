@@ -1128,6 +1128,8 @@ body {
 .feedback-modal .fb-actions { display:flex;gap:10px;margin-top:18px;justify-content:flex-end; }
 .feedback-modal .fb-btn-submit { padding:8px 22px;border-radius:10px;font-size:0.85rem;font-weight:600;border:none;cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--accent-start),var(--accent-end));transition:opacity 0.2s;font-family:var(--font); }
 .feedback-modal .fb-btn-submit:hover { opacity:0.9; }
+.feedback-modal .fb-btn-submit:disabled { opacity:0.5; cursor:not-allowed; }
+.feedback-modal .fb-btn-cancel:disabled { opacity:0.4; cursor:not-allowed; }
 .feedback-modal .fb-btn-cancel { padding:8px 18px;border-radius:10px;font-size:0.85rem;font-weight:500;border:1px solid var(--border-color);background:transparent;cursor:pointer;color:var(--text-secondary);font-family:var(--font);transition:all 0.2s; }
 .feedback-modal .fb-btn-cancel:hover { background:var(--bg-card-hover); }
 .feedback-modal .fb-close { position:absolute;top:12px;right:14px;width:30px;height:30px;border-radius:8px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s; }
