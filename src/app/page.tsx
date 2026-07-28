@@ -705,6 +705,7 @@ export default function Home() {
 
       if (!res.ok || data.error) {
         setError(data.error || 'Failed to extract text from file.')
+        setUploadedFile(null)
         setExtracting(false)
         return
       }
@@ -723,7 +724,7 @@ export default function Home() {
     } finally {
       setExtracting(false)
     }
-  }, [problem]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [problem, subject, board, solve]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const onFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
