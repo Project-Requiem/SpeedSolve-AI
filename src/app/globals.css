@@ -187,15 +187,16 @@ body {
 .navbar.scrolled { box-shadow: 0 4px 30px rgba(0,0,0,0.2); }
 .nav-inner {
   max-width: 1280px; margin: 0 auto; padding: 0 clamp(16px, 3vw, 28px);
-  height: 68px; display: flex; align-items: center; justify-content: space-between;
+  height: 68px; display: flex; align-items: center; justify-content: flex-start;
+  gap: clamp(12px, 2vw, 24px);
 }
 @media (max-width: 768px) {
-  .nav-inner { height: 60px; }
+  .nav-inner { height: 60px; gap: 10px; }
   .nav-feedback-btn span { display: none; }
   .nav-feedback-btn { padding: 7px; border-radius: var(--radius-sm); width: 42px; height: 42px; justify-content: center; }
   .theme-toggle { width: 38px; height: 38px; }
-  .nav-requiem-badge { font-size: 0.68rem; padding: 6px 12px 6px 10px; gap: 5px; }
-  .nav-requiem-badge svg:first-child { width: 12px; height: 12px; }
+  .nav-requiem-badge { font-size: 0.64rem; padding: 5px 10px 5px 8px; gap: 4px; }
+  .nav-requiem-badge svg:first-child { width: 11px; height: 11px; }
   .nav-requiem-badge svg:last-child { width: 9px; height: 9px; }
 }
 .nav-brand { display: flex; align-items: center; gap: 14px; text-decoration: none; }
@@ -206,6 +207,7 @@ body {
 
 .nav-actions {
   display: flex; align-items: center; gap: 10px;
+  margin-left: auto;
 }
 .theme-toggle {
   background: var(--bg-card); border: 1px solid var(--border-color);
@@ -256,8 +258,7 @@ body {
 .nav-center {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex: 1;
+  flex-shrink: 0;
 }
 .nav-requiem-badge {
   display: inline-flex;
@@ -1198,16 +1199,16 @@ body {
   .try-ai-btn { height:32px; padding:0 10px; font-size:0.68rem; font-weight: 500; }
   .btn-icon-only { height:32px; min-width:32px; }
   .solve-source-badge { font-size:0.58rem; padding:2px 8px; }
-  /* Sticky output header on mobile so Copy/Download stay visible */
+  /* Remove sticky on mobile — it was covering content */
   .panel-output > .panel-header {
-    position: sticky;
-    top: 86px; /* 60px navbar + 26px ticker */
-    z-index: 10;
-    background: var(--bg-card);
+    position: relative;
+    top: auto;
+    z-index: auto;
+    background: none;
     border-bottom: 1px solid var(--border-color);
-    margin: -16px -16px 0;
-    padding: 10px 16px;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    margin: 0;
+    padding: 10px 14px;
+    border-radius: 0;
   }
 }
 @media (max-width: 640px) {
