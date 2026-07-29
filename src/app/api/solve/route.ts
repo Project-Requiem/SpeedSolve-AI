@@ -271,11 +271,18 @@ RULES:
 8. Round to 2 decimal places unless exact is cleaner.
 9. BOARD-SPECIFIC STYLE (${boardName}):
 ${boardRules}
+10. GRAPH GENERATION — When the problem involves a function, data, kinematics, or anything visual, include a "graph" field. MANDATORY for: quadratic/cubic equations (plot function, mark roots), simultaneous linear equations (plot lines, mark intersection), trigonometry (plot sin/cos/tan), kinematics (s-t/v-t/a-t graphs), statistics (bar/pie charts). Graph formats:
+   - Function plot: {"type":"function","title":"y = x^2 - 5x + 6","xLabel":"x","yLabel":"y","fn":"x*x - 5*x + 6","xMin":-1,"xMax":6,"yMin":-3,"yMax":10,"points":[{"x":2,"y":0,"label":"Root"},{"x":3,"y":0,"label":"Root"}]}
+   - Data graph: {"type":"line","title":"Distance vs Time","xLabel":"Time (s)","yLabel":"Distance (m)","xData":[0,1,2,3,4,5],"series":[{"name":"Distance","data":[0,5,20,45,80,125]}]}
+   - Bar chart: {"type":"bar","title":"...","xLabel":"...","yLabel":"...","xData":["A","B"],"series":[{"name":"Value","data":[10,20]}]}
+   - Pie chart: {"type":"pie","title":"...","xData":["A","B"],"series":[{"name":"Value","data":[40,60]}]}
+   The "fn" field uses JS math: x*x, sin(x), cos(x), tan(x), sqrt(x), abs(x), pi, e, ** for power. Always set xMin/xMax/yMin/yMax for function plots. Mark roots, maxima, intersections in "points".
+11. DIAGRAM — For geometry or physics free-body diagrams, include a "diagram" field: {"svg":"<svg viewBox=\"0 0 300 250\">...</svg>","caption":"Free Body Diagram"}. Keep SVGs simple: basic shapes (rect, circle, line, polygon, ellipse), text labels, arrow markers. viewBox 300x250. Use stroke-only shapes (fill=none). Include <defs><marker id="arrow" ...> for arrowheads. NO external resources.
 
 OUTPUT: Return ONLY this JSON, no markdown fences, no text before/after:
 ${example}
 
-Now solve the student's problem the same way - substitute values, compute, show the answer.`;
+Now solve the student's problem the same way - substitute values, compute, show the answer. Include a graph or diagram when the problem involves any function, data, or visual relationship.`;
 }
 
 // ── JSON extraction ──
@@ -437,6 +444,8 @@ Substitute the given values into the formula and compute. Return JSON only.`;
         similar: Array.isArray(parsed.similar) ? parsed.similar.slice(0, 4) : generateSimilarQuestions(sub),
         mistakes: Array.isArray(parsed.mistakes) ? parsed.mistakes.slice(0, 5) : generateCommonMistakes(sub),
         examTips: BOARD_TIPS[brd]?.[sub] || [],
+        graph: parsed.graph && parsed.graph.type ? parsed.graph : null,
+        diagram: parsed.diagram && parsed.diagram.svg ? parsed.diagram : null,
       };
       return NextResponse.json({ success: true, data: solution, source: "ai" });
     }

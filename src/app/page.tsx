@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import katex from 'katex'
+import dynamic from 'next/dynamic'
+
+const SolutionGraph = dynamic(() => import('@/components/SolutionGraph'), { ssr: false })
+const SolutionDiagram = dynamic(() => import('@/components/SolutionDiagram'), { ssr: false })
 
 // ─── Types ───────────────────────────────────────────────────────
 interface SampleProblem { text: string; label: string }
@@ -14,6 +18,8 @@ interface Solution {
   similar: string[]
   mistakes: string[]
   examTips: string[]
+  graph: any | null
+  diagram: any | null
 }
 
 type Subject = 'mathematics' | 'physics' | 'chemistry'
@@ -1466,6 +1472,20 @@ export default function Home() {
                       <span dangerouslySetInnerHTML={{ __html: renderLatex(solution.finalFormula || solution.finalAnswer) }} />
                     </div>
                   </div>
+
+                  {/* Graph / Diagram */}
+                  {solution.graph && solution.graph.type && (
+                    <div className="solution-section fade-up visible" style={{ animationDelay: '0.08s' }}>
+                      <div className="section-label">Graph</div>
+                      <SolutionGraph spec={solution.graph} theme={theme} />
+                    </div>
+                  )}
+                  {solution.diagram && solution.diagram.svg && (
+                    <div className="solution-section fade-up visible" style={{ animationDelay: '0.08s' }}>
+                      <div className="section-label">Diagram</div>
+                      <SolutionDiagram spec={solution.diagram} theme={theme} />
+                    </div>
+                  )}
 
                   {/* Steps */}
                   {solution.steps.length > 0 && (

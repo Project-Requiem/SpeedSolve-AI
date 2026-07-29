@@ -1299,3 +1299,127 @@ body {
   .nav-requiem-badge:hover { transform: none; }
 }
 .katex-display > .katex { white-space: normal; }
+
+/* ===========================
+   GRAPHS & DIAGRAMS
+   =========================== */
+.graph-container {
+  position: relative;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.graph-container:hover {
+  border-color: var(--accent-start);
+  box-shadow: var(--shadow-glow);
+}
+.graph-loading {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  color: var(--text-muted); font-size: 0.82rem; font-family: var(--font);
+  z-index: 2;
+  background: var(--bg-input);
+}
+.graph-expand-hint {
+  position: absolute; bottom: 8px; right: 10px;
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(0,0,0,0.45);
+  color: rgba(255,255,255,0.85);
+  font-size: 0.65rem; font-weight: 500; font-family: var(--font);
+  opacity: 0; transition: opacity 0.2s ease;
+  pointer-events: none;
+  z-index: 3;
+}
+.graph-container:hover .graph-expand-hint,
+.diagram-container:hover .graph-expand-hint { opacity: 1; }
+
+/* ── Diagram (SVG) ── */
+.diagram-container {
+  position: relative;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  padding: 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.diagram-container:hover {
+  border-color: var(--accent-start);
+  box-shadow: var(--shadow-glow);
+}
+.diagram-svg-wrap {
+  display: flex; justify-content: center; align-items: center;
+}
+.diagram-svg-wrap svg {
+  width: 100%; height: auto; max-height: 280px;
+}
+.diagram-caption {
+  text-align: center; font-size: 0.78rem; color: var(--text-muted); margin-top: 8px; font-family: var(--font);
+}
+.diagram-svg-fullscreen {
+  display: flex; justify-content: center; align-items: center;
+  width: 100%; height: 100%;
+}
+.diagram-svg-fullscreen svg {
+  max-width: 90%; max-height: 90%; height: auto;
+}
+
+/* ── Fullscreen Viewer ── */
+.fs-overlay {
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  animation: feedbackFadeIn 0.2s ease;
+  padding: 0;
+}
+.fs-container {
+  width: min(96vw, 1200px);
+  height: min(90vh, 800px);
+  display: flex; flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+  overflow: hidden;
+  animation: feedbackSlideIn 0.25s ease;
+}
+.fs-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+  min-height: 48px;
+}
+.fs-title {
+  font-size: 0.92rem; font-weight: 600; color: var(--text-primary); font-family: var(--font);
+}
+.fs-close {
+  width: 36px; height: 36px; border-radius: 8px; border: none;
+  background: transparent; color: var(--text-muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s ease; flex-shrink: 0;
+}
+.fs-close:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+.fs-body {
+  flex: 1; min-height: 0; overflow: hidden;
+}
+@media (max-width: 768px) {
+  .fs-container { width: 100vw; height: 100vh; border-radius: 0; }
+  .fs-header { padding: 10px 14px; }
+  .fs-title { font-size: 0.85rem; }
+  .graph-expand-hint { bottom: 6px; right: 8px; padding: 2px 6px; font-size: 0.6rem; }
+}
+@media print {
+  .graph-expand-hint { display: none !important; }
+  .graph-container { break-inside: avoid; border: 1px solid #ddd; }
+  .diagram-container { break-inside: avoid; border: 1px solid #ddd; }
+  .fs-overlay { display: none !important; }
+}
