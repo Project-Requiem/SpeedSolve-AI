@@ -241,24 +241,33 @@ function renderFormulaToHtml(formula: string): React.ReactNode {
 function Background() {
   return (
     <div className="bg-wrap">
-      <div className="bg-shape shape-hex" style={{ '--x':'18%','--y':'20%','--s':'120px','--c':'var(--accent-start)','--r':'0deg','--d':'0s' } as React.CSSProperties} />
-      <div className="bg-shape shape-diamond" style={{ '--x':'78%','--y':'28%','--s':'90px','--c':'var(--accent-end)','--r':'15deg','--d':'-6s' } as React.CSSProperties} />
-      <div className="bg-shape shape-ring" style={{ '--x':'55%','--y':'70%','--s':'130px','--c':'var(--text-muted)','--r':'45deg','--d':'-14s' } as React.CSSProperties} />
-      <div className="bg-shape shape-tri" style={{ '--x':'85%','--y':'78%','--s':'80px','--c':'var(--accent-start)','--r':'30deg','--d':'-9s' } as React.CSSProperties} />
-      <div className="bg-shape shape-diamond" style={{ '--x':'10%','--y':'65%','--s':'60px','--c':'var(--accent-end)','--r':'-20deg','--d':'-18s' } as React.CSSProperties} />
-      <div className="bg-shape shape-hex" style={{ '--x':'40%','--y':'88%','--s':'70px','--c':'var(--text-muted)','--r':'10deg','--d':'-3s' } as React.CSSProperties} />
+      {/* Ambient glow orbs */}
+      <div className="bg-orb bg-orb-1" style={{ '--d':'0s' } as React.CSSProperties} />
+      <div className="bg-orb bg-orb-2" style={{ '--d':'-6s' } as React.CSSProperties} />
+      <div className="bg-orb bg-orb-3" style={{ '--d':'-12s' } as React.CSSProperties} />
+      {/* Geometric shapes */}
+      <div className="bg-shape shape-hex" style={{ '--x':'18%','--y':'20%','--s':'140px','--c':'var(--accent-start)','--r':'0deg','--d':'0s' } as React.CSSProperties} />
+      <div className="bg-shape shape-diamond" style={{ '--x':'78%','--y':'28%','--s':'110px','--c':'var(--accent-end)','--r':'15deg','--d':'-6s' } as React.CSSProperties} />
+      <div className="bg-shape shape-ring" style={{ '--x':'55%','--y':'70%','--s':'160px','--c':'var(--glow-purple)','--r':'45deg','--d':'-14s' } as React.CSSProperties} />
+      <div className="bg-shape shape-tri" style={{ '--x':'85%','--y':'78%','--s':'100px','--c':'var(--glow-cyan)','--r':'30deg','--d':'-9s' } as React.CSSProperties} />
+      <div className="bg-shape shape-diamond" style={{ '--x':'10%','--y':'65%','--s':'80px','--c':'var(--accent-end)','--r':'-20deg','--d':'-18s' } as React.CSSProperties} />
+      <div className="bg-shape shape-hex" style={{ '--x':'40%','--y':'88%','--s':'90px','--c':'var(--glow-purple)','--r':'10deg','--d':'-3s' } as React.CSSProperties} />
+      {/* Grid overlay */}
       <div className="bg-grid"></div>
+      {/* Particles */}
       {[
-        {px:'8%',py:'12%',sz:'3px',sp:'22s',d:'-0s'},
-        {px:'92%',py:'20%',sz:'4px',sp:'19s',d:'-3s'},
-        {px:'15%',py:'85%',sz:'2px',sp:'25s',d:'-7s'},
-        {px:'75%',py:'80%',sz:'5px',sp:'20s',d:'-11s'},
-        {px:'45%',py:'5%',sz:'3px',sp:'28s',d:'-2s'},
-        {px:'60%',py:'45%',sz:'4px',sp:'18s',d:'-5s'},
-        {px:'30%',py:'55%',sz:'2px',sp:'24s',d:'-9s'},
-        {px:'88%',py:'92%',sz:'3px',sp:'21s',d:'-13s'},
-        {px:'5%',py:'40%',sz:'4px',sp:'26s',d:'-1s'},
-        {px:'50%',py:'50%',sz:'2px',sp:'30s',d:'-15s'},
+        {px:'8%',py:'12%',sz:'4px',sp:'22s',d:'-0s'},
+        {px:'92%',py:'20%',sz:'5px',sp:'19s',d:'-3s'},
+        {px:'15%',py:'85%',sz:'3px',sp:'25s',d:'-7s'},
+        {px:'75%',py:'80%',sz:'6px',sp:'20s',d:'-11s'},
+        {px:'45%',py:'5%',sz:'4px',sp:'28s',d:'-2s'},
+        {px:'60%',py:'45%',sz:'5px',sp:'18s',d:'-5s'},
+        {px:'30%',py:'55%',sz:'3px',sp:'24s',d:'-9s'},
+        {px:'88%',py:'92%',sz:'4px',sp:'21s',d:'-13s'},
+        {px:'5%',py:'40%',sz:'5px',sp:'26s',d:'-1s'},
+        {px:'50%',py:'50%',sz:'3px',sp:'30s',d:'-15s'},
+        {px:'25%',py:'30%',sz:'4px',sp:'23s',d:'-8s'},
+        {px:'70%',py:'15%',sz:'5px',sp:'27s',d:'-4s'},
       ].map((p, i) => (
         <div key={i} className="bg-particle" style={{ '--px':p.px,'--py':p.py,'--sz':p.sz,'--sp':p.sp,'--d':p.d } as React.CSSProperties} />
       ))}
