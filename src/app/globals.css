@@ -1311,6 +1311,7 @@ body {
   background: var(--bg-input);
   border: 1px solid var(--border-subtle);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  min-height: 180px;
 }
 .graph-container:hover {
   border-color: var(--accent-start);
@@ -1325,15 +1326,21 @@ body {
 }
 .graph-expand-hint {
   position: absolute; bottom: 8px; right: 10px;
-  display: flex; align-items: center; gap: 4px;
-  padding: 3px 8px;
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 10px;
   border-radius: 6px;
-  background: rgba(0,0,0,0.45);
-  color: rgba(255,255,255,0.85);
-  font-size: 0.65rem; font-weight: 500; font-family: var(--font);
-  opacity: 0; transition: opacity 0.2s ease;
+  background: rgba(0,0,0,0.5);
+  color: rgba(255,255,255,0.9);
+  font-size: 0.68rem; font-weight: 500; font-family: var(--font);
+  opacity: 0; transition: opacity 0.25s ease;
   pointer-events: none;
   z-index: 3;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+/* Always visible on touch devices */
+.graph-expand-hint.touch-visible {
+  opacity: 0.85;
 }
 .graph-container:hover .graph-expand-hint,
 .diagram-container:hover .graph-expand-hint { opacity: 1; }
@@ -1355,9 +1362,11 @@ body {
 }
 .diagram-svg-wrap {
   display: flex; justify-content: center; align-items: center;
+  min-height: 120px;
 }
 .diagram-svg-wrap svg {
-  width: 100%; height: auto; max-height: 280px;
+  width: 100%; height: auto;
+  max-height: clamp(160px, 35vw, 300px);
 }
 .diagram-caption {
   text-align: center; font-size: 0.78rem; color: var(--text-muted); margin-top: 8px; font-family: var(--font);
@@ -1365,17 +1374,19 @@ body {
 .diagram-svg-fullscreen {
   display: flex; justify-content: center; align-items: center;
   width: 100%; height: 100%;
+  padding: 8px;
 }
 .diagram-svg-fullscreen svg {
-  max-width: 90%; max-height: 90%; height: auto;
+  max-width: 92%; max-height: 92%; height: auto;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.15));
 }
 
 /* ── Fullscreen Viewer ── */
 .fs-overlay {
   position: fixed; inset: 0; z-index: 10000;
-  background: rgba(0,0,0,0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(0,0,0,0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   display: flex; align-items: center; justify-content: center;
   animation: feedbackFadeIn 0.2s ease;
   padding: 0;
@@ -1390,36 +1401,90 @@ body {
   box-shadow: 0 30px 80px rgba(0,0,0,0.5);
   overflow: hidden;
   animation: feedbackSlideIn 0.25s ease;
+  position: relative;
 }
 .fs-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 18px;
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
-  min-height: 48px;
+  min-height: 52px;
 }
 .fs-title {
   font-size: 0.92rem; font-weight: 600; color: var(--text-primary); font-family: var(--font);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .fs-close {
-  width: 36px; height: 36px; border-radius: 8px; border: none;
+  width: 40px; height: 40px; border-radius: 10px; border: none;
   background: transparent; color: var(--text-muted); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: all 0.15s ease; flex-shrink: 0;
 }
 .fs-close:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+.fs-close:active { transform: scale(0.92); }
 .fs-body {
   flex: 1; min-height: 0; overflow: hidden;
 }
-@media (max-width: 768px) {
-  .fs-container { width: 100vw; height: 100vh; border-radius: 0; }
-  .fs-header { padding: 10px 14px; }
-  .fs-title { font-size: 0.85rem; }
-  .graph-expand-hint { bottom: 6px; right: 8px; padding: 2px 6px; font-size: 0.6rem; }
+.fs-swipe-hint {
+  display: none; /* shown only on touch */
+  align-items: center; justify-content: center; gap: 4px;
+  padding: 6px 0 10px;
+  color: var(--text-muted);
+  font-size: 0.7rem; font-family: var(--font);
+  opacity: 0.6;
+  flex-shrink: 0;
 }
+
+/* ── Tablet (768px) ── */
+@media (max-width: 768px) {
+  .graph-container { min-height: 160px; }
+  .graph-expand-hint { bottom: 6px; right: 8px; padding: 3px 7px; font-size: 0.62rem; }
+  .diagram-svg-wrap svg { max-height: clamp(140px, 40vw, 260px); }
+  .diagram-container { padding: 8px; }
+  .fs-container { width: 100vw; height: 100vh; border-radius: 0; }
+  .fs-header { padding: 10px 14px; min-height: 48px; }
+  .fs-title { font-size: 0.85rem; }
+}
+
+/* ── Small phones (< 480px) ── */
+@media (max-width: 480px) {
+  .graph-container { min-height: 140px; }
+  .graph-expand-hint { bottom: 4px; right: 6px; padding: 2px 6px; font-size: 0.58rem; gap: 3px; }
+  .diagram-svg-wrap svg { max-height: clamp(120px, 45vw, 220px); }
+  .diagram-caption { font-size: 0.72rem; }
+  .fs-header { padding: 8px 12px; min-height: 44px; }
+  .fs-close { width: 44px; height: 44px; border-radius: 12px; }
+  .fs-title { font-size: 0.8rem; }
+  .fs-swipe-hint { display: flex; }
+}
+
+/* ── Very small phones (< 360px) ── */
+@media (max-width: 360px) {
+  .graph-container { min-height: 120px; }
+  .graph-expand-hint { font-size: 0.55rem; padding: 2px 5px; }
+  .diagram-svg-wrap svg { max-height: clamp(100px, 50vw, 180px); }
+  .diagram-container { padding: 6px; }
+}
+
+/* ── Touch devices: always show expand hint ── */
+@media (hover: none) and (pointer: coarse) {
+  .graph-expand-hint { opacity: 0.8; }
+  .graph-container:active { border-color: var(--accent-start); }
+  .diagram-container:active { border-color: var(--accent-start); }
+}
+
+/* ── Large screens (> 1024px) ── */
+@media (min-width: 1025px) {
+  .diagram-svg-wrap svg { max-height: 320px; }
+  .fs-container { height: min(88vh, 850px); }
+}
+
+/* ── Print ── */
 @media print {
   .graph-expand-hint { display: none !important; }
-  .graph-container { break-inside: avoid; border: 1px solid #ddd; }
+  .graph-container { break-inside: avoid; border: 1px solid #ddd; min-height: 200px; }
   .diagram-container { break-inside: avoid; border: 1px solid #ddd; }
   .fs-overlay { display: none !important; }
+  .echarts-container { height: 250px !important; }
+  .diagram-svg-wrap svg { max-height: 250px !important; }
 }

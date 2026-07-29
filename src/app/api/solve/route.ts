@@ -271,13 +271,52 @@ RULES:
 8. Round to 2 decimal places unless exact is cleaner.
 9. BOARD-SPECIFIC STYLE (${boardName}):
 ${boardRules}
-10. GRAPH GENERATION — When the problem involves a function, data, kinematics, or anything visual, include a "graph" field. MANDATORY for: quadratic/cubic equations (plot function, mark roots), simultaneous linear equations (plot lines, mark intersection), trigonometry (plot sin/cos/tan), kinematics (s-t/v-t/a-t graphs), statistics (bar/pie charts). Graph formats:
-   - Function plot: {"type":"function","title":"y = x^2 - 5x + 6","xLabel":"x","yLabel":"y","fn":"x*x - 5*x + 6","xMin":-1,"xMax":6,"yMin":-3,"yMax":10,"points":[{"x":2,"y":0,"label":"Root"},{"x":3,"y":0,"label":"Root"}]}
-   - Data graph: {"type":"line","title":"Distance vs Time","xLabel":"Time (s)","yLabel":"Distance (m)","xData":[0,1,2,3,4,5],"series":[{"name":"Distance","data":[0,5,20,45,80,125]}]}
+10. GRAPH GENERATION — CRITICAL: When the problem involves ANY function, equation, data, kinematics, coordinate geometry, trigonometry, or visual relationship, you MUST include a "graph" field.
+
+   MANDATORY graph triggers (include graph for ALL of these):
+   - Quadratic/cubic equations: plot the function, mark roots, vertex, axis of symmetry
+   - Simultaneous linear equations: plot BOTH lines, mark intersection point
+   - Trigonometry (sin/cos/tan): plot the wave, mark key points (max, min, zeros)
+   - Kinematics (any u/v/a/s/t problem): s-t, v-t, or a-t graph as appropriate
+   - Statistics data: bar chart or pie chart
+   - Coordinate geometry: plot points, lines, distances
+   - Functions (domain/range): plot the function
+   - Probability: bar chart of outcomes
+   - Linear programming: plot feasible region and constraint lines
+   - Arithmetic/Geometric progression: plot terms vs n
+
+   GRAPH FORMAT RULES:
+   - For function plots: ALWAYS provide xMin, xMax, yMin, yMax that frame the data well with comfortable padding (at least 20% margin around the interesting region).
+   - For ALL graphs: title must match the equation or data description exactly.
+   - Labels (xLabel, yLabel) MUST include units where applicable (e.g., "Time (s)", "Distance (m)").
+   - Mark ALL important points: roots, vertex, intersection, maxima, minima, inflection points.
+   - The "fn" field uses JS math: x*x, sin(x), cos(x), tan(x), sqrt(x), abs(x), pi, e, ** for power, Math.sin, Math.cos etc.
+
+   Graph types:
+   - Function plot: {"type":"function","title":"y = x^2 - 5x + 6","xLabel":"x","yLabel":"y","fn":"x*x - 5*x + 6","xMin":-1,"xMax":6,"yMin":-3,"yMax":10,"points":[{"x":2,"y":0,"label":"Root (2,0)"},{"x":3,"y":0,"label":"Root (3,0)"},{"x":2.5,"y":-0.25,"label":"Vertex (2.5,-0.25)"}]}
+   - Data line: {"type":"line","title":"Distance vs Time","xLabel":"Time (s)","yLabel":"Distance (m)","xData":[0,1,2,3,4,5],"series":[{"name":"Distance","data":[0,5,20,45,80,125]}]}
    - Bar chart: {"type":"bar","title":"...","xLabel":"...","yLabel":"...","xData":["A","B"],"series":[{"name":"Value","data":[10,20]}]}
    - Pie chart: {"type":"pie","title":"...","xData":["A","B"],"series":[{"name":"Value","data":[40,60]}]}
-   The "fn" field uses JS math: x*x, sin(x), cos(x), tan(x), sqrt(x), abs(x), pi, e, ** for power. Always set xMin/xMax/yMin/yMax for function plots. Mark roots, maxima, intersections in "points".
-11. DIAGRAM — For geometry or physics free-body diagrams, include a "diagram" field: {"svg":"<svg viewBox=\"0 0 300 250\">...</svg>","caption":"Free Body Diagram"}. Keep SVGs simple: basic shapes (rect, circle, line, polygon, ellipse), text labels, arrow markers. viewBox 300x250. Use stroke-only shapes (fill=none). Include <defs><marker id="arrow" ...> for arrowheads. NO external resources.
+
+11. DIAGRAM — For geometry, physics diagrams, free-body diagrams, ray diagrams, circuit diagrams: include a "diagram" field.
+   MANDATORY diagram triggers:
+   - Free-body diagrams (forces on an object)
+   - Geometry (triangles, circles, angle markings)
+   - Ray diagrams (optics - mirrors, lenses)
+   - Electric circuits (simple series/parallel)
+   - Projectile motion diagrams
+   - Inclined plane problems
+   - Pulley systems
+
+   Diagram format: {"svg":"<svg viewBox=\"0 0 300 250\">...</svg>","caption":"Free Body Diagram"}
+   SVG RULES:
+   - viewBox="0 0 300 250" (always this size)
+   - Use stroke-only shapes (fill=none, stroke-width=1.5 or 2)
+   - Text: font-size 12-14px, font-family sans-serif
+   - Include <defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill=\"%233b82f6\"/></marker></defs>
+   - Color important elements with stroke="#3b82f6" (blue), stroke="#ef4444" (red), stroke="#10b981" (green)
+   - Label ALL forces, angles, dimensions clearly
+   - NO external resources, NO images, NO fonts
 
 OUTPUT: Return ONLY this JSON, no markdown fences, no text before/after:
 ${example}

@@ -28,6 +28,9 @@ interface SolutionGraphProps {
 function evalMathExpr(expr: string, x: number): number {
   try {
     let s = expr
+      .replace(/\bMath\.sin\b/g, 'Math.sin')
+      .replace(/\bMath\.cos\b/g, 'Math.cos')
+      .replace(/\bMath\.tan\b/g, 'Math.tan')
       .replace(/\bsin\b/g, 'Math.sin')
       .replace(/\bcos\b/g, 'Math.cos')
       .replace(/\btan\b/g, 'Math.tan')
@@ -68,14 +71,29 @@ function generateFunctionData(
   return { xData, yData }
 }
 
+// ─── Responsive font sizes based on container width ─────────
+function getSizes(large: boolean, containerWidth?: number) {
+  if (large) {
+    return { title: 16, label: 12, tick: 12, nameText: 13, gridLeft: 65, gridRight: 35, gridTop: 50, gridBottom: 55, barWidth: 45, symbolSize: 7, lineW: 2.5 }
+  }
+  // Responsive for inline view
+  if (containerWidth && containerWidth < 380) {
+    return { title: 11, label: 9, tick: 9, nameText: 9, gridLeft: 42, gridRight: 12, gridTop: 32, gridBottom: 36, barWidth: 18, symbolSize: 3, lineW: 1.5 }
+  }
+  if (containerWidth && containerWidth < 550) {
+    return { title: 11, label: 10, tick: 10, nameText: 10, gridLeft: 48, gridRight: 16, gridTop: 35, gridBottom: 40, barWidth: 22, symbolSize: 4, lineW: 1.8 }
+  }
+  return { title: 12, label: 11, tick: 11, nameText: 11, gridLeft: 52, gridRight: 22, gridTop: 38, gridBottom: 42, barWidth: 28, symbolSize: 5, lineW: 2 }
+}
+
 // ─── Build ECharts option from spec ──────────────────────────
-function buildOption(spec: GraphSpec, isDark: boolean, large: boolean) {
+function buildOption(spec: GraphSpec, isDark: boolean, large: boolean, containerWidth?: number) {
+  const sz = getSizes(large, containerWidth)
   const textCol = isDark ? '#c8d0e0' : '#1e293b'
   const subTextCol = isDark ? '#6a7a9a' : '#64748b'
   const lineCol = isDark ? '#1d254a' : '#e2e8f0'
   const bgCol = 'transparent'
   const accent = '#3b82f6'
-  const accentLight = '#60a5fa'
   const green = '#10b981'
   const orange = '#f59e0b'
   const purple = '#8b5cf6'
@@ -84,9 +102,9 @@ function buildOption(spec: GraphSpec, isDark: boolean, large: boolean) {
   const baseAxis = {
     axisLine: { lineStyle: { color: lineCol } },
     axisTick: { lineStyle: { color: lineCol } },
-    axisLabel: { color: textCol, fontSize: large ? 13 : 11 },
+    axisLabel: { color: textCol, fontSize: sz.tick },
     splitLine: { lineStyle: { color: lineCol, type: 'dashed' as const } },
-    nameTextStyle: { color: subTextCol, fontSize: large ? 13 : 11, padding: [0, 0, 0, 0] },
+    nameTextStyle: { color: subTextCol, fontSize: sz.nameText, padding: [0, 0, 0, 0] },
   }
 
   // ── Function plot ──
@@ -95,7 +113,6 @@ function buildOption(spec: GraphSpec, isDark: boolean, large: boolean) {
     const xMax = spec.xMax ?? 10
     const { xData, yData } = generateFunctionData(spec.fn, xMin, xMax, spec.yMin, spec.yMax)
 
-    // Build scatter series for marked points
     const markPoints = (spec.points || []).map(p => ({
       coord: [p.x, p.y],
       name: p.label || `(${p.x}, ${p.y})`,
@@ -104,11 +121,11 @@ function buildOption(spec: GraphSpec, isDark: boolean, large: boolean) {
         formatter: p.label || `(${p.x}, ${p.y})`,
         position: 'top' as const,
         color: textCol,
-        fontSize: large ? 12 : 10,
+        fontSize: sz.label,
         backgroundColor: isDark ? '#191f3e' : '#f1f5f9',
         borderColor: accent,
         borderWidth: 1,
-        padding: [3, 6],
+        padding: [2, 5],
         borderRadius: 4,
       },
       itemStyle: { color: accent, borderWidth: 2, borderColor: isDark ? '#11162a' : '#ffffff' },
@@ -120,22 +137,20 @@ function buildOption(spec: GraphSpec, isDark: boolean, large: boolean) {
         text: spec.title,
         left: 'center',
         top: large ? 8 : 4,
-        textStyle: { color: textCol, fontSize: large ? 15 : 12, fontWeight: 600 },
+        textStyle: { color: textCol, fontSize: sz.title, fontWeight: 600 },
       } : undefined,
-      grid: { left: large ? 60 : 50, right: large ? 30 : 20, top: (spec.title ? 40 : 20) + (large ? 10 : 0), bottom: large ? 50 : 40 },
+      grid: { left: sz.gridLeft, right: sz.gridRight, top: (spec.title ? 35 : 18), bottom: sz.gridBottom },
       xAxis: {
         ...baseAxis,
         type: 'value',
         name: spec.xLabel || 'x',
-        min: xMin,
-        max: xMax,
+        min: xMin, max: xMax,
       },
       yAxis: {
         ...baseAxis,
         type: 'value',
         name: spec.yLabel || 'y',
-        min: spec.yMin,
-        max: spec.yMax,
+        min: spec.yMin, max: spec.yMax,
       },
       tooltip: {
         trigger: 'axis',
@@ -148,7 +163,7 @@ function buildOption(spec: GraphSpec, isDark: boolean, large: boolean) {
         data: xData.map((x, i) => [x, yData[i]]),
         smooth: true,
         symbol: 'none',
-        lineStyle: { color: accent, width: large ? 2.5 : 2 },
+        lineStyle: { color: accent, width: sz.lineW },
         areaStyle: {
           color: {
             type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
@@ -158,7 +173,7 @@ function buildOption(spec: GraphSpec, isDark: boolean, large: boolean) {
             ],
           },
         },
-        markPoint: markPoints.length > 0 ? { data: markPoints, symbol: 'circle', symbolSize: large ? 10 : 8 } : undefined,
+        markPoint: markPoints.length > 0 ? { data: markPoints, symbol: 'circle', symbolSize: sz.symbolSize + 3 } : undefined,
       }],
     }
   }
@@ -173,7 +188,7 @@ function buildOption(spec: GraphSpec, isDark: boolean, large: boolean) {
       backgroundColor: bgCol,
       title: spec.title ? {
         text: spec.title, left: 'center', top: large ? 8 : 4,
-        textStyle: { color: textCol, fontSize: large ? 15 : 12, fontWeight: 600 },
+        textStyle: { color: textCol, fontSize: sz.title, fontWeight: 600 },
       } : undefined,
       tooltip: {
         trigger: 'item',
@@ -183,17 +198,19 @@ function buildOption(spec: GraphSpec, isDark: boolean, large: boolean) {
       },
       legend: {
         bottom: 0,
-        textStyle: { color: subTextCol, fontSize: large ? 12 : 10 },
+        textStyle: { color: subTextCol, fontSize: sz.label - 1 },
+        itemWidth: 10,
+        itemHeight: 10,
       },
       color: colors,
       series: [{
         type: 'pie',
-        radius: large ? ['35%', '65%'] : ['30%', '60%'],
+        radius: large ? ['35%', '65%'] : ['28%', '58%'],
         center: ['50%', '45%'],
         data: pieData,
         label: {
           color: textCol,
-          fontSize: large ? 12 : 10,
+          fontSize: sz.label - 1,
           formatter: '{b}: {d}%',
         },
         itemStyle: { borderColor: isDark ? '#11162a' : '#ffffff', borderWidth: 2 },
@@ -214,30 +231,29 @@ function buildOption(spec: GraphSpec, isDark: boolean, large: boolean) {
     if (chartType === 'line') {
       base.smooth = true
       base.symbol = 'circle'
-      base.symbolSize = large ? 6 : 4
-      base.lineStyle = { width: large ? 2.5 : 2 }
+      base.symbolSize = sz.symbolSize
+      base.lineStyle = { width: sz.lineW }
       base.areaStyle = i === 0 ? {
         color: {
           type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
           colorStops: [
-            { offset: 0, color: isDark ? `rgba(59,130,246,0.12)` : `rgba(59,130,246,0.06)` },
+            { offset: 0, color: isDark ? 'rgba(59,130,246,0.12)' : 'rgba(59,130,246,0.06)' },
             { offset: 1, color: 'transparent' },
           ],
         },
       } : undefined
     }
     if (chartType === 'bar') {
-      base.barMaxWidth = large ? 40 : 28
+      base.barMaxWidth = sz.barWidth
       base.itemStyle = { color: colors[i % colors.length], borderRadius: [4, 4, 0, 0] }
     }
     if (chartType === 'scatter') {
-      base.symbolSize = large ? 10 : 7
+      base.symbolSize = sz.symbolSize + 2
       base.itemStyle = { color: colors[i % colors.length], borderWidth: 1.5, borderColor: isDark ? '#11162a' : '#ffffff' }
     }
     return base
   })
 
-  // Marked points on the first series
   if (spec.points && spec.points.length > 0 && series[0]) {
     series[0].markPoint = {
       data: spec.points.map(p => ({
@@ -246,13 +262,13 @@ function buildOption(spec: GraphSpec, isDark: boolean, large: boolean) {
         label: {
           show: true, formatter: p.label || `(${p.x}, ${p.y})`,
           position: 'top' as const,
-          color: textCol, fontSize: large ? 12 : 10,
+          color: textCol, fontSize: sz.label,
           backgroundColor: isDark ? '#191f3e' : '#f1f5f9',
-          borderColor: accent, borderWidth: 1, padding: [3, 6], borderRadius: 4,
+          borderColor: accent, borderWidth: 1, padding: [2, 5], borderRadius: 4,
         },
         itemStyle: { color: accent, borderWidth: 2, borderColor: isDark ? '#11162a' : '#ffffff' },
       })),
-      symbol: 'circle', symbolSize: large ? 10 : 8,
+      symbol: 'circle', symbolSize: sz.symbolSize + 3,
     }
   }
 
@@ -260,11 +276,11 @@ function buildOption(spec: GraphSpec, isDark: boolean, large: boolean) {
     backgroundColor: bgCol,
     title: spec.title ? {
       text: spec.title, left: 'center', top: large ? 8 : 4,
-      textStyle: { color: textCol, fontSize: large ? 15 : 12, fontWeight: 600 },
+      textStyle: { color: textCol, fontSize: sz.title, fontWeight: 600 },
     } : undefined,
-    grid: { left: large ? 60 : 50, right: large ? 30 : 20, top: (spec.title ? 40 : 20) + (large ? 10 : 0), bottom: large ? 55 : 45 },
+    grid: { left: sz.gridLeft, right: sz.gridRight, top: (spec.title ? 35 : 18), bottom: sz.gridBottom },
     legend: series.length > 1 ? {
-      bottom: 0, textStyle: { color: subTextCol, fontSize: large ? 12 : 10 },
+      bottom: 0, textStyle: { color: subTextCol, fontSize: sz.label - 1 }, itemWidth: 10, itemHeight: 10,
     } : undefined,
     xAxis: {
       ...baseAxis,
@@ -289,6 +305,23 @@ function buildOption(spec: GraphSpec, isDark: boolean, large: boolean) {
   }
 }
 
+// ─── Responsive height hook ─────────────────────────────────
+function useContainerWidth(ref: React.RefObject<HTMLDivElement | null>) {
+  const [width, setWidth] = useState<number | undefined>(undefined)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setWidth(entry.contentRect.width)
+      }
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [ref])
+  return width
+}
+
 // ─── ECharts chart renderer (shared for inline + fullscreen) ──
 function EChartsRenderer({ spec, theme, large, onReady }: {
   spec: GraphSpec
@@ -299,8 +332,8 @@ function EChartsRenderer({ spec, theme, large, onReady }: {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<any>(null)
   const [echartsLib, setEchartsLib] = useState<any>(null)
+  const containerWidth = useContainerWidth(containerRef)
 
-  // Dynamic import (keeps initial bundle small)
   useEffect(() => {
     import('echarts').then(mod => {
       setEchartsLib(mod.default)
@@ -308,26 +341,28 @@ function EChartsRenderer({ spec, theme, large, onReady }: {
     })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Init / update chart
   useEffect(() => {
     if (!echartsLib || !containerRef.current) return
-
     if (!chartRef.current) {
       chartRef.current = echartsLib.init(containerRef.current)
     }
-
-    const option = buildOption(spec, theme === 'dark', large)
+    const option = buildOption(spec, theme === 'dark', large, large ? undefined : containerWidth)
     chartRef.current.setOption(option, true)
+  }, [echartsLib, spec, theme, large, containerWidth])
 
+  // Resize on window resize + container size change
+  useEffect(() => {
+    if (!echartsLib || !containerRef.current || !chartRef.current) return
     const handleResize = () => chartRef.current?.resize()
     window.addEventListener('resize', handleResize)
-
+    const ro = new ResizeObserver(() => chartRef.current?.resize())
+    ro.observe(containerRef.current)
     return () => {
       window.removeEventListener('resize', handleResize)
+      ro.disconnect()
     }
-  }, [echartsLib, spec, theme, large])
+  }, [echartsLib])
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       chartRef.current?.dispose()
@@ -335,11 +370,14 @@ function EChartsRenderer({ spec, theme, large, onReady }: {
     }
   }, [])
 
+  // Responsive height: fullscreen fills container, inline adapts to screen
+  const inlineHeight = large ? '100%' : 'clamp(200px, 40vw, 320px)'
+
   return (
     <div
       ref={containerRef}
       className="echarts-container"
-      style={{ width: '100%', height: large ? '100%' : '280px' }}
+      style={{ width: '100%', height: inlineHeight }}
     />
   )
 }
@@ -348,6 +386,11 @@ function EChartsRenderer({ spec, theme, large, onReady }: {
 export default function SolutionGraph({ spec, theme }: SolutionGraphProps) {
   const [fullscreen, setFullscreen] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  const [isTouchDevice, setIsTouchDevice] = useState(false)
+
+  useEffect(() => {
+    setIsTouchDevice(window.matchMedia('(hover: none) and (pointer: coarse)').matches)
+  }, [])
 
   const handleOpen = useCallback(() => {
     if (loaded) setFullscreen(true)
@@ -367,12 +410,12 @@ export default function SolutionGraph({ spec, theme }: SolutionGraphProps) {
           </div>
         )}
         <EChartsRenderer spec={spec} theme={theme} large={false} onReady={() => setLoaded(true)} />
-        <div className="graph-expand-hint">
+        <div className={`graph-expand-hint${isTouchDevice ? ' touch-visible' : ''}`}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" />
             <line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" />
           </svg>
-          <span>Click to expand</span>
+          <span>Tap to expand</span>
         </div>
       </div>
 
