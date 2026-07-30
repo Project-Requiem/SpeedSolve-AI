@@ -157,6 +157,11 @@ body {
   75%  { transform: rotate(270deg) translate(6%, 3%); }
   100% { transform: rotate(360deg) translate(-4%, -4%); }
 }
+@keyframes shapeFloat {
+  0%, 100% { transform: translate(0, 0) rotate(var(--r, 0deg)); }
+  33%  { transform: translate(12px, -10px) rotate(calc(var(--r, 0deg) + 5deg)); }
+  66%  { transform: translate(-8px, 8px) rotate(calc(var(--r, 0deg) - 3deg)); }
+}
 @keyframes gridPulse {
   0%   { opacity: 0.02; transform: scale(1); }
   50%  { opacity: 0.05; transform: scale(1.02); }
@@ -891,20 +896,34 @@ body {
   background: radial-gradient(circle, var(--glow-cyan) 0%, transparent 70%);
   opacity: 0.35; animation-delay: -12s; animation-duration: 26s;
 }
+.bg-orb-4 {
+  width: 300px; height: 300px; top: 60%; left: 20%;
+  background: radial-gradient(circle, var(--glow-pink) 0%, transparent 70%);
+  opacity: 0.3; animation-delay: -18s; animation-duration: 30s;
+}
+.bg-orb-5 {
+  width: 450px; height: 450px; top: 10%; right: 40%;
+  background: radial-gradient(circle, var(--glow-cyan) 0%, transparent 70%);
+  opacity: 0.2; animation-delay: -9s; animation-duration: 24s;
+}
 [data-theme="light"] .bg-orb { filter: blur(100px); }
 [data-theme="light"] .bg-orb-1 { opacity: 0.35; }
 [data-theme="light"] .bg-orb-2 { opacity: 0.3; }
 [data-theme="light"] .bg-orb-3 { opacity: 0.2; }
+[data-theme="light"] .bg-orb-4 { opacity: 0.15; }
+[data-theme="light"] .bg-orb-5 { opacity: 0.1; }
 .bg-shape {
   position: absolute; top: var(--y, 50%); left: var(--x,50%);
   width: var(--s, 100px); height: var(--s, 100px);
   margin: calc(var(--s, 100px) / -2) 0 0 calc(var(--s, 100px) / -2);
   border: 1.5px solid var(--c, var(--accent-start));
-  opacity: 0.3; animation: shapeDrift 24s ease-in-out infinite alternate;
+  opacity: var(--so, 0.3);
+  animation: shapeFloat var(--dur, 20s) ease-in-out infinite;
   animation-delay: var(--d, 0s); will-change: transform;
   filter: drop-shadow(0 0 8px var(--c, var(--accent-start)));
 }
-[data-theme="light"] .bg-shape { opacity: 0.18; filter: drop-shadow(0 0 6px var(--c, var(--accent-start))); }
+.bg-shape.spin { animation-name: shapeDrift; animation-duration: var(--dur, 28s); animation-timing-function: ease-in-out; animation-iteration-count: infinite; animation-direction: alternate; }
+[data-theme="light"] .bg-shape { opacity: calc(var(--so, 0.3) * 0.6); filter: drop-shadow(0 0 6px var(--c, var(--accent-start))); }
 .shape-hex {
   clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
   background: radial-gradient(circle at 40% 40%, var(--c, var(--accent-start)), transparent 70%);
@@ -915,13 +934,26 @@ body {
   border-radius: 50%; border-width: 2.5px;
   box-shadow: 0 0 40px var(--c, var(--accent-start)), 0 0 80px var(--c, var(--accent-start));
   background: radial-gradient(circle at 50% 50%, var(--c, var(--accent-start)), transparent 60%);
-  opacity: 0.18;
+  --so: 0.18;
 }
-[data-theme="light"] .shape-ring { opacity: 0.12; box-shadow: 0 0 25px var(--c, var(--accent-start)), 0 0 50px var(--c, var(--accent-start)); }
+[data-theme="light"] .shape-ring { --so: 0.12; box-shadow: 0 0 25px var(--c, var(--accent-start)), 0 0 50px var(--c, var(--accent-start)); }
 .shape-tri {
   clip-path: polygon(50% 0%, 0% 100%, 100% 100%); border: none;
   background: linear-gradient(135deg, var(--c, var(--accent-start)), transparent);
-  opacity: 0.25;
+  --so: 0.25;
+}
+.shape-penta {
+  clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+  background: radial-gradient(circle at 50% 50%, var(--c, var(--accent-start)), transparent 65%);
+  background-blend-mode: overlay;
+}
+.shape-cross {
+  clip-path: polygon(35% 0%, 65% 0%, 65% 35%, 100% 35%, 100% 65%, 65% 65%, 65% 100%, 35% 100%, 35% 65%, 0% 65%, 0% 35%, 35% 35%);
+  background: radial-gradient(circle at 50% 50%, var(--c, var(--accent-start)), transparent 60%);
+}
+.shape-dot-ring {
+  border-radius: 50%; border-width: 1.5px; border-style: dashed;
+  --so: 0.2;
 }
 .bg-grid {
   position: absolute; inset: 0;
