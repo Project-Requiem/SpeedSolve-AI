@@ -264,14 +264,24 @@ RULES:
 1. You MUST substitute the given numbers into formulas and COMPUTE the exact answer.
 2. Show every step with actual numbers, not just generic formulas.
 3. finalAnswer MUST be ONLY the computed result — a short value like "x = 3" or "v = 19.6 m/s" or "CH2O". No sentences, no "Hence", no "Therefore". Just the value with units if applicable.
+   CRITICAL FOR CHEMICAL FORMULAS: If the question asks for an empirical formula, molecular formula, or chemical formula, the finalAnswer MUST be the actual formula (e.g. "CH2O", "H2SO4", "NaCl"). NEVER output ratios like "1:2:1" or "=1:2:1" as the final answer. Convert the mole ratio into the proper chemical formula with element symbols and subscripts.
 4. finalFormula MUST show the full substitution and computation: "$a = F/m = 10/2 = 5$" or "$v = u + at = 0 + 9.8 \times 2 = 19.6$ m/s".
 5. Every step.formula should show the arithmetic with actual numbers, not just generic formulas.
 6. Use $...$ for ALL math expressions. NEVER use \\text{}, \\mathrm{}, or \\mathbf{} — write words as plain text outside the $ delimiters.
 7. For units in formulas, write them as plain text: "$v = 19.6$ m/s" NOT "$v = 19.6 \text{ m/s}$".
 8. Round to 2 decimal places unless exact is cleaner.
-9. BOARD-SPECIFIC STYLE (${boardName}):
+9. FINAL ANSWER QUALITY — ABSOLUTE PRIORITY:
+   - For empirical/molecular formula questions: finalAnswer = the formula string (e.g. "CH2O", "C6H12O6", "CaCO3").
+   - For "find the value of x" questions: finalAnswer = "x = 5" (not the equation, not the steps).
+   - For "find the area/volume/speed/force/etc" questions: finalAnswer = "Area = 24 cm²" (value + unit).
+   - For "simplify" questions: finalAnswer = the simplified expression.
+   - For "balance" questions: finalAnswer = the balanced equation.
+   - For "find pH" questions: finalAnswer = "pH = 2".
+   - NEVER output intermediate ratios, raw decimals, or work-in-progress as finalAnswer.
+
+11. BOARD-SPECIFIC STYLE (${boardName}):
 ${boardRules}
-10. GRAPH GENERATION — CRITICAL: When the problem involves ANY function, equation, data, kinematics, coordinate geometry, trigonometry, or visual relationship, you MUST include a "graph" field.
+12. GRAPH GENERATION — CRITICAL: When the problem involves ANY function, equation, data, kinematics, coordinate geometry, trigonometry, or visual relationship, you MUST include a "graph" field.
 
    MANDATORY graph triggers (include graph for ALL of these):
    - Quadratic/cubic equations: plot the function, mark roots, vertex, axis of symmetry
@@ -298,7 +308,7 @@ ${boardRules}
    - Bar chart: {"type":"bar","title":"...","xLabel":"...","yLabel":"...","xData":["A","B"],"series":[{"name":"Value","data":[10,20]}]}
    - Pie chart: {"type":"pie","title":"...","xData":["A","B"],"series":[{"name":"Value","data":[40,60]}]}
 
-11. DIAGRAM — For geometry, physics diagrams, free-body diagrams, ray diagrams, circuit diagrams: include a "diagram" field.
+13. DIAGRAM — For geometry, physics diagrams, free-body diagrams, ray diagrams, circuit diagrams: include a "diagram" field.
    MANDATORY diagram triggers:
    - Free-body diagrams (forces on an object)
    - Geometry (triangles, circles, angle markings)
@@ -378,6 +388,77 @@ function cleanLatex(text: string): string {
   return text.replace(/\\text\{([^}]*)\}/g, "$1")
     .replace(/\\mathrm\{([^}]*)\}/g, "$1")
     .replace(/\\mathbf\{([^}]*)\}/g, "$1");
+}
+
+// Fix ratio-style finalAnswers for empirical/molecular formula questions
+function fixFormulaAnswer(finalAnswer: string, steps: { desc: string; formula: string }[], problem: string): string {
+  if (!finalAnswer) return finalAnswer;
+  const lower = problem.toLowerCase();
+  const isFormulaQ = /empirical\\s*formula|molecular\\s*formula|chemical\\s*formula|formula\\s*of/i.test(lower);
+  if (!isFormulaQ) return finalAnswer;
+
+  // If it's already a proper formula (has element symbols with possible subscripts), keep it
+  if (/^[A-Z][a-z]?\\d*([A-Z][a-z]?\\d*)*$/.test(finalAnswer.trim())) return finalAnswer;
+
+  // Extract element info from steps - look for patterns like "C: 3.33", "moles of C", etc.
+  const elementMap = new Map<string, number>();
+  const elementOrder: string[] = [];
+  const elRegex = /(?:moles? of |atoms? of |ratio.*?|:\s*)([A-Z][a-z]?)\s*[=:]\s*([\\d.]+)/gi;
+  for (const step of steps) {
+    const text = step.desc + " " + step.formula;
+    let match;
+    while ((match = elRegex.exec(text)) !== null) {
+      const el = match[1];
+      const val = parseFloat(match[2]);
+      if (val > 0 && !elementMap.has(el)) {
+        elementMap.set(el, val);
+        elementOrder.push(el);
+      }
+    }
+  }
+
+  // Also try to extract from percentage/given data in the problem
+  // Pattern: "40% C" or "C=40%" or "C: 40%"
+  if (elementOrder.length === 0) {
+    const pctRegex = /([\\d.]+)%\\s*([A-Z][a-z]?)/g;
+    const massRegex = /([A-Z][a-z]?)\s*[=:]\s*([\\d.]+)/g;
+    let match;
+    while ((match = pctRegex.exec(problem)) !== null) {
+      const val = parseFloat(match[1]);
+      const el = match[2];
+      if (val > 0 && !elementMap.has(el)) {
+        elementMap.set(el, val);
+        elementOrder.push(el);
+      }
+    }
+  }
+
+  if (elementOrder.length < 2) return finalAnswer;
+
+  // Convert to simplest integer ratio
+  const vals = elementOrder.map(el => elementMap.get(el)!);
+  const minVal = Math.min(...vals.filter(v => v > 0));
+  const ratios = vals.map(v => v / minVal);
+
+  // Round to nearest integer (with tolerance for floating point)
+  const intRatios = ratios.map(r => {
+    const rounded = Math.round(r);
+    return Math.abs(r - rounded) < 0.15 ? rounded : Math.round(r * 2) / 2; // try half-integers
+  });
+
+  // If we have half-integers, multiply all by 2
+  let multiplier = 1;
+  if (intRatios.some(r => r % 1 !== 0)) multiplier = 2;
+  const finalRatios = intRatios.map(r => Math.round(r * multiplier));
+
+  // Build formula string
+  const formula = elementOrder.map((el, i) => {
+    const n = finalRatios[i];
+    return n === 1 ? el : `${el}${n}`;
+  }).join("");
+
+  if (formula.length >= 2) return formula;
+  return finalAnswer;
 }
 
 function generateSimilarQuestions(subject: string): string[] {
@@ -469,17 +550,22 @@ Substitute the given values into the formula and compute. Return JSON only.`;
     let parsed = extractJSON(raw);
 
     if (parsed && parsed.finalAnswer && Array.isArray(parsed.steps) && parsed.steps.length > 0) {
+      const cleanedSteps = (parsed.steps || []).map((s: any) => ({
+        desc: cleanLatex(s.desc || ""),
+        formula: cleanLatex(s.formula || ""),
+      }));
+      const cleanedAltSteps = (parsed.altSteps || []).map((s: any) => ({
+        desc: cleanLatex(s.desc || ""),
+        formula: cleanLatex(s.formula || ""),
+      }));
+      let finalAns = cleanLatex(parsed.finalAnswer) || "";
+      // Fix ratio-style answers for formula questions (e.g. "1:2:1" → "CH2O")
+      finalAns = fixFormulaAnswer(finalAns, cleanedSteps, problem);
       const solution = {
-        finalAnswer: cleanLatex(parsed.finalAnswer) || "",
+        finalAnswer: finalAns,
         finalFormula: cleanLatex(parsed.finalFormula || "") || "",
-        steps: (parsed.steps || []).map((s: any) => ({
-          desc: cleanLatex(s.desc || ""),
-          formula: cleanLatex(s.formula || ""),
-        })),
-        altSteps: (parsed.altSteps || []).map((s: any) => ({
-          desc: cleanLatex(s.desc || ""),
-          formula: cleanLatex(s.formula || ""),
-        })),
+        steps: cleanedSteps,
+        altSteps: cleanedAltSteps,
         similar: Array.isArray(parsed.similar) ? parsed.similar.slice(0, 4) : generateSimilarQuestions(sub),
         mistakes: Array.isArray(parsed.mistakes) ? parsed.mistakes.slice(0, 5) : generateCommonMistakes(sub),
         examTips: BOARD_TIPS[brd]?.[sub] || [],
