@@ -374,8 +374,12 @@ function buildSolutionFromText(rawText: string, subject: string, board: string):
     desc: l.trim().replace(/^[\d.]+[).]\s*/, ""),
     formula: "",
   }));
+  let answer = steps.length > 0 ? steps[steps.length - 1].desc : rawText.slice(0, 200);
+  // If answer is multi-line junk, take only the last meaningful short line
+  const answerLines = answer.split(/[\n=]/).map(l => l.trim()).filter(l => l.length > 0 && l.length < 80);
+  if (answerLines.length > 0) answer = answerLines[answerLines.length - 1];
   return {
-    finalAnswer: steps.length > 0 ? steps[steps.length - 1].desc : rawText.slice(0, 200),
+    finalAnswer: answer,
     finalFormula: "",
     steps: steps.length > 0 ? steps : [{ desc: rawText.slice(0, 300), formula: "" }],
     altSteps: [], similar: [], mistakes: [],
@@ -390,43 +394,70 @@ function cleanLatex(text: string): string {
     .replace(/\\mathbf\{([^}]*)\}/g, "$1");
 }
 
+// Sanitize finalAnswer — strip multi-line junk, keep only the actual answer line
+function sanitizeFinalAnswer(answer: string): string {
+  if (!answer) return answer;
+  let clean = answer.trim();
+  // If it contains newlines, take only the last short meaningful line
+  if (clean.includes('\n')) {
+    const lines = clean.split('\n').map(l => l.replace(/^\s*[-=:]\s*/, '').trim()).filter(l => l.length > 0 && l.length < 100);
+    if (lines.length > 0) clean = lines[lines.length - 1];
+  }
+  // Strip leading "=", "EmpiricalFormula=", etc.
+  clean = clean.replace(/^[A-Za-z]+\s*[=:]\s*/i, '');
+  // If still multi-segment with colons (ratio), take the last part
+  const parts = clean.split(/\s*[=:]\s*/);
+  if (parts.length > 1) clean = parts[parts.length - 1].trim();
+  return clean || answer;
+}
+
 // Fix ratio-style finalAnswers for empirical/molecular formula questions
 function fixFormulaAnswer(finalAnswer: string, steps: { desc: string; formula: string }[], problem: string): string {
   if (!finalAnswer) return finalAnswer;
   const lower = problem.toLowerCase();
-  const isFormulaQ = /empirical\\s*formula|molecular\\s*formula|chemical\\s*formula|formula\\s*of/i.test(lower);
+  const isFormulaQ = /empirical\s*formula|molecular\s*formula|chemical\s*formula|formula\s*of/i.test(lower);
   if (!isFormulaQ) return finalAnswer;
 
   // If it's already a proper formula (has element symbols with possible subscripts), keep it
-  if (/^[A-Z][a-z]?\\d*([A-Z][a-z]?\\d*)*$/.test(finalAnswer.trim())) return finalAnswer;
+  if (/^[A-Z][a-z]?\d*([A-Z][a-z]?\d*)*$/.test(finalAnswer.trim())) return finalAnswer;
 
-  // Extract element info from steps - look for patterns like "C: 3.33", "moles of C", etc.
+  // Extract elements from the problem itself: "40% C, 6.7% H, 53.3% O" or "C=40%"
   const elementMap = new Map<string, number>();
   const elementOrder: string[] = [];
-  const elRegex = /(?:moles? of |atoms? of |ratio.*?|:\s*)([A-Z][a-z]?)\s*[=:]\s*([\\d.]+)/gi;
-  for (const step of steps) {
-    const text = step.desc + " " + step.formula;
-    let match;
-    while ((match = elRegex.exec(text)) !== null) {
+
+  // Pattern 1: "40% C" → extract percentage and element
+  const pctRegex = /(\d+\.?\d*)%\s*([A-Z][a-z]?)/g;
+  let match;
+  while ((match = pctRegex.exec(problem)) !== null) {
+    const val = parseFloat(match[1]);
+    const el = match[2];
+    if (val > 0 && !elementMap.has(el)) {
+      elementMap.set(el, val);
+      elementOrder.push(el);
+    }
+  }
+
+  // Pattern 2: "C=40" or "C: 40" with atomic masses given like (C=12, H=1, O=16)
+  if (elementOrder.length === 0) {
+    const elValRegex = /([A-Z][a-z]?)\s*[=:]\s*(\d+\.?\d*)/g;
+    while ((match = elValRegex.exec(problem)) !== null) {
       const el = match[1];
       const val = parseFloat(match[2]);
-      if (val > 0 && !elementMap.has(el)) {
+      if (val > 0 && !elementMap.has(el) && val < 200) {
         elementMap.set(el, val);
         elementOrder.push(el);
       }
     }
   }
 
-  // Also try to extract from percentage/given data in the problem
-  // Pattern: "40% C" or "C=40%" or "C: 40%"
+  // Pattern 3: Extract from step descriptions/formulas
   if (elementOrder.length === 0) {
-    const pctRegex = /([\\d.]+)%\\s*([A-Z][a-z]?)/g;
-    const massRegex = /([A-Z][a-z]?)\s*[=:]\s*([\\d.]+)/g;
-    let match;
-    while ((match = pctRegex.exec(problem)) !== null) {
-      const val = parseFloat(match[1]);
-      const el = match[2];
-      if (val > 0 && !elementMap.has(el)) {
+    const allText = steps.map(s => s.desc + " " + s.formula).join(" ");
+    const stepElRegex = /([A-Z][a-z]?)\s*[=:]\s*(\d+\.?\d*)/g;
+    while ((match = stepElRegex.exec(allText)) !== null) {
+      const el = match[1];
+      const val = parseFloat(match[2]);
+      if (val > 0 && !elementMap.has(el) && val < 200) {
         elementMap.set(el, val);
         elementOrder.push(el);
       }
@@ -435,15 +466,32 @@ function fixFormulaAnswer(finalAnswer: string, steps: { desc: string; formula: s
 
   if (elementOrder.length < 2) return finalAnswer;
 
+  // Convert percentages to moles using standard atomic masses
+  const ATOMIC_MASS: Record<string, number> = {
+    H: 1, He: 4, Li: 7, Be: 9, B: 11, C: 12, N: 14, O: 16, F: 19, Na: 23,
+    Mg: 24, Al: 27, Si: 28, P: 31, S: 32, Cl: 35.5, K: 39, Ca: 40, Fe: 56,
+    Cu: 63.5, Zn: 65, Ag: 108, I: 127, Ba: 137, Pb: 207,
+  };
+
+  // Check if the values are percentages (>10) or already mole values (<10)
+  const maxVal = Math.max(...elementMap.values());
+  const moles = elementOrder.map(el => {
+    const val = elementMap.get(el)!;
+    if (maxVal > 10) {
+      // Values are percentages — convert to moles
+      return val / (ATOMIC_MASS[el] || val);
+    }
+    return val;
+  });
+
   // Convert to simplest integer ratio
-  const vals = elementOrder.map(el => elementMap.get(el)!);
-  const minVal = Math.min(...vals.filter(v => v > 0));
-  const ratios = vals.map(v => v / minVal);
+  const minMole = Math.min(...moles.filter(v => v > 0));
+  const ratios = moles.map(m => m / minMole);
 
   // Round to nearest integer (with tolerance for floating point)
   const intRatios = ratios.map(r => {
     const rounded = Math.round(r);
-    return Math.abs(r - rounded) < 0.15 ? rounded : Math.round(r * 2) / 2; // try half-integers
+    return Math.abs(r - rounded) < 0.2 ? rounded : Math.round(r * 2) / 2;
   });
 
   // If we have half-integers, multiply all by 2
@@ -559,7 +607,8 @@ Substitute the given values into the formula and compute. Return JSON only.`;
         formula: cleanLatex(s.formula || ""),
       }));
       let finalAns = cleanLatex(parsed.finalAnswer) || "";
-      // Fix ratio-style answers for formula questions (e.g. "1:2:1" → "CH2O")
+      // Sanitize: strip multi-line junk, then fix formula ratios
+      finalAns = sanitizeFinalAnswer(finalAns);
       finalAns = fixFormulaAnswer(finalAns, cleanedSteps, problem);
       const solution = {
         finalAnswer: finalAns,
@@ -578,6 +627,9 @@ Substitute the given values into the formula and compute. Return JSON only.`;
     // JSON parse failed but we have text - build solution from raw text
     console.warn(`[SpeedSolve] JSON parse failed, building from raw text (${raw.length} chars)`);
     const textSolution = buildSolutionFromText(raw, sub, brd);
+    // Sanitize and apply formula fix to fallback path too
+    textSolution.finalAnswer = sanitizeFinalAnswer(textSolution.finalAnswer);
+    textSolution.finalAnswer = fixFormulaAnswer(textSolution.finalAnswer, textSolution.steps || [], problem);
     return NextResponse.json({ success: true, data: textSolution, source: "ai" });
 
   } catch (err) {

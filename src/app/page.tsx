@@ -1514,7 +1514,7 @@ export default function Home() {
                   <div className="solution-section final-answer-section fade-up visible">
                     <div className="section-label">Final Answer</div>
                     <div className={`final-answer-box${flashAnswer ? ' flash' : ''}`}>
-                      <span dangerouslySetInnerHTML={{ __html: renderLatex(solution.finalFormula || solution.finalAnswer) }} />
+                      <span dangerouslySetInnerHTML={{ __html: renderLatex(solution.finalAnswer || solution.finalFormula) }} />
                     </div>
                   </div>
 
