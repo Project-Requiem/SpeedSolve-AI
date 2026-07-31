@@ -519,6 +519,8 @@ body {
 }
 .input-textarea:focus { outline: none; border-color: var(--accent-start); box-shadow: 0 0 0 3px var(--accent-glow); }
 .input-textarea::placeholder { color: var(--text-muted); font-size: clamp(0.75rem, 0.8vw, 0.85rem); }
+.panel-input.drag-over { box-shadow: 0 0 0 3px var(--accent-start), 0 0 30px var(--accent-glow); }
+.panel-input.drag-over .input-textarea { border-color: var(--accent-start); }
 
 .divider {
   display: flex; align-items: center; gap: 16px;

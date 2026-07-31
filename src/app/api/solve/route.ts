@@ -400,14 +400,11 @@ function sanitizeFinalAnswer(answer: string): string {
   let clean = answer.trim();
   // If it contains newlines, take only the last short meaningful line
   if (clean.includes('\n')) {
-    const lines = clean.split('\n').map(l => l.replace(/^\s*[-=:]\s*/, '').trim()).filter(l => l.length > 0 && l.length < 100);
+    const lines = clean.split('\n').map(l => l.trim()).filter(l => l.length > 0 && l.length < 120);
     if (lines.length > 0) clean = lines[lines.length - 1];
   }
-  // Strip leading "=", "EmpiricalFormula=", etc.
-  clean = clean.replace(/^[A-Za-z]+\s*[=:]\s*/i, '');
-  // If still multi-segment with colons (ratio), take the last part
-  const parts = clean.split(/\s*[=:]\s*/);
-  if (parts.length > 1) clean = parts[parts.length - 1].trim();
+  // Strip leading label like "EmpiricalFormula =", "Answer:", etc. but preserve the value
+  clean = clean.replace(/^[A-Za-z]+\s*(Formula)?\s*[=:]\s*/i, '');
   return clean || answer;
 }
 
@@ -608,8 +605,11 @@ Substitute the given values into the formula and compute. Return JSON only.`;
       }));
       let finalAns = cleanLatex(parsed.finalAnswer) || "";
       // Sanitize: strip multi-line junk, then fix formula ratios
+      console.log(`[SpeedSolve] Raw finalAnswer: "${finalAns.slice(0, 100)}"`);
       finalAns = sanitizeFinalAnswer(finalAns);
+      console.log(`[SpeedSolve] After sanitize: "${finalAns.slice(0, 100)}"`);
       finalAns = fixFormulaAnswer(finalAns, cleanedSteps, problem);
+      console.log(`[SpeedSolve] After fixFormula: "${finalAns}"`);
       const solution = {
         finalAnswer: finalAns,
         finalFormula: cleanLatex(parsed.finalFormula || "") || "",
