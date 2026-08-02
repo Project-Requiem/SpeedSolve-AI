@@ -419,10 +419,47 @@ Now solve the student's problem. Use many detailed steps, name every formula, us
 
 
 // ── JSON extraction ──
+// Fix LaTeX commands broken by JSON escape interpretation.
+// JSON.parse turns \f → form-feed(0x0C), \b → backspace(0x08), \v → vertical-tab(0x0B).
+// These are NEVER intentional in math solution text, so we safely double-escape them.
+function escapeLatexForJSONParse(text: string): string {
+  let r = text;
+  // \f, \b, \v — never intentional in solution JSON, always escape
+  r = r.replace(/(?<!\\)\\f/g, '\\\\f');
+  r = r.replace(/(?<!\\)\\b/g, '\\\\b');
+  r = r.replace(/(?<!\\)\\v/g, '\\\\v');
+  // \t, \n, \r — only fix when immediately followed by a letter (LaTeX command),
+  // NOT when followed by space/quote/bracket (intentional whitespace)
+  r = r.replace(/(?<!\\)\\t(?=[a-zA-Z])/g, '\\\\t');
+  r = r.replace(/(?<!\\)\\n(?=[a-zA-Z])/g, '\\\\n');
+  r = r.replace(/(?<!\\)\\r(?=[a-zA-Z])/g, '\\\\r');
+  return r;
+}
+
+// Post-parse safety net: replace control chars that leaked through JSON.parse
+function fixParsedLatexControlChars(obj: any): any {
+  if (typeof obj === 'string') {
+    return obj
+      .replace(/\x0c/g, '\\')  // form-feed → \ (from \f in \frac, \forall)
+      .replace(/\x08/g, '\\')  // backspace → \ (from \b in \beta, \binom)
+      .replace(/\x0b/g, '\\'); // vertical-tab → \ (from \v in \vec)
+  }
+  if (Array.isArray(obj)) return obj.map(fixParsedLatexControlChars);
+  if (obj && typeof obj === 'object') {
+    const result: any = {};
+    for (const key of Object.keys(obj)) {
+      result[key] = fixParsedLatexControlChars(obj[key]);
+    }
+    return result;
+  }
+  return obj;
+}
+
 function extractJSON(text: string): any | null {
   if (!text) return null;
   let cleaned = text.replace(/```(?:json)?\s*/gi, "").replace(/```/g, "").trim();
-  try { return JSON.parse(cleaned); } catch {}
+  cleaned = escapeLatexForJSONParse(cleaned);
+  try { return fixParsedLatexControlChars(JSON.parse(cleaned)); } catch {}
 
   let searchFrom = 0;
   while (searchFrom < cleaned.length) {
@@ -442,9 +479,10 @@ function extractJSON(text: string): any | null {
       let candidate = cleaned.slice(start, end + 1)
         .replace(/,\s*([\]}])/g, "$1")
         .replace(/\n/g, " ").replace(/\t/g, " ").replace(/  +/g, " ").trim();
-      try { return JSON.parse(candidate); } catch {}
+      candidate = escapeLatexForJSONParse(candidate);
+      try { return fixParsedLatexControlChars(JSON.parse(candidate)); } catch {}
       candidate = candidate.replace(/[\x00-\x1f\x7f]/g, "");
-      try { return JSON.parse(candidate); } catch {}
+      try { return fixParsedLatexControlChars(JSON.parse(candidate)); } catch {}
     }
     searchFrom = start + 1;
   }
