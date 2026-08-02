@@ -1245,6 +1245,15 @@ body {
 .try-ai-btn:disabled { opacity:0.5;cursor:not-allowed; }
 .try-ai-btn svg { transition:transform 0.2s; }
 .try-ai-btn:hover svg { transform:translateX(4px); }
+.not-satisfied-section { margin-top: 4px; }
+.not-satisfied-row { display: flex; align-items: center; gap: 10px; justify-content: center; padding: 8px 0 4px; }
+.btn-not-satisfied { display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.06); color: #ef4444; cursor: pointer; font-size: 0.78rem; font-weight: 600; font-family: var(--font); transition: all 0.2s ease; }
+.btn-not-satisfied:hover { background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.5); }
+[data-theme="light"] .btn-not-satisfied { color: #dc2626; border-color: rgba(220, 38, 38, 0.3); background: rgba(220, 38, 38, 0.05); }
+[data-theme="light"] .btn-not-satisfied:hover { background: rgba(220, 38, 38, 0.1); }
+.btn-regenerate { display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 20px; border: 1px solid var(--border-color); background: transparent; color: var(--text-muted); cursor: pointer; font-size: 0.78rem; font-weight: 600; font-family: var(--font); transition: all 0.2s ease; }
+.btn-regenerate:hover { border-color: var(--accent-start); color: var(--accent-start); background: rgba(37, 99, 235, 0.06); }
+.btn-regenerate:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ── Subject Card Glow Transition ── */
 .subject-card { transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1); }

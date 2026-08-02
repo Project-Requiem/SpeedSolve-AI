@@ -279,6 +279,13 @@ RULES:
    - For "find pH" questions: finalAnswer = "pH = 2".
    - NEVER output intermediate ratios, raw decimals, or work-in-progress as finalAnswer.
 
+10. MANDATORY SELF-VERIFICATION — You MUST verify your answer before outputting:
+   - For equations (e.g. "solve 3x+5=14"): plug your answer back into the original equation and confirm LHS = RHS.
+   - For physics/chemistry numericals: do a quick dimensional check or reverse calculation.
+   - For geometry: verify the answer makes sense (e.g., triangle angles sum to 180°, Pythagoras holds).
+   - If your verification FAILS, correct your answer before outputting.
+   - Always include a verification step as the LAST step in the steps array.
+
 11. BOARD-SPECIFIC STYLE (${boardName}):
 ${boardRules}
 12. GRAPH GENERATION — CRITICAL: When the problem involves ANY function, equation, data, kinematics, coordinate geometry, trigonometry, or visual relationship, you MUST include a "graph" field.

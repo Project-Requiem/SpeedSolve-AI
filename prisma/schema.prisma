@@ -23,5 +23,7 @@ model Feedback {
   board     String   @default("")
   problem   String   @default("")
   grade     String   @default("")
+  answer    String   @default("")
+  contact   String   @default("")
   createdAt DateTime @default(now())
 }

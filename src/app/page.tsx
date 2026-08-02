@@ -354,6 +354,7 @@ export default function Home() {
   const [fbName, setFbName] = useState('')
   const [fbMsg, setFbMsg] = useState('')
   const [fbGrade, setFbGrade] = useState('')
+  const [fbContact, setFbContact] = useState('')
   const [fbError, setFbError] = useState('')
   const [fbSubmitted, setFbSubmitted] = useState(false)
 
@@ -370,8 +371,18 @@ export default function Home() {
     }
   }, [problem])
 
-  // ── Feature 7: Retry with AI ──
+  // ── Feature 7: Retry with AI / Regenerate ──
   const [retryingAI, setRetryingAI] = useState(false)
+
+  const openNotSatisfied = useCallback(() => {
+    const ans = solution?.finalAnswer || solution?.finalFormula || ''
+    setFbMsg(`I'm not happy with this answer.\n\nQuestion: ${problem}\nAnswer given: ${ans}`)
+    setFbName('')
+    setFbContact('')
+    setFbGrade('')
+    setFbError('')
+    setShowFeedback(true)
+  }, [problem, solution])
 
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const solutionRef = useRef<HTMLDivElement>(null)
@@ -707,7 +718,7 @@ export default function Home() {
       const res = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: fbName.trim(), feedback: fbMsg.trim(), subject, board, problem, grade: fbGrade }),
+        body: JSON.stringify({ name: fbName.trim(), feedback: fbMsg.trim(), subject, board, problem, grade: fbGrade, answer: solution?.finalAnswer || '', contact: fbContact.trim() }),
       })
       const data = await res.json()
       if (res.ok) {
@@ -717,6 +728,7 @@ export default function Home() {
           setFbSubmitted(false)
           setFbName('')
           setFbMsg('')
+          setFbContact('')
         }, 1500)
       } else {
         setFbError(data.error || 'Failed to submit. Please try again.')
@@ -726,7 +738,7 @@ export default function Home() {
     } finally {
       setFbSubmitting(false)
     }
-  }, [fbName, fbMsg, subject, board, fbGrade, problem])
+  }, [fbName, fbMsg, fbContact, subject, board, fbGrade, problem, solution])
 
   const clearAll = () => {
     setProblem('')
@@ -1638,6 +1650,22 @@ export default function Home() {
                       </div>
                     </div>
                   )}
+
+                  {/* Not satisfied + Regenerate */}
+                  <div className="solution-section not-satisfied-section fade-up visible" style={{ animationDelay: '0.55s' }}>
+                    <div className="not-satisfied-row">
+                      {solveSource === 'ai' && (
+                        <button className="btn-not-satisfied" onClick={openNotSatisfied}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                          <span>Not satisfied?</span>
+                        </button>
+                      )}
+                      <button className="btn-regenerate" onClick={() => { if (!retryingAI && !loading) { setRetryingAI(true); solve(); setTimeout(() => setRetryingAI(false), 500) } }} disabled={retryingAI || loading}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={retryingAI ? { animation: 'spin 1s linear infinite' } : {}}><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                        <span>{retryingAI ? 'Solving...' : 'Regenerate'}</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -1696,6 +1724,19 @@ export default function Home() {
                     value={fbMsg}
                     onChange={e => setFbMsg(e.target.value)}
                     rows={3}
+                  />
+                </div>
+                <div className="fb-field">
+                  <label htmlFor="fb-contact">Phone / Email (optional)</label>
+                  <input
+                    id="fb-contact"
+                    type="text"
+                    inputMode="text"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    placeholder="If you want us to get back to you"
+                    value={fbContact}
+                    onChange={e => { setFbContact(e.target.value); setFbError('') }}
                   />
                 </div>
                 <div className="fb-actions">
