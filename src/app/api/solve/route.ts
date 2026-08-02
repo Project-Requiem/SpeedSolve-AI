@@ -196,7 +196,12 @@ const EXAMPLES: Record<string, string> = {
       { desc: "Therefore, we get the value of x.", formula: "$x = 3$" },
       { desc: "Verification: Substitute $x = 3$ back into the original equation. LHS = $3(3) + 5 = 9 + 5 = 14$ = RHS. Hence verified.", formula: "$3(3) + 5 = 14$" },
     ],
-    altSteps: [{ desc: "Alternative: Subtract 5 from both sides first, then divide by 3. LHS = $3(3) + 5 = 14$, RHS = $14$. Both sides match.", formula: "$14 = 14$" }],
+    altSteps: [
+      { desc: "Using the Balance Method: whatever we add to one side, we add to the other.", formula: "$3x + 5 - 5 = 14 - 5$" },
+      { desc: "Simplify both sides.", formula: "$3x = 9$" },
+      { desc: "Divide both sides by 3.", formula: "$x = 9 / 3 = 3$" },
+      { desc: "Verification: LHS = $3(3) + 5 = 14$ = RHS. Confirmed.", formula: "$14 = 14$" },
+    ],
     similar: ["Solve 5x - 7 = 18", "Solve 2x + 3 = x + 8"],
     mistakes: ["Sign errors when moving terms across the = sign", "Forgetting to divide the entire RHS, not just one term"],
   }),
@@ -210,7 +215,12 @@ const EXAMPLES: Record<string, string> = {
       { desc: "Compute the product and add to initial velocity.", formula: "$v = 0 + 19.6 = 19.6$ m/s" },
       { desc: "Verification using Third Equation of Motion: $v^{2} = u^{2} + 2as$. Distance $s = \frac{1}{2}gt^{2} = 0.5 \times 9.8 \times 4 = 19.6$ m. Then $v = \sqrt{0 + 2 \times 9.8 \times 19.6} = 19.6$ m/s. Matches.", formula: "$v^{2} = u^{2} + 2as$" },
     ],
-    altSteps: [{ desc: "Energy method: Using conservation of energy, $mgh = \frac{1}{2}mv^{2}$. So $v = \sqrt{2gh} = \sqrt{2 \times 9.8 \times 19.6} = 19.6$ m/s.", formula: "$v = \sqrt{2gh} = 19.6$ m/s" }],
+    altSteps: [
+      { desc: "Using the Principle of Conservation of Energy: $Potential Energy = Kinetic Energy$ at ground level.", formula: "$mgh = \frac{1}{2}mv^{2}$" },
+      { desc: "Cancel mass m from both sides.", formula: "$gh = \frac{1}{2}v^{2}$" },
+      { desc: "Rearrange to solve for v. First find height: $s = \frac{1}{2}gt^{2} = 0.5 \times 9.8 \times 4 = 19.6$ m.", formula: "$h = 19.6$ m" },
+      { desc: "Substitute: $v = \sqrt{2 \times 9.8 \times 19.6}$.", formula: "$v = \sqrt{384.16} = 19.6$ m/s" },
+    ],
     similar: ["A stone dropped from 30m. Find time to reach ground (g=9.8)", "Ball thrown up at 15 m/s. Find max height (g=10)"],
     mistakes: ["Using wrong value of g (9.8 vs 10)", "Forgetting to convert units (km/h to m/s)", "Choosing the wrong kinematic equation for the given quantities"],
   }),
@@ -225,7 +235,11 @@ const EXAMPLES: Record<string, string> = {
       { desc: "Compute the molarity.", formula: "$M = 0.2$ M" },
       { desc: "Verification: $0.2$ mol/L $\times$ $0.5$ L $= 0.1$ mol $= 4/40$. Correct.", formula: "" },
     ],
-    altSteps: [{ desc: "Direct formula: $M = mass / (molar\ mass \times volume) = 4 / (40 \times 0.5) = 0.2$ M", formula: "$M = 4 / 20 = 0.2$ M" }],
+    altSteps: [
+      { desc: "Using the combined Molarity Formula: $M = mass / (molar\ mass \times volume)$. This combines the mole calculation and molarity into one step.", formula: "$M = \frac{mass}{M_{molar} \times V}$" },
+      { desc: "Substitute: mass = 4 g, $M_{molar} = 40$ g/mol, $V = 0.5$ L.", formula: "$M = 4 / (40 \times 0.5)$" },
+      { desc: "Compute: denominator = $40 \times 0.5 = 20$.", formula: "$M = 4 / 20 = 0.2$ M" },
+    ],
     similar: ["Find molarity of 9.8g $H_{2}SO_{4}$ in 250 mL ($H$=1, $S$=32, $O$=16)", "How many grams of $KOH$ for 200 mL of 0.5 M? ($K$=39, $O$=16, $H$=1)"],
     mistakes: ["Forgetting to convert mL to L for volume", "Using wrong atomic masses", "Confusing molarity (mol/L) with molality (mol/kg)"],
   }),
@@ -306,6 +320,16 @@ FINAL ANSWER — ABSOLUTE PRIORITY
 18. For chemical formulas: finalAnswer = the formula string (e.g. "CH2O"). NEVER output ratios like "1:2:1".
 19. For "find x": finalAnswer = "x = 5". For area: "Area = 24 cm²". For pH: "pH = 2".
 20. NEVER output intermediate work or work-in-progress as finalAnswer.
+
+═════════════════════════════════════════════
+ALTERNATE SOLUTION (altSteps) — MANDATORY
+═════════════════════════════════════════════
+20b. You MUST include an "altSteps" array with 3-5 steps showing an ALTERNATIVE method to solve the same problem.
+- Each altStep must follow ALL the same rules as main steps: name the formula, explain why, show full substitution.
+- Use a genuinely different approach (e.g., if main uses kinematic equations, alt uses energy conservation; if main uses factorization, alt uses quadratic formula).
+- The altSteps must arrive at the SAME final answer.
+- Include a brief verification at the end of altSteps too.
+- NEVER leave altSteps empty. NEVER put just 1 step.
 
 ═════════════════════════════════════════════
 SELF-VERIFICATION

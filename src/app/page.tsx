@@ -322,7 +322,7 @@ export default function Home() {
   const [error, setError] = useState('')
   const [solution, setSolution] = useState<Solution | null>(null)
   const [samples, setSamples] = useState<Record<string, SampleProblem[]>>({})
-  const [showAlt, setShowAlt] = useState(false)
+  const [showAlt, setShowAlt] = useState(true)
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [solutionInView, setSolutionInView] = useState(true)
 
