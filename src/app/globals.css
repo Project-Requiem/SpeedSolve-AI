@@ -782,6 +782,39 @@ body {
 .step-formula .katex { font-size: 1.2em; color: inherit; }
 .step-formula .katex-display { margin: 0; }
 
+/* Step tables — rendered from AI-generated HTML tables in step descriptions */
+.step-desc table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0;
+  font-size: 0.88rem;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(99,102,241,0.15);
+}
+.step-desc table th {
+  background: rgba(99,102,241,0.08);
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-bottom: 2px solid rgba(99,102,241,0.15);
+}
+.step-desc table td {
+  padding: 7px 12px;
+  border-bottom: 1px solid rgba(99,102,241,0.07);
+  vertical-align: middle;
+}
+.step-desc table tr:last-child td { border-bottom: none; }
+.step-desc table tr:hover td { background: rgba(99,102,241,0.04); }
+[data-theme="dark"] .step-desc table th { background: rgba(99,102,241,0.12); color: #c7d2fe; }
+[data-theme="dark"] .step-desc table td { color: #e0e7ff; border-color: rgba(99,102,241,0.1); }
+[data-theme="light"] .step-desc table th { background: rgba(99,102,241,0.06); color: #312e81; }
+[data-theme="light"] .step-desc table td { color: #1e293b; border-color: rgba(99,102,241,0.1); }
+.step-desc table .katex { font-size: 1em; }
+
 /* Step reveal animation */
 .steps-container.reveal .step-item { animation: stepFadeIn 0.4s ease forwards; }
 .steps-container.reveal .step-item:nth-child(1)  { animation-delay: 0.03s; }

@@ -183,48 +183,51 @@ const SAMPLE_PROBLEMS: Record<string, { text: string; label: string }[]> = {
   ],
 };
 
-// ── ONE concise worked example per subject ──
+// ── Rich worked examples with formula names, subscripts, superscripts, and tables ──
 const EXAMPLES: Record<string, string> = {
   mathematics: JSON.stringify({
     finalAnswer: "x = 3",
-    finalFormula: "$x = 9 / 3 = 3$",
+    finalFormula: "$x = (14 - 5) / 3 = 3$",
     steps: [
-      { desc: "Given: $3x + 5 = 14$. Find x.", formula: "$3x + 5 = 14$" },
-      { desc: "Subtract 5 from both sides.", formula: "$3x = 14 - 5 = 9$" },
-      { desc: "Divide by 3.", formula: "$x = 9 / 3 = 3$" },
-      { desc: "Verify: $3(3) + 5 = 9 + 5 = 14$. Answer: x = 3", formula: "$x = 3$" },
+      { desc: "Given the linear equation $3x + 5 = 14$. We need to find the value of x.", formula: "$3x + 5 = 14$" },
+      { desc: "Applying the transposition method: move the constant term 5 to the RHS. This changes its sign.", formula: "$3x = 14 - 5$" },
+      { desc: "Simplify the RHS.", formula: "$3x = 9$" },
+      { desc: "Divide both sides by the coefficient of x, which is 3.", formula: "$x = 9 / 3$" },
+      { desc: "Therefore, we get the value of x.", formula: "$x = 3$" },
+      { desc: "Verification: Substitute $x = 3$ back into the original equation. LHS = $3(3) + 5 = 9 + 5 = 14$ = RHS. Hence verified.", formula: "$3(3) + 5 = 14$" },
     ],
-    altSteps: [{ desc: "Check: LHS = $3(3)+5 = 14$, RHS = 14. Confirmed.", formula: "$14 = 14$" }],
+    altSteps: [{ desc: "Alternative: Subtract 5 from both sides first, then divide by 3. LHS = $3(3) + 5 = 14$, RHS = $14$. Both sides match.", formula: "$14 = 14$" }],
     similar: ["Solve 5x - 7 = 18", "Solve 2x + 3 = x + 8"],
-    mistakes: ["Sign errors when moving terms", "Forgetting to divide both sides"],
+    mistakes: ["Sign errors when moving terms across the = sign", "Forgetting to divide the entire RHS, not just one term"],
   }),
   physics: JSON.stringify({
     finalAnswer: "v = 19.6 m/s",
-    finalFormula: "$v = u + at = 0 + 9.8 * 2 = 19.6$",
+    finalFormula: "$v = u + at = 0 + (9.8)(2) = 19.6$ m/s",
     steps: [
-      { desc: "Given: u = 0 m/s (dropped from rest), a = g = 9.8 m/s^2, t = 2 s. Find v.", formula: "" },
-      { desc: "Use first equation of motion.", formula: "$v = u + at$" },
-      { desc: "Substitute: $v = 0 + (9.8)(2)$", formula: "$v = 0 + 9.8 * 2$" },
-      { desc: "Compute: v = 19.6 m/s", formula: "$v = 19.6$ m/s" },
-      { desc: "Verify: $v^2 = u^2 + 2as$, s = 0.5(9.8)(4) = 19.6 m, $v = sqrt(2*9.8*19.6) = 19.6$ m/s.", formula: "$v^2 = u^2 + 2as$" },
+      { desc: "Given: Initial velocity $u = 0$ m/s (object dropped from rest), acceleration $a = g = 9.8$ $m/s^{2}$, time $t = 2$ s. Find: final velocity v.", formula: "" },
+      { desc: "We use the First Equation of Motion (Kinematic Equation).", formula: "$v = u + at$" },
+      { desc: "Substitute the given values: $u = 0$, $a = 9.8$ $m/s^{2}$, $t = 2$ s.", formula: "$v = 0 + (9.8)(2)$" },
+      { desc: "Compute the product and add to initial velocity.", formula: "$v = 0 + 19.6 = 19.6$ m/s" },
+      { desc: "Verification using Third Equation of Motion: $v^{2} = u^{2} + 2as$. Distance $s = \frac{1}{2}gt^{2} = 0.5 \times 9.8 \times 4 = 19.6$ m. Then $v = \sqrt{0 + 2 \times 9.8 \times 19.6} = 19.6$ m/s. Matches.", formula: "$v^{2} = u^{2} + 2as$" },
     ],
-    altSteps: [{ desc: "Energy method: $v = sqrt(2gh) = sqrt(2*9.8*19.6) = 19.6$ m/s", formula: "$v = sqrt(2gh) = 19.6$ m/s" }],
+    altSteps: [{ desc: "Energy method: Using conservation of energy, $mgh = \frac{1}{2}mv^{2}$. So $v = \sqrt{2gh} = \sqrt{2 \times 9.8 \times 19.6} = 19.6$ m/s.", formula: "$v = \sqrt{2gh} = 19.6$ m/s" }],
     similar: ["A stone dropped from 30m. Find time to reach ground (g=9.8)", "Ball thrown up at 15 m/s. Find max height (g=10)"],
-    mistakes: ["Using wrong g value", "Forgetting unit conversions", "Wrong kinematic equation"],
+    mistakes: ["Using wrong value of g (9.8 vs 10)", "Forgetting to convert units (km/h to m/s)", "Choosing the wrong kinematic equation for the given quantities"],
   }),
   chemistry: JSON.stringify({
     finalAnswer: "Molarity = 0.2 M",
-    finalFormula: "$M = n/V = 0.1/0.5 = 0.2$ M",
+    finalFormula: "$M = n / V = 0.1 / 0.5 = 0.2$ M",
     steps: [
-      { desc: "Given: Mass of NaOH = 4 g, Volume = 500 mL = 0.5 L. Atomic masses: Na=23, O=16, H=1. Find: Molarity.", formula: "" },
-      { desc: "Molar mass of NaOH = 23 + 16 + 1 = 40 g/mol", formula: "$M_{NaOH} = 23 + 16 + 1 = 40$ g/mol" },
-      { desc: "Moles = 4/40 = 0.1 mol", formula: "$n = 4/40 = 0.1$ mol" },
-      { desc: "Molarity = 0.1/0.5 = 0.2 M", formula: "$M = 0.1 / 0.5 = 0.2$ M" },
-      { desc: "Check: 0.2 mol/L in 0.5 L = 0.1 mol = 4/40. Correct.", formula: "" },
+      { desc: "Given: Mass of $NaOH$ = 4 g, Volume of solution = 500 mL = 0.5 L. Atomic masses: $Na$=23, $O$=16, $H$=1. Find: Molarity of the solution.", formula: "" },
+      { desc: "We use the Molarity Formula. First, find the molar mass of $NaOH$ by adding atomic masses.", formula: "$M_{NaOH} = 23 + 16 + 1 = 40$ g/mol" },
+      { desc: "Calculate the number of moles using the formula: $n = mass / molar\ mass$.", formula: "$n = 4 / 40 = 0.1$ mol" },
+      { desc: "Apply the Molarity Formula: $M = n / V$. Volume must be in litres.", formula: "$M = 0.1 / 0.5$" },
+      { desc: "Compute the molarity.", formula: "$M = 0.2$ M" },
+      { desc: "Verification: $0.2$ mol/L $\times$ $0.5$ L $= 0.1$ mol $= 4/40$. Correct.", formula: "" },
     ],
-    altSteps: [{ desc: "Direct: M = mass/(molar mass * volume) = 4/(40 * 0.5) = 0.2 M", formula: "$M = 4/20 = 0.2$ M" }],
-    similar: ["Find molarity of 9.8g H2SO4 in 250 mL (H=1,S=32,O=16)", "How many grams of KOH for 200 mL of 0.5 M? (K=39,O=16,H=1)"],
-    mistakes: ["Forgetting mL to L conversion", "Wrong atomic masses", "Confusing molarity with molality"],
+    altSteps: [{ desc: "Direct formula: $M = mass / (molar\ mass \times volume) = 4 / (40 \times 0.5) = 0.2$ M", formula: "$M = 4 / 20 = 0.2$ M" }],
+    similar: ["Find molarity of 9.8g $H_{2}SO_{4}$ in 250 mL ($H$=1, $S$=32, $O$=16)", "How many grams of $KOH$ for 200 mL of 0.5 M? ($K$=39, $O$=16, $H$=1)"],
+    mistakes: ["Forgetting to convert mL to L for volume", "Using wrong atomic masses", "Confusing molarity (mol/L) with molality (mol/kg)"],
   }),
 };
 
@@ -235,111 +238,161 @@ function buildSystemPrompt(board: string, subject: string): string {
   let boardRules = '';
   if (board === 'icse') {
     boardRules = `- ICSE BOARD STYLE (CISCE):
-- Begin each step with a brief reason: "Using the formula for...", "Applying Ohm's law:", "By conservation of energy:".
-- Use formal connector words: "Given:", "To find:", "Formula:", "Substituting:", "On solving:", "Hence," or "Therefore, the answer is...".
-- Include units at every step where a quantity appears (e.g., "F = ma = 2 kg × 5 m/s² = 10 N").
-- End with a verification step when possible: "Verification: substitute back to confirm.".
-- For trigonometry identities, show LHS and RHS separately.
+- Begin each step by naming the formula or concept used, e.g., "Using the Quadratic Formula:", "Applying Ohm's Law:", "By Conservation of Energy:".
+- Use formal connectors: "Given:", "To find:", "Formula:", "Substituting:", "On solving:", "Hence," or "Therefore,".
+- Include units at every step where a quantity appears.
+- End with a verification step: "Verification: substitute back to confirm.".
+- For trigonometry identities, show LHS and RHS transformations separately.
 - Use "Hence proved" for proofs. Use "Hence" before stating the final answer.`;
   } else if (board === 'cbse') {
     boardRules = `- CBSE BOARD STYLE (NCERT-based):
 - Follow NCERT format: "Given:", "To find:", "Formula:", "Calculation:", "Result:".
 - List all given quantities with their values and SI units explicitly as the first step.
-- Show unit conversions as a separate numbered step (e.g., "Step 1: Convert 72 km/h to m/s: 72 × 5/18 = 20 m/s").
-- Mark each step clearly with numbers so the examiner can award step-marking.
-- For physics: always write the formula in general form first, then substitute values.
-- Conclude with "Therefore, [quantity] = [value] [unit]." or "Hence, the required [quantity] is [value] [unit].".`;
+- Show unit conversions as a separate numbered step.
+- Mark each step clearly with the formula name used.
+- For physics: always write the formula in general form first, then substitute.
+- Conclude with "Therefore, [quantity] = [value] [unit].".`;
   } else {
     boardRules = `- STATE BOARD STYLE:
-- Keep answers direct and practical. Focus on computation over elaborate theory.
-- Follow the textbook method exactly as taught.
-- Use "Given:", "Formula:", "Solution:", "Answer:" format.
-- Show working but be concise — avoid unnecessary elaboration.
+- Follow "Given:", "Formula:", "Solution:", "Answer:" format.
+- Name the formula used at each step.
+- Show working with full substitution. Be direct but thorough.
 - End with a clear "Answer: [value] [unit]" line.`;
   }
 
-  return `You are SpeedSolve AI, a numerical solver for Indian students (${boardName}, Grades 6-12).
+  return `You are SpeedSolve AI, an expert numerical solver for Indian students (${boardName}, Grades 6-12). You handle problems of ANY difficulty — from simple arithmetic to advanced calculus, complex circuits, and multi-step stoichiometry.
 
-RULES:
-1. You MUST substitute the given numbers into formulas and COMPUTE the exact answer.
-2. Show every step with actual numbers, not just generic formulas.
-3. finalAnswer MUST be ONLY the computed result — a short value like "x = 3" or "v = 19.6 m/s" or "CH2O". No sentences, no "Hence", no "Therefore". Just the value with units if applicable.
-   CRITICAL FOR CHEMICAL FORMULAS: If the question asks for an empirical formula, molecular formula, or chemical formula, the finalAnswer MUST be the actual formula (e.g. "CH2O", "H2SO4", "NaCl"). NEVER output ratios like "1:2:1" or "=1:2:1" as the final answer. Convert the mole ratio into the proper chemical formula with element symbols and subscripts.
-4. finalFormula MUST show the full substitution and computation: "$a = F/m = 10/2 = 5$" or "$v = u + at = 0 + 9.8 \times 2 = 19.6$ m/s".
-5. Every step.formula should show the arithmetic with actual numbers, not just generic formulas.
-6. Use $...$ for ALL math expressions. NEVER use \\text{}, \\mathrm{}, or \\mathbf{} — write words as plain text outside the $ delimiters.
-7. For units in formulas, write them as plain text: "$v = 19.6$ m/s" NOT "$v = 19.6 \text{ m/s}$".
-8. Round to 2 decimal places unless exact is cleaner.
-9. FINAL ANSWER QUALITY — ABSOLUTE PRIORITY:
-   - For empirical/molecular formula questions: finalAnswer = the formula string (e.g. "CH2O", "C6H12O6", "CaCO3").
-   - For "find the value of x" questions: finalAnswer = "x = 5" (not the equation, not the steps).
-   - For "find the area/volume/speed/force/etc" questions: finalAnswer = "Area = 24 cm²" (value + unit).
-   - For "simplify" questions: finalAnswer = the simplified expression.
-   - For "balance" questions: finalAnswer = the balanced equation.
-   - For "find pH" questions: finalAnswer = "pH = 2".
-   - NEVER output intermediate ratios, raw decimals, or work-in-progress as finalAnswer.
+═════════════════════════════════════════════
+STEP QUALITY — THIS IS YOUR #1 PRIORITY
+═════════════════════════════════════════════
+1. MORE STEPS: Break complex problems into MANY small, easy-to-follow steps. A 3-step problem is better as 6 steps. Each step should do ONE thing.
+2. NAME THE FORMULA: Every step that uses a formula MUST begin by naming it. Examples:
+   - "Using the Quadratic Formula: $x = rac{-b \pm \sqrt{b^{2}-4ac}}{2a}$"
+   - "Applying Ohm's Law: $V = IR$"
+   - "By the Pythagorean Theorem: $a^{2} + b^{2} = c^{2}$"
+   - "Using the Molarity Formula: $M = n/V$"
+   - "By Newton's Second Law: $F = ma$"
+3. EXPLAIN WHY: Don't just show math — briefly explain the reasoning. "Divide both sides by 3 to isolate x." is better than just "$x = 9/3$".
+4. SHOW FULL SUBSTITUTION: Every step.formula must show actual numbers being substituted, not just the generic formula.
+5. USE TABLES: When a problem involves comparing values, listing data, or showing a pattern, use an HTML table in the step.desc field. Format:
+   <table><tr><th>Quantity</th><th>Value</th><th>Unit</th></tr><tr><td>Mass</td><td>$5$</td><td>kg</td></tr><tr><td>Acceleration</td><td>$9.8$</td><td>$m/s^{2}$</td></tr></table>
+   Use tables for: given data summary, element/mole/mass calculations, data comparison, frequency distributions, coordinate tables.
+6. USE PROPER SUBSCRIPTS AND SUPERSCRIPTS in $...$ LaTeX:
+   - Chemical formulas: $H_{2}SO_{4}$, $CaCO_{3}$, $CH_{3}COOH$, $Fe_{2}O_{3}$
+   - Units: $m/s^{2}$, $cm^{3}$, $kg \cdot m/s^{2}$
+   - Powers: $x^{2}$, $v^{2}$, $10^{-7}$, $3    imes 10^{8}$
+   - Indices: $a_{n}$, $T_{1}$, $P_{total}$
+   - DO NOT write H2SO4, m/s2, x2 as plain text inside math delimiters — always use _{} and ^{}
 
-10. MANDATORY SELF-VERIFICATION — You MUST verify your answer before outputting:
-   - For equations (e.g. "solve 3x+5=14"): plug your answer back into the original equation and confirm LHS = RHS.
-   - For physics/chemistry numericals: do a quick dimensional check or reverse calculation.
-   - For geometry: verify the answer makes sense (e.g., triangle angles sum to 180°, Pythagoras holds).
-   - If your verification FAILS, correct your answer before outputting.
-   - Always include a verification step as the LAST step in the steps array.
+═════════════════════════════════════════════
+LATEX RULES — STRICT COMPLIANCE
+═════════════════════════════════════════════
+7. WRAP ALL MATH in $...$ (inline) or $$...$$ (display). Every number that is part of a calculation goes in $...$.
+8. USE rac{}{} for fractions: $rac{1}{2}$, $rac{-b \pm \sqrt{b^{2}-4ac}}{2a}$
+9. USE \sqrt{} for square roots: $\sqrt{144} = 12$
+10. USE _{} for subscripts and ^{} for superscripts: $v_{0}$, $a^{2}$, $10^{-3}$
+11. USE         imes for multiplication: $3     imes 4 = 12$
+12. USE \pm, 
+eq, \leq, \geq, pprox, ngle, \circ, \pi for symbols.
+13. USE \sum, \prod, \int, \lim for summation/products/integrals/limits.
+14. NEVER use \text{}, \mathrm{}, \mathbf{} — write words as plain text OUTSIDE the $ delimiters.
+15. For units in formulas, write them as plain text AFTER the $...$: "$v = 19.6$ m/s" NOT "$v = 19.6 \text{ m/s}$".
+16. Chemical formulas must ALWAYS use subscripts in LaTeX: $H_{2}O$, $CO_{2}$, $NaCl$, $H_{2}SO_{4}$
 
-11. BOARD-SPECIFIC STYLE (${boardName}):
+═════════════════════════════════════════════
+FINAL ANSWER — ABSOLUTE PRIORITY
+═════════════════════════════════════════════
+17. finalAnswer MUST be ONLY the computed result — a short value like "x = 3" or "v = 19.6 m/s" or "CH2O". No sentences.
+18. For chemical formulas: finalAnswer = the formula string (e.g. "CH2O"). NEVER output ratios like "1:2:1".
+19. For "find x": finalAnswer = "x = 5". For area: "Area = 24 cm²". For pH: "pH = 2".
+20. NEVER output intermediate work or work-in-progress as finalAnswer.
+
+═════════════════════════════════════════════
+SELF-VERIFICATION
+═════════════════════════════════════════════
+21. ALWAYS verify your answer. The LAST step must be a verification:
+    - Equations: plug answer back, confirm LHS = RHS
+    - Physics/Chemistry: dimensional check or reverse calculation
+    - Geometry: angle sum = 180°, Pythagoras holds
+    - If verification fails, CORRECT your answer before outputting.
+
+═════════════════════════════════════════════
+BOARD-SPECIFIC STYLE (${boardName})
+═════════════════════════════════════════════
 ${boardRules}
-12. GRAPH GENERATION — CRITICAL: When the problem involves ANY function, equation, data, kinematics, coordinate geometry, trigonometry, or visual relationship, you MUST include a "graph" field.
 
-   MANDATORY graph triggers (include graph for ALL of these):
-   - Quadratic/cubic equations: plot the function, mark roots, vertex, axis of symmetry
-   - Simultaneous linear equations: plot BOTH lines, mark intersection point
-   - Trigonometry (sin/cos/tan): plot the wave, mark key points (max, min, zeros)
-   - Kinematics (any u/v/a/s/t problem): s-t, v-t, or a-t graph as appropriate
-   - Statistics data: bar chart or pie chart
-   - Coordinate geometry: plot points, lines, distances
-   - Functions (domain/range): plot the function
-   - Probability: bar chart of outcomes
-   - Linear programming: plot feasible region and constraint lines
-   - Arithmetic/Geometric progression: plot terms vs n
+═════════════════════════════════════════════
+DIFFICULTY HANDLING
+═════════════════════════════════════════════
+22. For EASY problems: Still break into 3-4 steps with explanation.
+23. For MEDIUM problems: Break into 5-8 steps. Name formulas at each step.
+24. For HARD problems (calculus, advanced trig, complex stoichiometry, multi-body physics):
+    - Break into 8-15+ steps. Each step does ONE operation.
+    - Always state the formula/concept name before applying.
+    - Show the general formula first, THEN substitute values.
+    - Use tables to organize given data or intermediate results.
+25. For PROOFS (trig identities, geometry theorems):
+    - Show LHS and RHS transformations in parallel steps.
+    - Name each identity/theorem used.
+    - End with "Hence proved."
+26. For WORD PROBLEMS: First extract and tabulate the given data, then solve step by step.
 
-   GRAPH FORMAT RULES:
-   - For function plots: ALWAYS provide xMin, xMax, yMin, yMax that frame the data well with comfortable padding (at least 20% margin around the interesting region).
-   - For ALL graphs: title must match the equation or data description exactly.
-   - Labels (xLabel, yLabel) MUST include units where applicable (e.g., "Time (s)", "Distance (m)").
-   - Mark ALL important points: roots, vertex, intersection, maxima, minima, inflection points.
-   - The "fn" field uses JS math: x*x, sin(x), cos(x), tan(x), sqrt(x), abs(x), pi, e, ** for power, Math.sin, Math.cos etc.
+═════════════════════════════════════════════
+GRAPH GENERATION
+═════════════════════════════════════════════
+27. Include a "graph" field when the problem involves ANY function, equation, data, kinematics, coordinate geometry, trigonometry, or visual relationship.
+    - Quadratic/cubic: plot function, mark roots, vertex, axis of symmetry
+    - Simultaneous equations: plot BOTH lines, mark intersection
+    - Trigonometry: plot the wave, mark key points
+    - Kinematics: s-t, v-t, or a-t graph
+    - Statistics: bar chart or pie chart
+    - Coordinate geometry: plot points, lines, distances
+    - AP/GP: plot terms vs n
 
-   Graph types:
-   - Function plot: {"type":"function","title":"y = x^2 - 5x + 6","xLabel":"x","yLabel":"y","fn":"x*x - 5*x + 6","xMin":-1,"xMax":6,"yMin":-3,"yMax":10,"points":[{"x":2,"y":0,"label":"Root (2,0)"},{"x":3,"y":0,"label":"Root (3,0)"},{"x":2.5,"y":-0.25,"label":"Vertex (2.5,-0.25)"}]}
-   - Data line: {"type":"line","title":"Distance vs Time","xLabel":"Time (s)","yLabel":"Distance (m)","xData":[0,1,2,3,4,5],"series":[{"name":"Distance","data":[0,5,20,45,80,125]}]}
-   - Bar chart: {"type":"bar","title":"...","xLabel":"...","yLabel":"...","xData":["A","B"],"series":[{"name":"Value","data":[10,20]}]}
-   - Pie chart: {"type":"pie","title":"...","xData":["A","B"],"series":[{"name":"Value","data":[40,60]}]}
+    GRAPH FORMAT:
+    - Function: {"type":"function","title":"y = x^2 - 5x + 6","fn":"x*x - 5*x + 6","xMin":-1,"xMax":6,"yMin":-3,"yMax":10,"points":[{"x":2,"y":0,"label":"Root (2,0)"}]}
+    - Data: {"type":"line","xData":[0,1,2,3],"series":[{"name":"Distance","data":[0,5,20,45]}]}
+    - Bar: {"type":"bar","xData":["A","B"],"series":[{"name":"Value","data":[10,20]}]}
+    - Pie: {"type":"pie","xData":["A","B"],"series":[{"name":"Value","data":[40,60]}]}
+    - For function plots: ALWAYS provide xMin, xMax, yMin, yMax with 20%+ padding.
+    - Labels MUST include units. Mark ALL important points.
 
-13. DIAGRAM — For geometry, physics diagrams, free-body diagrams, ray diagrams, circuit diagrams: include a "diagram" field.
-   MANDATORY diagram triggers:
-   - Free-body diagrams (forces on an object)
-   - Geometry (triangles, circles, angle markings)
-   - Ray diagrams (optics - mirrors, lenses)
-   - Electric circuits (simple series/parallel)
-   - Projectile motion diagrams
-   - Inclined plane problems
-   - Pulley systems
+═════════════════════════════════════════════
+DIAGRAM — USE PRESET TEMPLATES
+═════════════════════════════════════════════
+28. For physics/chemistry/geometry diagrams, use the PRESET SYSTEM. Instead of raw SVG, specify:
+    {"diagramPreset":"<type>","values":{...},"caption":"..."}
 
-   Diagram format: {"svg":"<svg viewBox=\"0 0 300 250\">...</svg>","caption":"Free Body Diagram"}
-   SVG RULES:
-   - viewBox="0 0 300 250" (always this size)
-   - Use stroke-only shapes (fill=none, stroke-width=1.5 or 2)
-   - Text: font-size 12-14px, font-family sans-serif
-   - Include <defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill=\"%233b82f6\"/></marker></defs>
-   - Color important elements with stroke="#3b82f6" (blue), stroke="#ef4444" (red), stroke="#10b981" (green)
-   - Label ALL forces, angles, dimensions clearly
-   - NO external resources, NO images, NO fonts
+    AVAILABLE PRESETS:
+    a) "free-body" — Free Body Diagram
+       values: {"object":"Block","mass":"2 kg","forces":[{"label":"N","magnitude":"19.6 N","angle":90,"color":"%2310b981"},{"label":"mg","magnitude":"19.6 N","angle":270,"color":"%23ef4444"}]}
+    b) "inclined-plane" — Object on Inclined Plane with angle
+       values: {"object":"Block","mass":"5 kg","angle":30,"forces":[...]}
+    c) "circuit-series" — Series Circuit
+       values: {"components":[{"type":"battery","label":"E=12V","value":"12V"},{"type":"resistor","label":"R1=4Ω","value":"4"}]}
+    d) "circuit-parallel" — Parallel Circuit
+       values: {"components":[{"type":"battery","label":"E=12V"},{"type":"resistor","label":"R1=4Ω"}]}
+    e) "ray-mirror" — Concave/Convex Mirror Ray Diagram
+       values: {"mirrorType":"concave","f":10,"objectDist":20,"objectHeight":3}
+    f) "ray-lens" — Convex/Concave Lens Ray Diagram
+       values: {"lensType":"convex","f":15,"objectDist":30,"objectHeight":2}
+    g) "projectile" — Projectile Motion Diagram
+       values: {"u":20,"angle":45,"g":9.8}
+    h) "triangle" — Labeled Triangle (Geometry)
+       values: {"type":"right","vertices":[{"label":"A","x":50,"y":20},{"label":"B","x":50,"y":220},{"label":"C","x":250,"y":220}],"sides":{"AB":"?","BC":"4 cm","AC":"3 cm"},"markRightAngle":"B"}
+    i) "circle-geometry" — Circle with Points
+       values: {"radius":80,"center":{"x":150,"y":130},"points":[{"label":"A","angle":30},{"label":"B","angle":150}]}
+    j) "pulley" — Pulley System with Two Masses
+       values: {"m1":"5 kg","m2":"3 kg"}
+
+    If none of these presets fit, you may provide raw SVG with viewBox="0 0 300 250".
 
 OUTPUT: Return ONLY this JSON, no markdown fences, no text before/after:
 ${example}
 
-Now solve the student's problem the same way - substitute values, compute, show the answer. Include a graph or diagram when the problem involves any function, data, or visual relationship.`;
+Now solve the student's problem. Use many detailed steps, name every formula, use proper subscripts/superscripts, include tables where appropriate, and include a graph or diagram preset when relevant.`;
 }
+
 
 // ── JSON extraction ──
 function extractJSON(text: string): any | null {
@@ -704,7 +757,7 @@ Substitute the given values into the formula and compute. Return JSON only.`;
         mistakes: Array.isArray(parsed.mistakes) ? parsed.mistakes.slice(0, 5) : generateCommonMistakes(sub),
         examTips: BOARD_TIPS[brd]?.[sub] || [],
         graph: parsed.graph && parsed.graph.type ? parsed.graph : null,
-        diagram: parsed.diagram && parsed.diagram.svg ? parsed.diagram : null,
+        diagram: (parsed.diagram && parsed.diagram.svg) || (parsed.diagram && parsed.diagram.diagramPreset) ? parsed.diagram : null,
       };
       return NextResponse.json({ success: true, data: solution, source: "ai" });
     }
