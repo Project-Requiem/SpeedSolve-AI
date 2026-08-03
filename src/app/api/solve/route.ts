@@ -245,6 +245,67 @@ const EXAMPLES: Record<string, string> = {
   }),
 };
 
+const EXAMPLES: Record<string, string> = {
+  mathematics: JSON.stringify({
+    finalAnswer: "x = 3",
+    finalFormula: "$x = (14 - 5) / 3 = 3$",
+    steps: [
+      { desc: "Given the linear equation $3x + 5 = 14$. We need to find the value of x.", formula: "$3x + 5 = 14$" },
+      { desc: "Applying the transposition method: move the constant term 5 to the RHS. This changes its sign.", formula: "$3x = 14 - 5$" },
+      { desc: "Simplify the RHS.", formula: "$3x = 9$" },
+      { desc: "Divide both sides by the coefficient of x, which is 3.", formula: "$x = 9 / 3$" },
+      { desc: "Therefore, we get the value of x.", formula: "$x = 3$" },
+      { desc: "Verification: Substitute $x = 3$ back into the original equation. LHS = $3(3) + 5 = 9 + 5 = 14$ = RHS. Hence verified.", formula: "$3(3) + 5 = 14$" },
+    ],
+    altSteps: [
+      { desc: "Using the Balance Method: whatever we add to one side, we add to the other.", formula: "$3x + 5 - 5 = 14 - 5$" },
+      { desc: "Simplify both sides.", formula: "$3x = 9$" },
+      { desc: "Divide both sides by 3.", formula: "$x = 9 / 3 = 3$" },
+      { desc: "Verification: LHS = $3(3) + 5 = 14$ = RHS. Confirmed.", formula: "$14 = 14$" },
+    ],
+    similar: ["Solve 5x - 7 = 18", "Solve 2x + 3 = x + 8"],
+    mistakes: ["Sign errors when moving terms across the = sign", "Forgetting to divide the entire RHS, not just one term"],
+  }),
+  physics: JSON.stringify({
+    finalAnswer: "v = 19.6 m/s",
+    finalFormula: "$v = u + at = 0 + (9.8)(2) = 19.6$ m/s",
+    steps: [
+      { desc: "Given: Initial velocity $u = 0$ m/s (object dropped from rest), acceleration $a = g = 9.8$ $m/s^{2}$, time $t = 2$ s. Find: final velocity v.", formula: "" },
+      { desc: "We use the First Equation of Motion (Kinematic Equation).", formula: "$v = u + at$" },
+      { desc: "Substitute the given values: $u = 0$, $a = 9.8$ $m/s^{2}$, $t = 2$ s.", formula: "$v = 0 + (9.8)(2)$" },
+      { desc: "Compute the product and add to initial velocity.", formula: "$v = 0 + 19.6 = 19.6$ m/s" },
+      { desc: "Verification using Third Equation of Motion: $v^{2} = u^{2} + 2as$. Distance $s = \\frac{1}{2}gt^{2} = 0.5 \\times 9.8 \\times 4 = 19.6$ m. Then $v = \\\sqrt{0 + 2 \\times 9.8 \\times 19.6} = 19.6$ m/s. Matches.", formula: "$v^{2} = u^{2} + 2as$" },
+    ],
+    altSteps: [
+      { desc: "Using the Principle of Conservation of Energy: $Potential Energy = Kinetic Energy$ at ground level.", formula: "$mgh = \\frac{1}{2}mv^{2}$" },
+      { desc: "Cancel mass m from both sides.", formula: "$gh = \\frac{1}{2}v^{2}$" },
+      { desc: "Rearrange to solve for v. First find height: $s = \\frac{1}{2}gt^{2} = 0.5 \\times 9.8 \\times 4 = 19.6$ m.", formula: "$h = 19.6$ m" },
+      { desc: "Substitute: $v = \\\sqrt{2 \\times 9.8 \\times 19.6}$.", formula: "$v = \\\sqrt{384.16} = 19.6$ m/s" },
+    ],
+    similar: ["A stone dropped from 30m. Find time to reach ground (g=9.8)", "Ball thrown up at 15 m/s. Find max height (g=10)"],
+    mistakes: ["Using wrong value of g (9.8 vs 10)", "Forgetting to convert units (km/h to m/s)", "Choosing the wrong kinematic equation for the given quantities"],
+  }),
+  chemistry: JSON.stringify({
+    finalAnswer: "Molarity = 0.2 M",
+    finalFormula: "$M = n / V = 0.1 / 0.5 = 0.2$ M",
+    steps: [
+      { desc: "Given: Mass of $NaOH$ = 4 g, Volume of solution = 500 mL = 0.5 L. Atomic masses: $Na$=23, $O$=16, $H$=1. Find: Molarity of the solution.", formula: "" },
+      { desc: "We use the Molarity Formula. First, find the molar mass of $NaOH$ by adding atomic masses.", formula: "$M_{NaOH} = 23 + 16 + 1 = 40$ g/mol" },
+      { desc: "Calculate the number of moles using the formula: $n = mass / molar\ mass$.", formula: "$n = 4 / 40 = 0.1$ mol" },
+      { desc: "Apply the Molarity Formula: $M = n / V$. Volume must be in litres.", formula: "$M = 0.1 / 0.5$" },
+      { desc: "Compute the molarity.", formula: "$M = 0.2$ M" },
+      { desc: "Verification: $0.2$ mol/L $\\times$ $0.5$ L $= 0.1$ mol $= 4/40$. Correct.", formula: "" },
+    ],
+    altSteps: [
+      { desc: "Using the combined Molarity Formula: $M = mass / (molar\ mass \\times volume)$. This combines the mole calculation and molarity into one step.", formula: "$M = \\frac{mass}{M_{molar} \\times V}$" },
+      { desc: "Substitute: mass = 4 g, $M_{molar} = 40$ g/mol, $V = 0.5$ L.", formula: "$M = 4 / (40 \\times 0.5)$" },
+      { desc: "Compute: denominator = $40 \\times 0.5 = 20$.", formula: "$M = 4 / 20 = 0.2$ M" },
+    ],
+    similar: ["Find molarity of 9.8g $H_{2}SO_{4}$ in 250 mL ($H$=1, $S$=32, $O$=16)", "How many grams of $KOH$ for 200 mL of 0.5 M? ($K$=39, $O$=16, $H$=1)"],
+    mistakes: ["Forgetting to convert mL to L for volume", "Using wrong atomic masses", "Confusing molarity (mol/L) with molality (mol/kg)"],
+  }),
+};
+
 function buildSystemPrompt(board: string, subject: string): string {
   const boardName = board === "icse" ? "ICSE" : board === "cbse" ? "CBSE" : "State Board";
   const example = EXAMPLES[subject] || EXAMPLES.mathematics;
@@ -281,7 +342,7 @@ STEP QUALITY — THIS IS YOUR #1 PRIORITY
 ═════════════════════════════════════════════
 1. MORE STEPS: Break complex problems into MANY small, easy-to-follow steps. A 3-step problem is better as 6 steps. Each step should do ONE thing.
 2. NAME THE FORMULA: Every step that uses a formula MUST begin by naming it. Examples:
-   - "Using the Quadratic Formula: $x = rac{-b \pm \sqrt{b^{2}-4ac}}{2a}$"
+   - "Using the Quadratic Formula: $x = \\frac{-b \\pm \\sqrt{b^{2}-4ac}}{2a}$"
    - "Applying Ohm's Law: $V = IR$"
    - "By the Pythagorean Theorem: $a^{2} + b^{2} = c^{2}$"
    - "Using the Molarity Formula: $M = n/V$"
@@ -293,8 +354,8 @@ STEP QUALITY — THIS IS YOUR #1 PRIORITY
    Use tables for: given data summary, element/mole/mass calculations, data comparison, frequency distributions, coordinate tables.
 6. USE PROPER SUBSCRIPTS AND SUPERSCRIPTS in $...$ LaTeX:
    - Chemical formulas: $H_{2}SO_{4}$, $CaCO_{3}$, $CH_{3}COOH$, $Fe_{2}O_{3}$
-   - Units: $m/s^{2}$, $cm^{3}$, $kg \cdot m/s^{2}$
-   - Powers: $x^{2}$, $v^{2}$, $10^{-7}$, $3    imes 10^{8}$
+   - Units: $m/s^{2}$, $cm^{3}$, $kg \\cdot m/s^{2}$
+   - Powers: $x^{2}$, $v^{2}$, $10^{-7}$, $3 \\times 10^{8}$
    - Indices: $a_{n}$, $T_{1}$, $P_{total}$
    - DO NOT write H2SO4, m/s2, x2 as plain text inside math delimiters — always use _{} and ^{}
 
@@ -302,15 +363,14 @@ STEP QUALITY — THIS IS YOUR #1 PRIORITY
 LATEX RULES — STRICT COMPLIANCE
 ═════════════════════════════════════════════
 7. WRAP ALL MATH in $...$ (inline) or $$...$$ (display). Every number that is part of a calculation goes in $...$.
-8. USE rac{}{} for fractions: $rac{1}{2}$, $rac{-b \pm \sqrt{b^{2}-4ac}}{2a}$
-9. USE \sqrt{} for square roots: $\sqrt{144} = 12$
+8. USE \\frac{}{} for fractions: $\\frac{1}{2}$, $\\frac{-b \\pm \\sqrt{b^{2}-4ac}}{2a}$
+9. USE \\sqrt{} for square roots: $\\sqrt{144} = 12$
 10. USE _{} for subscripts and ^{} for superscripts: $v_{0}$, $a^{2}$, $10^{-3}$
-11. USE         imes for multiplication: $3     imes 4 = 12$
-12. USE \pm, 
-eq, \leq, \geq, pprox, ngle, \circ, \pi for symbols.
-13. USE \sum, \prod, \int, \lim for summation/products/integrals/limits.
-14. NEVER use \text{}, \mathrm{}, \mathbf{} — write words as plain text OUTSIDE the $ delimiters.
-15. For units in formulas, write them as plain text AFTER the $...$: "$v = 19.6$ m/s" NOT "$v = 19.6 \text{ m/s}$".
+11. USE \\times for multiplication: $3 \\times 4 = 12$
+12. USE \\pm, \\neq, \\leq, \\geq, \\approx, \\angle, \\circ, \\pi for symbols.
+13. USE \\sum, \\prod, \\int, \\lim for summation/products/integrals/limits.
+14. NEVER use \\text{}, \\mathrm{}, \\mathbf{} — write words as plain text OUTSIDE the $ delimiters.
+15. For units in formulas, write them as plain text AFTER the $...$: "$v = 19.6$ m/s" NOT "$v = 19.6 \\text{ m/s}$".
 16. Chemical formulas must ALWAYS use subscripts in LaTeX: $H_{2}O$, $CO_{2}$, $NaCl$, $H_{2}SO_{4}$
 
 ═════════════════════════════════════════════
