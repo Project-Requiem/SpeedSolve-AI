@@ -372,6 +372,7 @@ LATEX RULES — STRICT COMPLIANCE
 14. NEVER use \\text{}, \\mathrm{}, \\mathbf{} — write words as plain text OUTSIDE the $ delimiters.
 15. For units in formulas, write them as plain text AFTER the $...$: "$v = 19.6$ m/s" NOT "$v = 19.6 \\text{ m/s}$".
 16. Chemical formulas must ALWAYS use subscripts in LaTeX: $H_{2}O$, $CO_{2}$, $NaCl$, $H_{2}SO_{4}$
+16b. CRITICAL: In JSON strings, backslashes MUST be double-escaped: write \\frac not \frac. Every \\ in a JSON string value needs \\. This prevents JSON.parse from destroying LaTeX commands.
 
 ═════════════════════════════════════════════
 FINAL ANSWER — ABSOLUTE PRIORITY
@@ -499,10 +500,18 @@ function escapeLatexForJSONParse(text: string): string {
 // Post-parse safety net: replace control chars that leaked through JSON.parse
 function fixParsedLatexControlChars(obj: any): any {
   if (typeof obj === 'string') {
-    return obj
-      .replace(/\x0c/g, '\\')  // form-feed → \ (from \f in \frac, \forall)
-      .replace(/\x08/g, '\\')  // backspace → \ (from \b in \beta, \binom)
-      .replace(/\x0b/g, '\\'); // vertical-tab → \ (from \v in \vec)
+    let s = obj;
+    // Replace control chars with backslash
+    s = s.replace(/\x0c/g, '\\')  // form-feed -> \\ (from \f in \frac, \forall)
+    s = s.replace(/\x08/g, '\\')  // backspace -> \\ (from \b in \beta, \binom)
+    s = s.replace(/\x0b/g, '\\'); // vertical-tab -> \\ (from \v in \vec)
+    // Detect and fix exploded fractions: "rac{" without leading backslash
+    s = s.replace(/(?<!\\)rac\{/g, '\\frac{');
+    // Fix orphaned LaTeX commands missing backslash
+    s = s.replace(/(?<!\\)(?=beta\{|gamma\{|delta\{|theta\{|alpha\{|lambda\{|sqrt\{|vec\{|sum\{|prod\{|int\{|sin\{|cos\{|tan\{)/g, '\\');
+    // Auto-wrap bare \frac{}{} in $ if not already wrapped
+    s = s.replace(/(?<!\$)(\\frac\{[^}]*\}\s*\\{[^}]*\})(?!\$)/g, '\$$1\$$');
+    return s;
   }
   if (Array.isArray(obj)) return obj.map(fixParsedLatexControlChars);
   if (obj && typeof obj === 'object') {

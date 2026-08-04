@@ -182,7 +182,7 @@ function wrapBareLatex(text: string): string {
   // \overline{X}, \underline{X}
   t = t.replace(/\\(overline|underline)(\{[^}]*\})/g, '$\\$1$2$$')
   // Greek letters and common math commands
-  t = t.replace(/\\(theta|alpha|beta|gamma|delta|lambda|mu|sigma|omega|rho|tau|phi|psi|epsilon|eta|nu|pi|infty|partial|times|div|pm|neq|leq|geq|approx|angle|cdot|sum|prod|int|lim|log|ln|sin|cos|tan|cot|sec|csc|exp|det|rightarrow|leftarrow|Rightarrow|vec|hat|bar|tilde|dot|nabla)(?=[^a-zA-Z]|$)/g, '$\\$1$$')
+  t = t.replace(/\\(theta|alpha|beta|gamma|delta|lambda|mu|sigma|omega|rho|tau|phi|psi|epsilon|eta|nu|pi|infty|partial|times|div|pm|neq|leq|geq|approx|angle|cdot|sum|prod|int|lim|log|ln|sin|cos|tan|cot|sec|csc|exp|det|rightarrow|leftarrow|Rightarrow|vec|hat|bar|tilde|dot|nabla|forall|exists)(?=[^a-zA-Z]|$)/g, '$\\$1$$')
   // Merge adjacent $$ into single $
   t = t.replace(/\$\$\s*\$/g, '$')
   return t
