@@ -245,8 +245,6 @@ const EXAMPLES: Record<string, string> = {
   }),
 };
 
-};
-
 function buildSystemPrompt(board: string, subject: string): string {
   const boardName = board === "icse" ? "ICSE" : board === "cbse" ? "CBSE" : "State Board";
   const example = EXAMPLES[subject] || EXAMPLES.mathematics;
