@@ -155,84 +155,131 @@ function detectSubject(text: string): Subject | null {
   return null
 }
 
-// ─── KaTeX Helper ────────────────────────────────────────────────
+// ─── KaTeX Helper ────────────────────────────────────────
 // Strip problematic LaTeX commands that cause rendering issues
 function sanitizeLatexForKatex(text: string): string {
   if (!text) return ''
   let t = text
-  // Remove \text{...} — content spills into plain text outside $
   t = t.replace(/\\text\{[^}]*\}/g, '')
-  // Remove \mathrm{...} and \mathbf{...} — same issue
   t = t.replace(/\\mathrm\{[^}]*\}/g, '')
   t = t.replace(/\\mathbf\{[^}]*\}/g, '')
-  // Remove \textbf{...}
   t = t.replace(/\\textbf\{[^}]*\}/g, '')
   return t
+}
+
+// NUCLEAR pre-sanitizer: strips ALL invisible chars, control chars, exploded text
+function nukeBadChars(text: string): string {
+  if (!text) return ''
+  let s = text
+  s = s.replace(/[\u200B\u200C\u200D\uFEFF\u00AD\u2060-\u2064\u034F\u061C\u180E]/g, '')
+  s = s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+  const lines = s.split('\n')
+  if (lines.length > 2) {
+    const nonEmpty = lines.filter(l => l.trim().length > 0)
+    const avgLen = nonEmpty.reduce((a, l) => a + l.trim().length, 0) / (nonEmpty.length || 1)
+    if (nonEmpty.length > 3 && avgLen < 5) {
+      s = nonEmpty.map(l => l.trim()).join(' ')
+    } else {
+      s = lines.map(l => l.trim()).filter(l => l.length > 0).join(' ')
+    }
+  }
+  s = s.replace(/(?<!\\)(?=frac\{|sqrt\{|sum\{|prod\{|int\{|lim\{|log\{|ln\{|sin\{|cos\{|tan\{|cot\{|sec\{|csc\{|exp\{|det\{|binom\{|vec\{|hat\{|bar\{|tilde\{|dot\{|nabla\{|theta|alpha|beta|gamma|delta|lambda|mu|sigma|omega|rho|tau|phi|psi|epsilon|eta|nu|pi|infty|partial|times|div|pm|neq|leq|geq|approx|angle|cdot|rightarrow|leftarrow|Rightarrow|forall|exists)/g, '\\')
+  s = s.replace(/(?<!\\)rac\{/g, '\\frac{')
+  s = s.replace(/  +/g, ' ').trim()
+  return s
+}
+
+// Check if LaTeX is likely valid for KaTeX
+function isSafeLatex(tex: string): boolean {
+  if (!tex || tex.trim().length === 0) return false
+  const t = tex.trim()
+  let depth = 0
+  for (const ch of t) {
+    if (ch === '{') depth++
+    if (ch === '}') depth--
+    if (depth < 0) return false
+  }
+  if (depth !== 0) return false
+  const words = t.split(/\s+/).filter(w => w.length > 0)
+  if (words.length > 8) {
+    const avgWordLen = words.reduce((a, w) => a + w.length, 0) / words.length
+    if (avgWordLen < 2) return false
+  }
+  return true
+}
+
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+// Safe KaTeX: never shows red errors
+function safeKatex(tex: string, displayMode: boolean): string {
+  if (!isSafeLatex(tex)) {
+    return '<span class="math-fallback">' + escapeHtml(cleanBareLatex(tex)) + '</span>'
+  }
+  const sanitized = sanitizeLatexForKatex(tex.trim())
+  try {
+    const html = katex.renderToString(sanitized, { displayMode, throwOnError: false })
+    if (html.includes('katex-error')) {
+      return '<span class="math-fallback">' + escapeHtml(cleanBareLatex(tex)) + '</span>'
+    }
+    return html
+  } catch {
+    return '<span class="math-fallback">' + escapeHtml(cleanBareLatex(tex)) + '</span>'
+  }
 }
 
 // Wrap bare LaTeX commands (not in $...$) so KaTeX can render them
 function wrapBareLatex(text: string): string {
   let t = text
-  // \frac{A}{B} → $\frac{A}{B}$
   t = t.replace(/\\frac(\{[^}]*\}\s*\{[^}]*\})/g, '$\\frac$1$$')
-  // \sqrt{X}, \sqrt[X]{Y} → $\sqrt{X}$
   t = t.replace(/\\sqrt(\[[^\]]*\])?(\{[^}]*\})/g, '$\\sqrt$1$2$$')
-  // \binom{A}{B} → $\binom{A}{B}$
   t = t.replace(/\\binom(\{[^}]*\}\s*\{[^}]*\})/g, '$\\binom$1$$')
-  // \overline{X}, \underline{X}
   t = t.replace(/\\(overline|underline)(\{[^}]*\})/g, '$\\$1$2$$')
-  // Greek letters and common math commands
   t = t.replace(/\\(theta|alpha|beta|gamma|delta|lambda|mu|sigma|omega|rho|tau|phi|psi|epsilon|eta|nu|pi|infty|partial|times|div|pm|neq|leq|geq|approx|angle|cdot|sum|prod|int|lim|log|ln|sin|cos|tan|cot|sec|csc|exp|det|rightarrow|leftarrow|Rightarrow|vec|hat|bar|tilde|dot|nabla|forall|exists)(?=[^a-zA-Z]|$)/g, '$\\$1$$')
-  // Merge adjacent $$ into single $
   t = t.replace(/\$\$\s*\$/g, '$')
   return t
 }
 
 function renderLatex(text: string): string {
   if (!text) return ''
-  // Pre-sanitize to remove problematic commands before any processing
+  // NUCLEAR: strip all invisible/broken chars FIRST
+  text = nukeBadChars(text)
+  // Pre-sanitize
   text = sanitizeLatexForKatex(text)
-  // Fix double-escaped backslashes from LLM JSON output
+  // Fix double-escaped backslashes
   text = text.replace(/\\\\/g, '\\')
-  // If no $ delimiters but text has LaTeX commands, auto-wrap them
+  // Auto-wrap bare LaTeX
   const hasDelimiters = /\$\$[\s\S]+?\$\$|\$[^$]+?\$/g.test(text)
   const hasLatexCommands = /\\[a-zA-Z]/.test(text)
   if (!hasDelimiters && hasLatexCommands) {
     const wrapped = wrapBareLatex(text)
     if (wrapped !== text) return renderLatex(wrapped)
   }
-  // Split by math delimiters, clean non-math parts separately, then render math
+  // Split by math delimiters, use safeKatex for each block
   const mathBlockRegex = /\$\$([\s\S]+?)\$\$|\$([^$]+?)\$/g
   const parts: string[] = []
   let lastIndex = 0
   let match
   while ((match = mathBlockRegex.exec(text)) !== null) {
-    // Non-math text before this match — clean bare LaTeX artifacts
     if (match.index > lastIndex) {
       parts.push(cleanBareLatex(text.slice(lastIndex, match.index)))
     }
-    // Render the math block with KaTeX
     const displayTex = match[1]
     const inlineTex = match[2]
     if (displayTex) {
-      const sanitized = sanitizeLatexForKatex(displayTex.trim())
-      try {
-        parts.push(katex.renderToString(sanitized, { displayMode: true, throwOnError: false }))
-      } catch { parts.push(cleanBareLatex(match[0])) }
+      parts.push(safeKatex(displayTex, true))
     } else if (inlineTex) {
-      const sanitized = sanitizeLatexForKatex(inlineTex.trim())
-      try {
-        parts.push(katex.renderToString(sanitized, { displayMode: false, throwOnError: false }))
-      } catch { parts.push(cleanBareLatex(match[0])) }
+      parts.push(safeKatex(inlineTex, false))
     }
     lastIndex = match.index + match[0].length
   }
-  // Remaining text after last math block
   if (lastIndex < text.length) {
     parts.push(cleanBareLatex(text.slice(lastIndex)))
   }
   return parts.join('')
 }
+
 
 
 function normalizeLatex(s: string): string {
@@ -247,19 +294,16 @@ function normalizeLatex(s: string): string {
 
 function renderFormulaToHtml(formula: string): React.ReactNode {
   if (!formula) return null
-  // Sanitize problematic commands before passing to KaTeX
-  const sanitized = sanitizeLatexForKatex(formula)
+  const cleaned = nukeBadChars(formula)
+  const sanitized = sanitizeLatexForKatex(cleaned)
   const normalized = normalizeLatex(sanitized)
-  if (!normalized) return <span>{cleanBareLatex(formula)}</span>
+  if (!normalized) return <span className="math-fallback">{cleanBareLatex(cleaned)}</span>
   if (normalized.includes('$')) {
     return <span dangerouslySetInnerHTML={{ __html: renderLatex(normalized) }} />
   }
-  try {
-    const html = katex.renderToString(normalized, { displayMode: true, throwOnError: false })
-    return <span dangerouslySetInnerHTML={{ __html }} />
-  } catch {
-    return <span>{cleanBareLatex(formula)}</span>
-  }
+  // Use safeKatex for formula field — never shows red errors
+  const html = safeKatex(normalized, true)
+  return <span dangerouslySetInnerHTML={{ __html: html }} />
 }
 
 // ─── Background Component ────────────────────────────────────────
@@ -1685,7 +1729,7 @@ export default function Home() {
                           <span>Not satisfied?</span>
                         </button>
                       )}
-                      <button className="btn-regenerate" onClick={() => { if (!retryingAI && !loading) { setRetryingAI(true); solve(); setTimeout(() => setRetryingAI(false), 500) } }} disabled={retryingAI || loading}>
+                      <button className="btn-regenerate" onClick={() => { if (!retryingAI && !loading) { retryWithAI() } }} disabled={retryingAI || loading}>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={retryingAI ? { animation: 'spin 1s linear infinite' } : {}}><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
                         <span>{retryingAI ? 'Solving...' : 'Regenerate'}</span>
                       </button>

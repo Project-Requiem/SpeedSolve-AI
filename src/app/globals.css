@@ -781,6 +781,9 @@ body {
 [data-theme="light"] .step-formula { color: #4338ca; }
 .step-formula .katex { font-size: 1.2em; color: inherit; }
 .step-formula .katex-display { margin: 0; }
+/* NEVER show KaTeX errors in red — hide them completely */
+.katex-error { display: none !important; }
+.math-fallback { color: inherit; }
 
 /* Step tables — rendered from AI-generated HTML tables in step descriptions */
 .step-desc table {
