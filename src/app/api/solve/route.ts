@@ -367,6 +367,15 @@ LATEX RULES — STRICT COMPLIANCE
 16. Chemical formulas must ALWAYS use subscripts in LaTeX: $H_{2}O$, $CO_{2}$, $NaCl$, $H_{2}SO_{4}$
 16b. CRITICAL: In JSON strings, backslashes MUST be double-escaped: write \\frac not \frac. Every \\ in a JSON string value needs \\. This prevents JSON.parse from destroying LaTeX commands.
 16c. ABSOLUTE RULE: step.desc and step.formula fields MUST be single-line plain text with $...$ delimited LaTeX. NEVER output multi-line formulas, NEVER insert newlines between characters, NEVER use zero-width spaces or invisible Unicode characters. Every formula must fit on ONE line.
+16d. OUTPUT QUALITY - ZERO TOLERANCE:
+    - NEVER put characters on separate lines (e.g. "f\no\nr\nm\nu\nl\na" is FORBIDDEN)
+    - NEVER use zero-width spaces or invisible Unicode characters
+    - NEVER put \f, \b, \v inside English words (they get destroyed by JSON.parse)
+      Write "formula" not "\formula", "number" not "\number", "divide" not "\div ide"
+    - If a word contains a backslash sequence, write the COMPLETE word normally:
+      "Empirical Formula" NOT "Em\pirical For\mula"
+    - All step.desc and step.formula values MUST be single-line strings
+
 
 ═════════════════════════════════════════════
 FINAL ANSWER — ABSOLUTE PRIORITY
@@ -473,6 +482,29 @@ Now solve the student's problem. Use many detailed steps, name every formula, us
 }
 
 
+// ── Solution Quality Validator ──
+function isSolutionClean(p: any): boolean {
+  if (!p) return false;
+  const chk = (s: string): boolean => {
+    if (!s) return true;
+    if (/[​‌‍﻿­⁠-⁤]/.test(s)) return false;
+    const ls = s.split("\n");
+    if (ls.length > 5) {
+      const ne = ls.filter((l: string) => l.trim().length > 0);
+      if (ne.length > 6 && ne.reduce((a: number, l: string) => a + l.trim().length, 0) / ne.length < 5) return false;
+    }
+    if (/\bEm\s+for\b/.test(s) || /\bof\s+moles\b/.test(s)) return false;
+    if (/\\f(?!rac|orall)/.test(s)) return false;
+    return true;
+  };
+  if (!chk(p.finalAnswer)) return false;
+  if (!chk(p.finalFormula)) return false;
+  for (let i = 0; i < (p.steps || []).length; i++) {
+    if (!chk(p.steps[i]?.desc)) return false;
+    if (!chk(p.steps[i]?.formula)) return false;
+  }
+  return true;
+}
 // ── JSON extraction ──
 // STRATEGY: Don't try to double-escape LaTeX before JSON.parse.
 // Instead, let JSON.parse do its thing (which destroys \f→0x0C etc.),
@@ -740,9 +772,14 @@ function buildSolutionFromText(rawText: string, subject: string, board: string):
 
 function cleanLatex(text: string): string {
   if (!text) return text;
-  return text.replace(/\\text\{([^}]*)\}/g, "$1")
-    .replace(/\\mathrm\{([^}]*)\}/g, "$1")
-    .replace(/\\mathbf\{([^}]*)\}/g, "$1");
+  let t = text;
+  t = t.replace(/\\text\\{[^}]*\\}/g, "$1")
+    .replace(/\\mathrm\\{[^}]*\\}/g, "$1")
+    .replace(/\\mathbf\\{[^}]*\\}/g, "$1");
+  // Fix broken words from JSON.parse eating backslashes
+  t = t.replace(/\bEm\s+for\b/g, "Empirical Formula");
+  t = t.replace(/\bof\s+moles\b/g, "number of moles");
+  return t;
 }
 
 // Sanitize finalAnswer — strip multi-line junk, keep only the actual answer line
@@ -1011,7 +1048,25 @@ Substitute the given values into the formula and compute. Return JSON only.`;
     }
 
     // Try to parse JSON from AI response (deepCleanLaTeX runs inside extractJSON)
-    const parsed = extractJSON(raw);
+    // Quality gate: if solution is garbled, regenerate up to 3 times
+    let parsed = extractJSON(raw);
+    let clean = isSolutionClean(parsed);
+    let retries = 0;
+    while (!clean && retries < 3) {
+      console.warn("[SpeedSolve] Solution garbled, regenerating (" + (retries+1) + "/3)...");
+      const rr = await callAI(systemPrompt, userPrompt);
+      if (!rr) break;
+      const rp = extractJSON(rr);
+      if (isSolutionClean(rp)) {
+        parsed = rp;
+        clean = true;
+        console.log("[SpeedSolve] Regeneration " + (retries+1) + " succeeded");
+      }
+      retries++;
+    }
+    if (!clean && parsed) {
+      console.warn("[SpeedSolve] All regenerations dirty, using repaired result");
+    }
 
     if (parsed && parsed.finalAnswer && Array.isArray(parsed.steps) && parsed.steps.length > 0) {
       const cleanedSteps = (parsed.steps || []).map((s: any) => ({
