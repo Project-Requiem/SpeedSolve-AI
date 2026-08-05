@@ -530,11 +530,11 @@ function cleanSolutionStrings(obj: any): any {
       const nonEmpty = lines.filter(l => l.trim().length > 0);
       const avgLen = nonEmpty.reduce((a, l) => a + l.trim().length, 0) / (nonEmpty.length || 1);
       // If most lines are very short (< 4 chars), it's an "exploded" formula - collapse it
-      if (nonEmpty.length > 3 && avgLen < 4) {
+      // Only collapse if EXPLODED formula (many tiny lines)
+      // Do NOT touch text with HTML tags or normal paragraphs
+      const hasHTML = /<[a-z][\s\S]*?>/i.test(s);
+      if (!hasHTML && nonEmpty.length > 5 && avgLen < 3) {
         s = nonEmpty.map(l => l.trim()).join(' ');
-      } else {
-        // Normal multi-line: collapse into single line for desc/formula fields
-        s = lines.map(l => l.trim()).filter(l => l.length > 0).join(' ');
       }
     }
     // 4. Fix orphaned LaTeX commands (missing leading backslash)
@@ -547,8 +547,6 @@ function cleanSolutionStrings(obj: any): any {
     s = s.replace(/(?<!\\)(?=left[\(\[\{\|]|right[\)\]\}\|])/g, '\\');
     // 8. Clean up excessive whitespace
     s = s.replace(/  +/g, ' ').trim();
-    // 9. Remove stray \n/\r that may remain
-    s = s.replace(/[\r\n]/g, ' ');
     return s;
   }
   if (Array.isArray(obj)) return obj.map(cleanSolutionStrings);

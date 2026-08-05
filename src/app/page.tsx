@@ -167,25 +167,36 @@ function sanitizeLatexForKatex(text: string): string {
   return t
 }
 
-// NUCLEAR pre-sanitizer: strips ALL invisible chars, control chars, exploded text
+// NUCLEAR pre-sanitizer: strips invisible chars, control chars, exploded formulas only
 function nukeBadChars(text: string): string {
   if (!text) return ''
   let s = text
+  // 1. Strip invisible Unicode chars
   s = s.replace(/[\u200B\u200C\u200D\uFEFF\u00AD\u2060-\u2064\u034F\u061C\u180E]/g, '')
+  // 2. Strip control chars (but NOT normal newlines/tabs)
   s = s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-  const lines = s.split('\n')
-  if (lines.length > 2) {
-    const nonEmpty = lines.filter(l => l.trim().length > 0)
-    const avgLen = nonEmpty.reduce((a, l) => a + l.trim().length, 0) / (nonEmpty.length || 1)
-    if (nonEmpty.length > 3 && avgLen < 5) {
-      s = nonEmpty.map(l => l.trim()).join(' ')
-    } else {
-      s = lines.map(l => l.trim()).filter(l => l.length > 0).join(' ')
+  // 3. Only collapse multi-line if it looks like an EXPLODED formula
+  //    (many very short lines = chars on separate lines)
+  //    Do NOT touch text with HTML tags or normal paragraphs
+  if (!/<[a-z][\s\S]*?>/i.test(s)) {
+    const lines = s.split('\n')
+    if (lines.length > 4) {
+      const nonEmpty = lines.filter(l => l.trim().length > 0)
+      const avgLen = nonEmpty.reduce((a, l) => a + l.trim().length, 0) / (nonEmpty.length || 1)
+      // Exploded = many lines with avg < 3 chars each
+      if (nonEmpty.length > 5 && avgLen < 3) {
+        s = nonEmpty.map(l => l.trim()).join(' ')
+      }
     }
   }
-  s = s.replace(/(?<!\\)(?=frac\{|sqrt\{|sum\{|prod\{|int\{|lim\{|log\{|ln\{|sin\{|cos\{|tan\{|cot\{|sec\{|csc\{|exp\{|det\{|binom\{|vec\{|hat\{|bar\{|tilde\{|dot\{|nabla\{|theta|alpha|beta|gamma|delta|lambda|mu|sigma|omega|rho|tau|phi|psi|epsilon|eta|nu|pi|infty|partial|times|div|pm|neq|leq|geq|approx|angle|cdot|rightarrow|leftarrow|Rightarrow|forall|exists)/g, '\\')
-  s = s.replace(/(?<!\\)rac\{/g, '\\frac{')
-  s = s.replace(/  +/g, ' ').trim()
+  // 4. Fix orphaned LaTeX commands (only outside HTML tags)
+  // Skip this for text with HTML to avoid breaking tag attributes
+  if (!/<[a-z][\s\S]*?>/i.test(s)) {
+    s = s.replace(/(?<!\\)(?=frac\{|sqrt\{|sum\{|prod\{|int\{|lim\{|log\{|ln\{|sin\{|cos\{|tan\{|cot\{|sec\{|csc\{|exp\{|det\{|binom\{|vec\{|hat\{|bar\{|tilde\{|dot\{|nabla\{|theta|alpha|beta|gamma|delta|lambda|mu|sigma|omega|rho|tau|phi|psi|epsilon|eta|nu|pi|infty|partial|times|div|pm|neq|leq|geq|approx|angle|cdot|rightarrow|leftarrow|Rightarrow|forall|exists)/g, '\\')
+    s = s.replace(/(?<!\\)rac\{/g, '\\frac{')
+  }
+  // 5. Collapse excessive spaces (but preserve newlines)
+  s = s.replace(/  +/g, ' ')
   return s
 }
 
