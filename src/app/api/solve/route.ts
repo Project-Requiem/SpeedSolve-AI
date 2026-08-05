@@ -10,9 +10,9 @@ const geminiAI = new GoogleGenAI({
 // ── AI Provider 1: Google Gemini ──
 async function callGemini(systemPrompt: string, userPrompt: string): Promise<string> {
   if (!process.env.GEMINI_API_KEY) return "";
-  const models = ["gemini-2.0-flash", "gemini-2.5-pro"];
+  const models = ["gemini-2.0-flash", "gemini-2.5-pro", "gemini-2.5-flash"];
   for (const model of models) {
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const response = await geminiAI.models.generateContent({
           model,
@@ -25,9 +25,9 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<str
           return text;
         }
       } catch (err: any) {
-        console.error(`[SpeedSolve] Gemini ${model}: ${err?.message?.slice(0, 100)}`);
+        console.error(`[SpeedSolve] Gemini ${model} attempt ${attempt+1}: ${err?.message?.slice(0, 100)}`);
       }
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
     }
   }
   return "";
@@ -37,10 +37,51 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<str
 async function callGroq(systemPrompt: string, userPrompt: string): Promise<string> {
   const key = process.env.GROQ_API_KEY;
   if (!key) return "";
-  const models = ["llama-3.3-70b-versatile", "deepseek-r1-distill-llama-70b"];
+  const models = ["llama-3.3-70b-versatile", "deepseek-r1-distill-llama-70b", "llama-3.1-8b-instant", "gemma2-9b-it"];
+  for (const model of models) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+            temperature: 0.1,
+            max_tokens: 8192,
+          }),
+          signal: AbortSignal.timeout(35000),
+        });
+        if (!res.ok) {
+          console.error(`[SpeedSolve] Groq ${model}: ${res.status}`);
+          continue;
+        }
+        const data = await res.json();
+        const text = data?.choices?.[0]?.message?.content || "";
+        if (text.trim().length > 20) {
+          console.log(`[SpeedSolve] Groq ${model} OK (${text.length} chars)`);
+          return text;
+        }
+      } catch (err: any) {
+        console.error(`[SpeedSolve] Groq ${model}: ${err?.message?.slice(0, 100)}`);
+      }
+      await new Promise(r => setTimeout(r, 500));
+    }
+  }
+  return "";
+}
+
+// ── AI Provider 3: OpenRouter fallback (keys: OPENROUTER_API_KEY) ──
+async function callOpenRouter(systemPrompt: string, userPrompt: string): Promise<string> {
+  const key = process.env.OPENROUTER_API_KEY;
+  if (!key) return "";
+  const models = ["google/gemini-2.0-flash-exp:free", "meta-llama/llama-3.1-70b-instruct:free", "deepseek/deepseek-chat-v3-0324:free"];
   for (const model of models) {
     try {
-      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -52,37 +93,45 @@ async function callGroq(systemPrompt: string, userPrompt: string): Promise<strin
           temperature: 0.1,
           max_tokens: 8192,
         }),
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(45000),
       });
-      if (!res.ok) {
-        console.error(`[SpeedSolve] Groq ${model}: ${res.status} ${await res.text().catch(() => "")}`);
-        continue;
-      }
+      if (!res.ok) continue;
       const data = await res.json();
       const text = data?.choices?.[0]?.message?.content || "";
       if (text.trim().length > 20) {
-        console.log(`[SpeedSolve] Groq ${model} OK (${text.length} chars)`);
+        console.log(`[SpeedSolve] OpenRouter ${model} OK (${text.length} chars)`);
         return text;
       }
     } catch (err: any) {
-      console.error(`[SpeedSolve] Groq ${model}: ${err?.message?.slice(0, 100)}`);
+      console.error(`[SpeedSolve] OpenRouter ${model}: ${err?.message?.slice(0, 100)}`);
     }
   }
   return "";
 }
 
-// ── Try all AI providers in sequence ──
+// ── Try ALL AI providers in sequence with full fallback chain ──
 async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
-  // Try Gemini first
+  // 1. Gemini (best quality)
   const geminiResult = await callGemini(systemPrompt, userPrompt);
   if (geminiResult) return geminiResult;
 
-  // Fallback to Groq
+  // 2. Groq (fast, free)
   console.log("[SpeedSolve] Gemini failed, trying Groq...");
   const groqResult = await callGroq(systemPrompt, userPrompt);
   if (groqResult) return groqResult;
 
-  console.error("[SpeedSolve] ALL AI providers failed");
+  // 3. OpenRouter (free tier fallback)
+  console.log("[SpeedSolve] Groq failed, trying OpenRouter...");
+  const orResult = await callOpenRouter(systemPrompt, userPrompt);
+  if (orResult) return orResult;
+
+  // 4. Retry Gemini one more time (transient errors)
+  console.log("[SpeedSolve] All providers failed, retrying Gemini...");
+  await new Promise(r => setTimeout(r, 2000));
+  const retryResult = await callGemini(systemPrompt, userPrompt);
+  if (retryResult) return retryResult;
+
+  console.error("[SpeedSolve] ALL AI providers failed after full retry");
   return "";
 }
 
