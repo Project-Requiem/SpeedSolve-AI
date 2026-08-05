@@ -634,15 +634,15 @@ body {
 
 /* ── Cursor Aura (desktop only) ── */
 .cursor-aura {
-  position: fixed; width: 80px; height: 80px; border-radius: 50%;
+  position: fixed; width: 420px; height: 420px; border-radius: 50%;
   background: radial-gradient(circle, var(--accent-glow) 0%, var(--glow-purple) 35%, transparent 70%);
   pointer-events: none; z-index: 0;
   transform: translate(-50%, -50%);
-  opacity: 0.15;
+  opacity: 0.7;
   transition: opacity 0.3s ease;
-  filter: blur(4px);
+  filter: blur(2px);
 }
-[data-theme="light"] .cursor-aura { opacity: 0.1; filter: blur(6px); }
+[data-theme="light"] .cursor-aura { opacity: 0.65; filter: blur(3px); }
 @media (hover: none) and (pointer: coarse) {
   .cursor-aura { display: none; }
 }
@@ -781,9 +781,6 @@ body {
 [data-theme="light"] .step-formula { color: #4338ca; }
 .step-formula .katex { font-size: 1.2em; color: inherit; }
 .step-formula .katex-display { margin: 0; }
-/* NEVER show KaTeX errors in red — hide them completely */
-.katex-error { display: none !important; }
-.math-fallback { color: inherit; }
 
 /* Step tables — rendered from AI-generated HTML tables in step descriptions */
 .step-desc table {

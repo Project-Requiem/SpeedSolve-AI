@@ -10,9 +10,9 @@ const geminiAI = new GoogleGenAI({
 // ── AI Provider 1: Google Gemini ──
 async function callGemini(systemPrompt: string, userPrompt: string): Promise<string> {
   if (!process.env.GEMINI_API_KEY) return "";
-  const models = ["gemini-2.0-flash", "gemini-2.5-pro", "gemini-2.5-flash"];
+  const models = ["gemini-2.0-flash", "gemini-2.5-pro"];
   for (const model of models) {
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const response = await geminiAI.models.generateContent({
           model,
@@ -25,9 +25,9 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<str
           return text;
         }
       } catch (err: any) {
-        console.error(`[SpeedSolve] Gemini ${model} attempt ${attempt+1}: ${err?.message?.slice(0, 100)}`);
+        console.error(`[SpeedSolve] Gemini ${model}: ${err?.message?.slice(0, 100)}`);
       }
-      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+      await new Promise(r => setTimeout(r, 1000));
     }
   }
   return "";
@@ -37,51 +37,10 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<str
 async function callGroq(systemPrompt: string, userPrompt: string): Promise<string> {
   const key = process.env.GROQ_API_KEY;
   if (!key) return "";
-  const models = ["llama-3.3-70b-versatile", "deepseek-r1-distill-llama-70b", "llama-3.1-8b-instant", "gemma2-9b-it"];
-  for (const model of models) {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt },
-            ],
-            temperature: 0.1,
-            max_tokens: 8192,
-          }),
-          signal: AbortSignal.timeout(35000),
-        });
-        if (!res.ok) {
-          console.error(`[SpeedSolve] Groq ${model}: ${res.status}`);
-          continue;
-        }
-        const data = await res.json();
-        const text = data?.choices?.[0]?.message?.content || "";
-        if (text.trim().length > 20) {
-          console.log(`[SpeedSolve] Groq ${model} OK (${text.length} chars)`);
-          return text;
-        }
-      } catch (err: any) {
-        console.error(`[SpeedSolve] Groq ${model}: ${err?.message?.slice(0, 100)}`);
-      }
-      await new Promise(r => setTimeout(r, 500));
-    }
-  }
-  return "";
-}
-
-// ── AI Provider 3: OpenRouter fallback (keys: OPENROUTER_API_KEY) ──
-async function callOpenRouter(systemPrompt: string, userPrompt: string): Promise<string> {
-  const key = process.env.OPENROUTER_API_KEY;
-  if (!key) return "";
-  const models = ["google/gemini-2.0-flash-exp:free", "meta-llama/llama-3.1-70b-instruct:free", "deepseek/deepseek-chat-v3-0324:free"];
+  const models = ["llama-3.3-70b-versatile", "deepseek-r1-distill-llama-70b"];
   for (const model of models) {
     try {
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -93,49 +52,41 @@ async function callOpenRouter(systemPrompt: string, userPrompt: string): Promise
           temperature: 0.1,
           max_tokens: 8192,
         }),
-        signal: AbortSignal.timeout(45000),
+        signal: AbortSignal.timeout(30000),
       });
-      if (!res.ok) continue;
+      if (!res.ok) {
+        console.error(`[SpeedSolve] Groq ${model}: ${res.status} ${await res.text().catch(() => "")}`);
+        continue;
+      }
       const data = await res.json();
       const text = data?.choices?.[0]?.message?.content || "";
       if (text.trim().length > 20) {
-        console.log(`[SpeedSolve] OpenRouter ${model} OK (${text.length} chars)`);
+        console.log(`[SpeedSolve] Groq ${model} OK (${text.length} chars)`);
         return text;
       }
     } catch (err: any) {
-      console.error(`[SpeedSolve] OpenRouter ${model}: ${err?.message?.slice(0, 100)}`);
+      console.error(`[SpeedSolve] Groq ${model}: ${err?.message?.slice(0, 100)}`);
     }
   }
   return "";
 }
 
-// ── Try ALL AI providers in sequence with full fallback chain ──
+// ── Try all AI providers in sequence ──
 async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
-  // 1. Gemini (best quality)
+  // Try Gemini first
   const geminiResult = await callGemini(systemPrompt, userPrompt);
   if (geminiResult) return geminiResult;
 
-  // 2. Groq (fast, free)
+  // Fallback to Groq
   console.log("[SpeedSolve] Gemini failed, trying Groq...");
   const groqResult = await callGroq(systemPrompt, userPrompt);
   if (groqResult) return groqResult;
 
-  // 3. OpenRouter (free tier fallback)
-  console.log("[SpeedSolve] Groq failed, trying OpenRouter...");
-  const orResult = await callOpenRouter(systemPrompt, userPrompt);
-  if (orResult) return orResult;
-
-  // 4. Retry Gemini one more time (transient errors)
-  console.log("[SpeedSolve] All providers failed, retrying Gemini...");
-  await new Promise(r => setTimeout(r, 2000));
-  const retryResult = await callGemini(systemPrompt, userPrompt);
-  if (retryResult) return retryResult;
-
-  console.error("[SpeedSolve] ALL AI providers failed after full retry");
+  console.error("[SpeedSolve] ALL AI providers failed");
   return "";
 }
 
-// ── Board tips ──// ── Board tips ──
+// ── Board tips ──
 const BOARD_TIPS: Record<string, Record<string, string[]>> = {
   icse: {
     mathematics: [
@@ -330,7 +281,7 @@ STEP QUALITY — THIS IS YOUR #1 PRIORITY
 ═════════════════════════════════════════════
 1. MORE STEPS: Break complex problems into MANY small, easy-to-follow steps. A 3-step problem is better as 6 steps. Each step should do ONE thing.
 2. NAME THE FORMULA: Every step that uses a formula MUST begin by naming it. Examples:
-   - "Using the Quadratic Formula: $x = \\frac{-b \\pm \\sqrt{b^{2}-4ac}}{2a}$"
+   - "Using the Quadratic Formula: $x = rac{-b \pm \sqrt{b^{2}-4ac}}{2a}$"
    - "Applying Ohm's Law: $V = IR$"
    - "By the Pythagorean Theorem: $a^{2} + b^{2} = c^{2}$"
    - "Using the Molarity Formula: $M = n/V$"
@@ -342,8 +293,8 @@ STEP QUALITY — THIS IS YOUR #1 PRIORITY
    Use tables for: given data summary, element/mole/mass calculations, data comparison, frequency distributions, coordinate tables.
 6. USE PROPER SUBSCRIPTS AND SUPERSCRIPTS in $...$ LaTeX:
    - Chemical formulas: $H_{2}SO_{4}$, $CaCO_{3}$, $CH_{3}COOH$, $Fe_{2}O_{3}$
-   - Units: $m/s^{2}$, $cm^{3}$, $kg \\cdot m/s^{2}$
-   - Powers: $x^{2}$, $v^{2}$, $10^{-7}$, $3 \\times 10^{8}$
+   - Units: $m/s^{2}$, $cm^{3}$, $kg \cdot m/s^{2}$
+   - Powers: $x^{2}$, $v^{2}$, $10^{-7}$, $3    imes 10^{8}$
    - Indices: $a_{n}$, $T_{1}$, $P_{total}$
    - DO NOT write H2SO4, m/s2, x2 as plain text inside math delimiters — always use _{} and ^{}
 
@@ -351,26 +302,16 @@ STEP QUALITY — THIS IS YOUR #1 PRIORITY
 LATEX RULES — STRICT COMPLIANCE
 ═════════════════════════════════════════════
 7. WRAP ALL MATH in $...$ (inline) or $$...$$ (display). Every number that is part of a calculation goes in $...$.
-8. USE \\frac{}{} for fractions: $\\frac{1}{2}$, $\\frac{-b \\pm \\sqrt{b^{2}-4ac}}{2a}$
-9. USE \\sqrt{} for square roots: $\\sqrt{144} = 12$
+8. USE rac{}{} for fractions: $rac{1}{2}$, $rac{-b \pm \sqrt{b^{2}-4ac}}{2a}$
+9. USE \sqrt{} for square roots: $\sqrt{144} = 12$
 10. USE _{} for subscripts and ^{} for superscripts: $v_{0}$, $a^{2}$, $10^{-3}$
-11. USE \\times for multiplication: $3 \\times 4 = 12$
-12. USE \\pm, \\neq, \\leq, \\geq, \\approx, \\angle, \\circ, \\pi for symbols.
-13. USE \\sum, \\prod, \\int, \\lim for summation/products/integrals/limits.
-14. NEVER use \\text{}, \\mathrm{}, \\mathbf{} — write words as plain text OUTSIDE the $ delimiters.
-15. For units in formulas, write them as plain text AFTER the $...$: "$v = 19.6$ m/s" NOT "$v = 19.6 \\text{ m/s}$".
+11. USE         imes for multiplication: $3     imes 4 = 12$
+12. USE \pm, 
+eq, \leq, \geq, pprox, ngle, \circ, \pi for symbols.
+13. USE \sum, \prod, \int, \lim for summation/products/integrals/limits.
+14. NEVER use \text{}, \mathrm{}, \mathbf{} — write words as plain text OUTSIDE the $ delimiters.
+15. For units in formulas, write them as plain text AFTER the $...$: "$v = 19.6$ m/s" NOT "$v = 19.6 \text{ m/s}$".
 16. Chemical formulas must ALWAYS use subscripts in LaTeX: $H_{2}O$, $CO_{2}$, $NaCl$, $H_{2}SO_{4}$
-16b. CRITICAL: In JSON strings, backslashes MUST be double-escaped: write \\frac not \frac. Every \\ in a JSON string value needs \\. This prevents JSON.parse from destroying LaTeX commands.
-16c. ABSOLUTE RULE: step.desc and step.formula fields MUST be single-line plain text with $...$ delimited LaTeX. NEVER output multi-line formulas, NEVER insert newlines between characters, NEVER use zero-width spaces or invisible Unicode characters. Every formula must fit on ONE line.
-16d. OUTPUT QUALITY - ZERO TOLERANCE:
-    - NEVER put characters on separate lines (e.g. "f\no\nr\nm\nu\nl\na" is FORBIDDEN)
-    - NEVER use zero-width spaces or invisible Unicode characters
-    - NEVER put \f, \b, \v inside English words (they get destroyed by JSON.parse)
-      Write "formula" not "\formula", "number" not "\number", "divide" not "\div ide"
-    - If a word contains a backslash sequence, write the COMPLETE word normally:
-      "Empirical Formula" NOT "Em\pirical For\mula"
-    - All step.desc and step.formula values MUST be single-line strings
-
 
 ═════════════════════════════════════════════
 FINAL ANSWER — ABSOLUTE PRIORITY
@@ -477,257 +418,76 @@ Now solve the student's problem. Use many detailed steps, name every formula, us
 }
 
 
-// ── Solution Quality Validator (lightweight) ──
-function isSolutionClean(p: any): boolean {
-  if (!p) return false;
-  if (!p.finalAnswer || !Array.isArray(p.steps) || p.steps.length === 0) return false;
-  return true;
-}
-
 // ── JSON extraction ──
-// STRATEGY: Don't try to double-escape LaTeX before JSON.parse.
-// Instead, let JSON.parse do its thing (which destroys \f→0x0C etc.),
-// then AGGRESSIVELY repair all broken LaTeX in every string afterward.
-// This avoids the cascade of bugs from partial escaping.
-
-// Find the first { that starts a valid JSON object
-function findJSONStart(text: string): number {
-  // Skip past any markdown fences and leading text
-  let searchFrom = 0;
-  const fenceMatch = text.match(/```(?:json)?\s*\n?/);
-  if (fenceMatch) searchFrom = fenceMatch.index! + fenceMatch[0].length;
-  // Find first { that looks like it starts our JSON (followed by a known key)
-  const keyPattern = /\{\s*"(finalAnswer|steps|finalFormula)"/;
-  const m = text.slice(searchFrom).match(keyPattern);
-  return m ? searchFrom + m.index! : text.indexOf('{', searchFrom);
+// Fix LaTeX commands broken by JSON escape interpretation.
+// JSON.parse turns \f → form-feed(0x0C), \b → backspace(0x08), \v → vertical-tab(0x0B).
+// These are NEVER intentional in math solution text, so we safely double-escape them.
+function escapeLatexForJSONParse(text: string): string {
+  let r = text;
+  // \f, \b, \v — never intentional in solution JSON, always escape
+  r = r.replace(/(?<!\\)\\f/g, '\\\\f');
+  r = r.replace(/(?<!\\)\\b/g, '\\\\b');
+  r = r.replace(/(?<!\\)\\v/g, '\\\\v');
+  // \t, \n, \r — only fix when immediately followed by a letter (LaTeX command),
+  // NOT when followed by space/quote/bracket (intentional whitespace)
+  r = r.replace(/(?<!\\)\\t(?=[a-zA-Z])/g, '\\\\t');
+  r = r.replace(/(?<!\\)\\n(?=[a-zA-Z])/g, '\\\\n');
+  r = r.replace(/(?<!\\)\\r(?=[a-zA-Z])/g, '\\\\r');
+  return r;
 }
 
-// Brute-force extract a JSON object by matching braces, ignoring string content
-function extractJSON(text: string): any | null {
-  if (!text) return null;
-  let cleaned = text.replace(/```(?:json)?\s*/gi, "").replace(/```/g, "").trim();
-
-  // Try direct parse first (best case: AI output clean JSON)
-  try { return deepCleanLaTeX(JSON.parse(cleaned)); } catch {}
-
-  // Strategy: Find JSON by brace matching, try to parse each candidate
-  const start = findJSONStart(cleaned);
-  if (start === -1) return null;
-
-  // Extract the full JSON object by brace depth counting
-  let depth = 0, inStr = false, esc = false, end = -1;
-  for (let i = start; i < cleaned.length; i++) {
-    const ch = cleaned[i];
-    if (esc) { esc = false; continue; }
-    if (ch === "\\") { esc = true; continue; }
-    if (ch === '"') { inStr = !inStr; continue; }
-    if (inStr) continue;
-    if (ch === "{") depth++;
-    else if (ch === "}") { depth--; if (depth === 0) { end = i; break; } }
-  }
-  if (end === -1) return null;
-
-  let candidate = cleaned.slice(start, end + 1);
-
-  // Attempt 1: Direct parse
-  try { return deepCleanLaTeX(JSON.parse(candidate)); } catch {}
-
-  // Attempt 2: Strip control characters that broke JSON structure
-  let stripped = candidate.replace(/[\x00-\x1f\x7f]/g, ' ');
-  stripped = stripped.replace(/,\s*([\]}])/g, "$1"); // trailing commas
-  stripped = stripped.replace(/\n/g, ' ').replace(/  +/g, ' ').trim();
-  try { return deepCleanLaTeX(JSON.parse(stripped)); } catch {}
-
-  return null;
-}
-
-// ── NUCLEAR LaTeX repair: fix EVERYTHING JSON.parse breaks ──
-// This runs on every string in the parsed solution object.
-function deepCleanLaTeX(obj: any): any {
+// Post-parse safety net: replace control chars that leaked through JSON.parse
+function fixParsedLatexControlChars(obj: any): any {
   if (typeof obj === 'string') {
-    return nuclearLatexRepair(obj);
+    return obj
+      .replace(/\x0c/g, '\\')  // form-feed → \ (from \f in \frac, \forall)
+      .replace(/\x08/g, '\\')  // backspace → \ (from \b in \beta, \binom)
+      .replace(/\x0b/g, '\\'); // vertical-tab → \ (from \v in \vec)
   }
-  if (Array.isArray(obj)) return obj.map(deepCleanLaTeX);
+  if (Array.isArray(obj)) return obj.map(fixParsedLatexControlChars);
   if (obj && typeof obj === 'object') {
     const result: any = {};
-    for (const key of Object.keys(obj)) result[key] = deepCleanLaTeX(obj[key]);
+    for (const key of Object.keys(obj)) {
+      result[key] = fixParsedLatexControlChars(obj[key]);
+    }
     return result;
   }
   return obj;
 }
 
-function nuclearLatexRepair(s: string): string {
-  if (!s) return s;
-  let t = s;
+function extractJSON(text: string): any | null {
+  if (!text) return null;
+  let cleaned = text.replace(/```(?:json)?\s*/gi, "").replace(/```/g, "").trim();
+  cleaned = escapeLatexForJSONParse(cleaned);
+  try { return fixParsedLatexControlChars(JSON.parse(cleaned)); } catch {}
 
-  // 1. Strip ALL invisible/zero-width Unicode characters
-  t = t.replace(/[\u200B\u200C\u200D\uFEFF\u00AD\u2060-\u2064\u034F\u061C\u180E]/g, '');
-
-  // 2. Replace control chars with backslash (they came from \f, \b, \v etc.)
-  t = t.replace(/\x0C/g, '\\');  // form-feed → \\ (was \f in \frac, \forall)
-  t = t.replace(/\x08/g, '\\');  // backspace → \\ (was \b in \beta, \binom)
-  t = t.replace(/\x0B/g, '\\');  // vertical-tab → \\ (was \v in \vec)
-
-  // 3. Collapse EXPLODED multi-line formulas (chars on separate lines)
-  const lines = t.split('\n');
-  if (lines.length > 1) {
-    const nonEmpty = lines.filter(l => l.trim().length > 0);
-    const avgLen = nonEmpty.reduce((a, l) => a + l.trim().length, 0) / (nonEmpty.length || 1);
-    const hasHTML = /<[a-z][\s\S]*?>/i.test(t);
-    // Exploded = many lines (5+) with very short avg length (< 4 chars)
-    if (!hasHTML && nonEmpty.length > 4 && avgLen < 4) {
-      t = nonEmpty.map(l => l.trim()).join(' ');
+  let searchFrom = 0;
+  while (searchFrom < cleaned.length) {
+    const start = cleaned.indexOf("{", searchFrom);
+    if (start === -1) return null;
+    let depth = 0, inString = false, escape = false, end = -1;
+    for (let i = start; i < cleaned.length; i++) {
+      const ch = cleaned[i];
+      if (escape) { escape = false; continue; }
+      if (ch === "\\") { escape = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === "{") depth++;
+      else if (ch === "}") { depth--; if (depth === 0) { end = i; break; } }
     }
+    if (end !== -1) {
+      let candidate = cleaned.slice(start, end + 1)
+        .replace(/,\s*([\]}])/g, "$1")
+        .replace(/\n/g, " ").replace(/\t/g, " ").replace(/  +/g, " ").trim();
+      candidate = escapeLatexForJSONParse(candidate);
+      try { return fixParsedLatexControlChars(JSON.parse(candidate)); } catch {}
+      candidate = candidate.replace(/[\x00-\x1f\x7f]/g, "");
+      try { return fixParsedLatexControlChars(JSON.parse(candidate)); } catch {}
+    }
+    searchFrom = start + 1;
   }
-
-  // 4. Fix "rac{" without leading backslash → "\\frac{"
-  t = t.replace(/(?<!\\)rac\{/g, '\\frac{');
-
-  // 5. Fix orphaned LaTeX commands (missing leading backslash)
-  t = t.replace(/(?<!\\)(?=frac\{|sqrt\{|sum\{|prod\{|int\{|lim\{|log\{|ln\{|sin\{|cos\{|tan\{|cot\{|sec\{|csc\{|exp\{|det\{|binom\{|vec\{|hat\{|bar\{|tilde\{|dot\{|nabla\{|forall\{|exists\{|left|right|theta|alpha|beta|gamma|delta|lambda|mu|sigma|omega|rho|tau|phi|psi|epsilon|eta|nu|pi|infty|partial|times|div|pm|neq|leq|geq|approx|angle|cdot|rightarrow|leftarrow|Rightarrow|quad|qquad)/g, '\\');
-
-  // 6. Fix broken words where \ was inside a word (JSON ate it)
-  // e.g., "E\\pirical" → "Empirical", "\\mula" → "mula", "\\for" → "for"
-  // Pattern: \ + lowercase letters that are NOT real LaTeX commands
-  const fakeLatexReplacements: [RegExp, string][] = [
-    [/\\pirical/g, 'pirical'],
-    [/\\mula(?![a-z])/g, 'mula'],
-    [/\\mpirical/g, 'mpirical'],
-    [/\\riod/g, 'riod'],
-    [/\\osition/g, 'osition'],
-    [/\\eorem/g, 'eorem'],
-    [/\\nswer/g, 'nswer'],
-    [/\\lement/g, 'lement'],
-    [/\\olume/g, 'olume'],
-    [/\\ass(?![a-z])/g, 'ass'],
-    [/\\peed/g, 'peed'],
-    [/\\orce(?![a-z])/g, 'orce'],
-    [/\\nergy/g, 'nergy'],
-    [/\\ressure/g, 'ressure'],
-    [/\\ensity/g, 'ensity'],
-    [/\\urrent/g, 'urrent'],
-    [/\\oltage/g, 'oltage'],
-    [/\\istance/g, 'istance'],
-    [/\\ange(?![a-z])/g, 'ange'],
-    [/\\quation/g, 'quation'],
-    [/\\alue/g, 'alue'],
-    [/\\umber/g, 'umber'],
-    [/\\eight/g, 'eight'],
-    [/\\ength/g, 'ength'],
-    [/\\ime(?![a-z])/g, 'ime'],
-    [/\\emperature/g, 'emperature'],
-    [/\\elocity/g, 'elocity'],
-    [/\\cceleration/g, 'cceleration'],
-    [/\\omentum/g, 'omentum'],
-    [/\\riction/g, 'riction'],
-    [/\\ravity(?![a-z])/g, 'ravity'],
-    [/\\apacity/g, 'apacity'],
-    [/\\ntensity/g, 'ntensity'],
-    [/\\requency/g, 'requency'],
-    [/\\avelength/g, 'avelength'],
-    [/\\fficiency/g, 'fficiency'],
-    [/\\olecule/g, 'olecule'],
-    [/\\oichiometry/g, 'oichiometry'],
-    [/\\ompound/g, 'ompound'],
-    [/\\ample/g, 'ample'],
-    [/\\able(?![a-z])/g, 'able'],
-    [/\\implest/g, 'implest'],
-    [/\\mallest/g, 'mallest'],
-    [/\\ighest/g, 'ighest'],
-    [/\\owest/g, 'owest'],
-    [/\\umber/g, 'umber'],
-    [/\\orizontal/g, 'orizontal'],
-    [/\\ertical/g, 'ertical'],
-    [/\\erify/g, 'erify'],
-    [/\\onfirm/g, 'onfirm'],
-    [/\\ubstitute/g, 'ubstitute'],
-    [/\\alculate/g, 'alculate'],
-    [/\\implify/g, 'implify'],
-    [/\\pply/g, 'pplied'],
-    [/\\sing/g, 'sing'],
-    [/\\herefore/g, 'herefore'],
-    [/\\ow(?![a-z])/g, 'ow'],
-    [/\\ind(?![a-z])/g, 'ind'],
-    [/\\ake(?![a-z])/g, 'ake'],
-    [/\\aving/g, 'aving'],
-    [/\\olving/g, 'olving'],
-    [/\\ethod/g, 'ethod'],
-    [/\\how(?![a-z])/g, 'how'],
-    [/\\hich(?![a-z])/g, 'hich'],
-    [/\\ith(?![a-z])/g, 'ith'],
-    [/\\ill(?![a-z])/g, 'ill'],
-    [/\\e get (?=[a-z])/g, 'e get '],
-    [/\\e need (?=[a-z])/g, 'e need '],
-    [/\\e use (?=[a-z])/g, 'e use '],
-    [/\\e can (?=[a-z])/g, 'e can '],
-    [/\\roved/g, 'roved'],
-    [/\\orrect/g, 'orrect'],
-    [/\\roper/g, 'roper'],
-    [/\\refix/g, 'refix'],
-  ];
-  for (const [re, replacement] of fakeLatexReplacements) {
-    t = t.replace(re, replacement);
-  }
-
-  // 7. Fix single \ + common letter NOT part of a real LaTeX command
-  // \f not followed by 'rac' or 'orall' → just 'f'
-  t = t.replace(/\\f(?!rac|orall|oreach)/g, (match: string, offset: number, str: string) => {
-    const nextChar = str[offset + match.length];
-    if (!nextChar || /[\s,.;:!?)\]}]/.test(nextChar)) return 'f';
-    if (/[a-qs-z]/.test(nextChar)) return 'f';
-    return match;
-  });
-  // \m not part of a real LaTeX command
-  t = t.replace(/\\m(?!u|athrm|athbf|athcal|athsf|atrix|in|od|box|id|erge|apsto|ulti)/g, 'm');
-  // \n not part of a real LaTeX command
-  t = t.replace(/\\n(?!abla|ewcommand|oindent|ot|u|eq|umber|atural)/g, 'n');
-  // \e not part of real LaTeX
-  t = t.replace(/\\e(?!psilon|ta|quiv|xists|tq|lements|nergy|lement)/g, 'e');
-  // \s not part of real LaTeX
-  t = t.replace(/\\s(?!ec|qrt|um|in|igma|pace)/g, 's');
-  // \d not part of real LaTeX
-  t = t.replace(/\\d(?!elta|et|iv|ot|frac|isplay|frac)/g, 'd');
-  // \o not part of real LaTeX
-  t = t.replace(/\\o(?!mega|verline|verrightarrow|ver)/g, 'o');
-  // \c not part of real LaTeX
-  t = t.replace(/\\c(?!os|ot|sc|ap|irc|dot|enter|dot)/g, 'c');
-  // \p not part of real LaTeX
-  t = t.replace(/\\p(?!i|artial|hi|si|rime|rod|lus)/g, 'p');
-  // \t not part of real LaTeX
-  t = t.replace(/\\t(?!an|heta|imes|au|ilde|ext|otal|o)/g, 't');
-  // \a not part of real LaTeX
-  t = t.replace(/\\a(?!lpha|ngle|pprox|nd|rrow|bove|lign)/g, 'a');
-  // \r not part of real LaTeX
-  t = t.replace(/\\r(?!ho|ight|angle|oot|eal)/g, 'r');
-  // \i not part of real LaTeX
-  t = t.replace(/\\i(?!nt|nfty|n|)/g, 'i');
-  // \l not part of real LaTeX
-  t = t.replace(/\\l(?!ambda|im|n|eft|eq|ine)/g, 'l');
-  // \h not part of real LaTeX
-  t = t.replace(/\\h(?!at|bar|line)/g, 'h');
-  // \v not part of real LaTeX
-  t = t.replace(/\\v(?!ec|artheta|dots)/g, 'v');
-  // \g not part of real LaTeX
-  t = t.replace(/\\g(?!amma|eq|eqslant)/g, 'g');
-  // \w not part of real LaTeX
-  t = t.replace(/\\w(?!edge|ith|here|hen)/g, 'w');
-  // \u not part of real LaTeX
-  t = t.replace(/\\u(?!nderline|nion|p|psilon)/g, 'u');
-  // \b not part of real LaTeX
-  t = t.replace(/\\b(?!eta|inom|old|egin|ig)/g, 'b');
-
-  // 8. Auto-wrap bare \frac{}{} in $...$ if not already wrapped
-  t = t.replace(/(?<!\$)(\\frac\{[^}]*\}\s*\{[^}]*\})(?!\$)/g, '$$$1$$');
-
-  // 9. Fix \left/\right without backslash
-  t = t.replace(/(?<!\\)(?=left[\(\[\{\|]|right[\)\]\}\|])/g, '\\');
-
-  // 10. Clean up excessive whitespace
-  t = t.replace(/  +/g, ' ').trim();
-
-  return t;
+  return null;
 }
-
 
 // ── If JSON parse totally fails, build solution from raw text ──
 function buildSolutionFromText(rawText: string, subject: string, board: string): any {
@@ -751,14 +511,9 @@ function buildSolutionFromText(rawText: string, subject: string, board: string):
 
 function cleanLatex(text: string): string {
   if (!text) return text;
-  let t = text;
-  t = t.replace(/\\text\\{[^}]*\\}/g, "$1")
-    .replace(/\\mathrm\\{[^}]*\\}/g, "$1")
-    .replace(/\\mathbf\\{[^}]*\\}/g, "$1");
-  // Fix broken words from JSON.parse eating backslashes
-  t = t.replace(/\bEm\s+for\b/g, "Empirical Formula");
-  t = t.replace(/\bof\s+moles\b/g, "number of moles");
-  return t;
+  return text.replace(/\\text\{([^}]*)\}/g, "$1")
+    .replace(/\\mathrm\{([^}]*)\}/g, "$1")
+    .replace(/\\mathbf\{([^}]*)\}/g, "$1");
 }
 
 // Sanitize finalAnswer — strip multi-line junk, keep only the actual answer line
@@ -873,7 +628,73 @@ function fixFormulaAnswer(finalAnswer: string, steps: { desc: string; formula: s
   return finalAnswer;
 }
 
-// ── Utility functions ──
+// ── Answer Verification — double-check AI answer before showing to user ──
+async function verifyAnswer(
+  problem: string,
+  finalAnswer: string,
+  steps: { desc: string; formula: string }[],
+  subject: string
+): Promise<{ verified: boolean; correctedAnswer?: string; reason?: string }> {
+  // Build a concise summary of the steps for the verifier
+  const stepsSummary = steps
+    .slice(0, 6)
+    .map((s, i) => `Step ${i + 1}: ${s.desc}${s.formula ? ' → ' + s.formula : ''}`)
+    .join('\n');
+
+  const verifyPrompt = `You are a strict answer verifier. Check if the final answer is correct.
+
+Problem: ${problem}
+Subject: ${subject}
+
+Steps taken:
+${stepsSummary}
+
+Final Answer: ${finalAnswer}
+
+Verify this answer by:
+1. Checking the math/logic step by step
+2. Plugging the answer back into the original problem if applicable
+3. Checking units and reasonableness
+
+Respond in EXACTLY this format (no other text):
+CORRECT: <brief confirmation>
+or
+WRONG: <corrected answer> | <reason>
+
+Examples:
+- CORRECT: Substituting x=3 gives 3(3)+5=14. Verified.
+- WRONG: x = 4 | 3(4)+5=17, not 14. Correct answer is x=3.`;
+
+  try {
+    const result = await callAI(verifyPrompt, `Verify this answer: ${finalAnswer}\n\nProblem: ${problem}`);
+    if (!result) return { verified: true }; // If verifier fails, trust original
+
+    const trimmed = result.trim();
+    if (trimmed.startsWith('CORRECT')) {
+      console.log(`[Verify] Answer VERIFIED: ${trimmed.slice(0, 120)}`);
+      return { verified: true, reason: trimmed };
+    }
+    if (trimmed.startsWith('WRONG')) {
+      // Extract corrected answer and reason
+      const afterWrong = trimmed.replace(/^WRONG:\s*/i, '');
+      const pipeIdx = afterWrong.indexOf('|');
+      let correctedAnswer = finalAnswer;
+      let reason = afterWrong;
+      if (pipeIdx > 0) {
+        correctedAnswer = afterWrong.slice(0, pipeIdx).trim();
+        reason = afterWrong.slice(pipeIdx + 1).trim();
+      }
+      console.log(`[Verify] Answer CORRECTED: "${correctedAnswer}" — ${reason}`);
+      return { verified: false, correctedAnswer, reason };
+    }
+    // Unexpected format — trust original
+    console.log(`[Verify] Unexpected format, trusting original: ${trimmed.slice(0, 100)}`);
+    return { verified: true };
+  } catch (err) {
+    console.error(`[Verify] Error during verification:`, err);
+    return { verified: true }; // On error, trust original
+  }
+}
 
 function generateSimilarQuestions(subject: string): string[] {
   const t: Record<string, string[]> = {
@@ -960,8 +781,8 @@ Substitute the given values into the formula and compute. Return JSON only.`;
       });
     }
 
-    // Try to parse JSON from AI response (deepCleanLaTeX runs inside extractJSON)
-    const parsed = extractJSON(raw);
+    // Try to parse JSON from AI response
+    let parsed = extractJSON(raw);
 
     if (parsed && parsed.finalAnswer && Array.isArray(parsed.steps) && parsed.steps.length > 0) {
       const cleanedSteps = (parsed.steps || []).map((s: any) => ({
@@ -979,8 +800,15 @@ Substitute the given values into the formula and compute. Return JSON only.`;
       console.log(`[SpeedSolve] After sanitize: "${finalAns.slice(0, 100)}"`);
       finalAns = fixFormulaAnswer(finalAns, cleanedSteps, problem);
       console.log(`[SpeedSolve] After fixFormula: "${finalAns}"`);
-      // Verification skipped — nuclearLatexRepair + isSolutionClean handle quality.
-      // Previously verifyAnswer made an extra AI call per solve, causing timeouts.
+      // ── Verify answer before returning ──
+      console.log(`[SpeedSolve] Verifying answer: "${finalAns}"`);
+      const verification = await verifyAnswer(problem, finalAns, cleanedSteps, sub);
+      if (!verification.verified && verification.correctedAnswer) {
+        const corrected = sanitizeFinalAnswer(verification.correctedAnswer);
+        const fixedCorrected = fixFormulaAnswer(corrected, cleanedSteps, problem);
+        console.log(`[SpeedSolve] Using corrected answer: "${finalAns}" → "${fixedCorrected}"`);
+        finalAns = fixedCorrected;
+      }
 
       const solution = {
         finalAnswer: finalAns,
@@ -999,13 +827,19 @@ Substitute the given values into the formula and compute. Return JSON only.`;
     // JSON parse failed but we have text - build solution from raw text
     console.warn(`[SpeedSolve] JSON parse failed, building from raw text (${raw.length} chars)`);
     const textSolution = buildSolutionFromText(raw, sub, brd);
-    // Run nuclearLatexRepair on the fallback solution too!
-    const repairedTextSolution = deepCleanLaTeX(textSolution);
-    // Sanitize and apply formula fix
-    repairedTextSolution.finalAnswer = sanitizeFinalAnswer(repairedTextSolution.finalAnswer);
-    repairedTextSolution.finalAnswer = fixFormulaAnswer(repairedTextSolution.finalAnswer, repairedTextSolution.steps || [], problem);
+    // Sanitize and apply formula fix to fallback path too
+    textSolution.finalAnswer = sanitizeFinalAnswer(textSolution.finalAnswer);
+    textSolution.finalAnswer = fixFormulaAnswer(textSolution.finalAnswer, textSolution.steps || [], problem);
 
-    return NextResponse.json({ success: true, data: repairedTextSolution, source: "ai" });
+    // ── Verify text-fallback answer too ──
+    const textVerification = await verifyAnswer(problem, textSolution.finalAnswer, textSolution.steps || [], sub);
+    if (!textVerification.verified && textVerification.correctedAnswer) {
+      textSolution.finalAnswer = sanitizeFinalAnswer(textVerification.correctedAnswer);
+      textSolution.finalAnswer = fixFormulaAnswer(textSolution.finalAnswer, textSolution.steps || [], problem);
+      console.log(`[SpeedSolve] Text-fallback corrected: "${textSolution.finalAnswer}"`);
+    }
+
+    return NextResponse.json({ success: true, data: textSolution, source: "ai" });
 
   } catch (err) {
     console.error("Solve API error:", err);

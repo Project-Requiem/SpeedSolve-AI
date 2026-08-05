@@ -155,135 +155,111 @@ function detectSubject(text: string): Subject | null {
   return null
 }
 
-// ─── KaTeX Helper ────────────────────────────────────────
+// ─── KaTeX Helper ────────────────────────────────────────────────
+// Strip problematic LaTeX commands that cause rendering issues
 function sanitizeLatexForKatex(text: string): string {
   if (!text) return ''
-  return text
-    .replace(/\\text\{[^}]*\}/g, '')
-    .replace(/\\mathrm\{[^}]*\}/g, '')
-    .replace(/\\mathbf\{[^}]*\}/g, '')
-    .replace(/\\textbf\{[^}]*\}/g, '')
-}
-
-// Frontend safety net: strip invisible chars, control chars, collapsed exploded formulas
-function nukeBadChars(text: string): string {
-  if (!text) return ''
-  let s = text
-  // 1. Strip invisible Unicode chars
-  s = s.replace(/[\u200B\u200C\u200D\uFEFF\u00AD\u2060-\u2064\u034F\u061C\u180E]/g, '')
-  // 2. Strip control chars (but NOT normal newlines/tabs)
-  s = s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-  // 3. Only collapse multi-line if EXPLODED (chars on separate lines)
-  if (!/<[a-z][\s\S]*?>/i.test(s)) {
-    const lines = s.split('\n')
-    if (lines.length > 4) {
-      const nonEmpty = lines.filter(l => l.trim().length > 0)
-      const avgLen = nonEmpty.reduce((a, l) => a + l.trim().length, 0) / (nonEmpty.length || 1)
-      if (nonEmpty.length > 4 && avgLen < 4) {
-        s = nonEmpty.map(l => l.trim()).join(' ')
-      }
-    }
-  }
-  // 4. Fix orphaned LaTeX commands (only outside HTML tags)
-  if (!/<[a-z][\s\S]*?>/i.test(s)) {
-    s = s.replace(/(?<!\\)(?=frac\{|sqrt\{|sum\{|prod\{|int\{|lim\{|log\{|ln\{|sin\{|cos\{|tan\{|cot\{|sec\{|csc\{|exp\{|det\{|binom\{|vec\{|hat\{|bar\{|tilde\{|dot\{|nabla\{|theta|alpha|beta|gamma|delta|lambda|mu|sigma|omega|rho|tau|phi|psi|epsilon|eta|nu|pi|infty|partial|times|div|pm|neq|leq|geq|approx|angle|cdot|rightarrow|leftarrow|Rightarrow|forall|exists)/g, '\\')
-    s = s.replace(/(?<!\\)rac\{/g, '\\frac{')
-  }
-  // 5. Collapse excessive spaces
-  s = s.replace(/  +/g, ' ')
-  return s
-}
-
-function escapeHtml(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-}
-
-// Safe KaTeX: renders LaTeX, falls back to clean text if it fails
-function safeKatex(tex: string, displayMode: boolean): string {
-  if (!tex || tex.trim().length === 0) return ''
-  const sanitized = sanitizeLatexForKatex(tex.trim())
-  try {
-    const html = katex.renderToString(sanitized, { displayMode, throwOnError: false })
-    // CSS hides .katex-error globally, but still fallback cleanly
-    if (html.includes('katex-error')) {
-      return '<span class="math-fallback">' + escapeHtml(cleanBareLatex(tex)) + '</span>'
-    }
-    return html
-  } catch {
-    return '<span class="math-fallback">' + escapeHtml(cleanBareLatex(tex)) + '</span>'
-  }
+  let t = text
+  // Remove \text{...} — content spills into plain text outside $
+  t = t.replace(/\\text\{[^}]*\}/g, '')
+  // Remove \mathrm{...} and \mathbf{...} — same issue
+  t = t.replace(/\\mathrm\{[^}]*\}/g, '')
+  t = t.replace(/\\mathbf\{[^}]*\}/g, '')
+  // Remove \textbf{...}
+  t = t.replace(/\\textbf\{[^}]*\}/g, '')
+  return t
 }
 
 // Wrap bare LaTeX commands (not in $...$) so KaTeX can render them
 function wrapBareLatex(text: string): string {
   let t = text
-  // Wrap \frac{A}{B} → $\frac{A}{B}$
-  t = t.replace(/(?<!\$)\\frac(\{[^}]*\}\s*\{[^}]*\})(?!\$)/g, '$\\frac$1$$')
-  // Wrap \sqrt{x} → $\sqrt{x}$
-  t = t.replace(/(?<!\$)\\sqrt(\[[^\]]*\])?(\{[^}]*\})(?!\$)/g, '$\\sqrt$1$2$$')
-  // Wrap \binom{n}{k}
-  t = t.replace(/(?<!\$)\\binom(\{[^}]*\}\s*\{[^}]*\})(?!\$)/g, '$\\binom$1$$')
-  // Wrap standalone Greek letters and symbols
-  t = t.replace(/(?<!\$)(?<!\\)\\(theta|alpha|beta|gamma|delta|lambda|mu|sigma|omega|rho|tau|phi|psi|epsilon|eta|nu|pi|infty|partial|times|div|pm|neq|leq|geq|approx|angle|cdot|sum|prod|int|lim|log|ln|sin|cos|tan|cot|sec|csc|exp|det|rightarrow|leftarrow|Rightarrow|vec|hat|bar|tilde|dot|nabla|forall|exists)(?=[^a-zA-Z]|$)/g, '$\\$1$$')
-  // Merge adjacent $$...$$ + $...$ into single $...$
+  // \frac{A}{B} → $\frac{A}{B}$
+  t = t.replace(/\\frac(\{[^}]*\}\s*\{[^}]*\})/g, '$\\frac$1$$')
+  // \sqrt{X}, \sqrt[X]{Y} → $\sqrt{X}$
+  t = t.replace(/\\sqrt(\[[^\]]*\])?(\{[^}]*\})/g, '$\\sqrt$1$2$$')
+  // \binom{A}{B} → $\binom{A}{B}$
+  t = t.replace(/\\binom(\{[^}]*\}\s*\{[^}]*\})/g, '$\\binom$1$$')
+  // \overline{X}, \underline{X}
+  t = t.replace(/\\(overline|underline)(\{[^}]*\})/g, '$\\$1$2$$')
+  // Greek letters and common math commands
+  t = t.replace(/\\(theta|alpha|beta|gamma|delta|lambda|mu|sigma|omega|rho|tau|phi|psi|epsilon|eta|nu|pi|infty|partial|times|div|pm|neq|leq|geq|approx|angle|cdot|sum|prod|int|lim|log|ln|sin|cos|tan|cot|sec|csc|exp|det|rightarrow|leftarrow|Rightarrow|vec|hat|bar|tilde|dot|nabla)(?=[^a-zA-Z]|$)/g, '$\\$1$$')
+  // Merge adjacent $$ into single $
   t = t.replace(/\$\$\s*\$/g, '$')
   return t
 }
 
 function renderLatex(text: string): string {
   if (!text) return ''
-  // Strip invisible/broken chars first
-  text = nukeBadChars(text)
-  // Fix double-escaped backslashes
+  // Pre-sanitize to remove problematic commands before any processing
+  text = sanitizeLatexForKatex(text)
+  // Fix double-escaped backslashes from LLM JSON output
   text = text.replace(/\\\\/g, '\\')
-  // Auto-wrap bare LaTeX if no $ delimiters exist
+  // If no $ delimiters but text has LaTeX commands, auto-wrap them
   const hasDelimiters = /\$\$[\s\S]+?\$\$|\$[^$]+?\$/g.test(text)
   const hasLatexCommands = /\\[a-zA-Z]/.test(text)
   if (!hasDelimiters && hasLatexCommands) {
     const wrapped = wrapBareLatex(text)
-    if (wrapped !== text) {
-      // Re-run renderLatex on the wrapped version
-      return renderLatex(wrapped)
-    }
+    if (wrapped !== text) return renderLatex(wrapped)
   }
-  // Split by math delimiters, use safeKatex for each block
+  // Split by math delimiters, clean non-math parts separately, then render math
   const mathBlockRegex = /\$\$([\s\S]+?)\$\$|\$([^$]+?)\$/g
   const parts: string[] = []
   let lastIndex = 0
   let match
   while ((match = mathBlockRegex.exec(text)) !== null) {
+    // Non-math text before this match — clean bare LaTeX artifacts
     if (match.index > lastIndex) {
       parts.push(cleanBareLatex(text.slice(lastIndex, match.index)))
     }
+    // Render the math block with KaTeX
     const displayTex = match[1]
     const inlineTex = match[2]
     if (displayTex) {
-      parts.push(safeKatex(displayTex, true))
+      const sanitized = sanitizeLatexForKatex(displayTex.trim())
+      try {
+        parts.push(katex.renderToString(sanitized, { displayMode: true, throwOnError: false }))
+      } catch { parts.push(cleanBareLatex(match[0])) }
     } else if (inlineTex) {
-      parts.push(safeKatex(inlineTex, false))
+      const sanitized = sanitizeLatexForKatex(inlineTex.trim())
+      try {
+        parts.push(katex.renderToString(sanitized, { displayMode: false, throwOnError: false }))
+      } catch { parts.push(cleanBareLatex(match[0])) }
     }
     lastIndex = match.index + match[0].length
   }
+  // Remaining text after last math block
   if (lastIndex < text.length) {
     parts.push(cleanBareLatex(text.slice(lastIndex)))
   }
   return parts.join('')
 }
 
+
+function normalizeLatex(s: string): string {
+  let out = s.replace(/\\\\/g, '\\')
+  // If it has LaTeX math commands, it's worth trying KaTeX
+  if (/\\(frac|sqrt|sum|int|prod|lim|log|ln|sin|cos|tan|cot|sec|csc|times|div|pm|alpha|beta|theta|gamma|delta|lambda|mu|sigma|omega|pi|infty|partial|cdot|mathrm|mathbf|angle|hat|vec|dot|bar|tilde|left|right|textbf|neq|leq|geq|approx|Rightarrow|rightarrow|infty|quad)/.test(out)) return out
+  // If it has $ delimiters, also render
+  if (out.includes('$')) return out
+  // Otherwise it's plain text, no need for KaTeX
+  return ''
+}
+
 function renderFormulaToHtml(formula: string): React.ReactNode {
   if (!formula) return null
-  const cleaned = nukeBadChars(formula)
-  // If it has $ delimiters, use full renderLatex pipeline
-  if (cleaned.includes('$')) {
-    return <span dangerouslySetInnerHTML={{ __html: renderLatex(cleaned) }} />
+  // Sanitize problematic commands before passing to KaTeX
+  const sanitized = sanitizeLatexForKatex(formula)
+  const normalized = normalizeLatex(sanitized)
+  if (!normalized) return <span>{cleanBareLatex(formula)}</span>
+  if (normalized.includes('$')) {
+    return <span dangerouslySetInnerHTML={{ __html: renderLatex(normalized) }} />
   }
-  // If it has LaTeX commands but no $, wrap and render
-  if (/\\[a-zA-Z]/.test(cleaned)) {
-    const wrapped = wrapBareLatex(cleaned)
-    return <span dangerouslySetInnerHTML={{ __html: renderLatex(wrapped) }} />
+  try {
+    const html = katex.renderToString(normalized, { displayMode: true, throwOnError: false })
+    return <span dangerouslySetInnerHTML={{ __html }} />
+  } catch {
+    return <span>{cleanBareLatex(formula)}</span>
   }
-  // Plain text formula
-  return <span className="math-fallback">{cleanBareLatex(cleaned)}</span>
 }
 
 // ─── Background Component ────────────────────────────────────────
@@ -561,15 +537,11 @@ export default function Home() {
     }, 300)
 
     try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 60000) // 60s timeout
       const res = await fetch('/api/solve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ problem: trimmed, subject: activeSubject, board }),
-        signal: controller.signal,
       })
-      clearTimeout(timeoutId)
       const data = await res.json()
       clearInterval(progressRef.current!)
       if (data.error) {
@@ -609,13 +581,9 @@ export default function Home() {
           }
         }, 150)
       }
-    } catch (err: any) {
+    } catch {
       clearInterval(progressRef.current!)
-      if (err?.name === 'AbortError') {
-        setError('Request timed out. The AI providers may be busy - please try again.')
-      } else {
-        setError('Network error. Please check your connection and try again.')
-      }
+      setError('Network error. Please check your connection and try again.')
       setLoading(false)
     }
   }, [problem, subject, board])
@@ -1717,7 +1685,7 @@ export default function Home() {
                           <span>Not satisfied?</span>
                         </button>
                       )}
-                      <button className="btn-regenerate" onClick={() => { if (!retryingAI && !loading) { retryWithAI() } }} disabled={retryingAI || loading}>
+                      <button className="btn-regenerate" onClick={() => { if (!retryingAI && !loading) { setRetryingAI(true); solve(); setTimeout(() => setRetryingAI(false), 500) } }} disabled={retryingAI || loading}>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={retryingAI ? { animation: 'spin 1s linear infinite' } : {}}><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
                         <span>{retryingAI ? 'Solving...' : 'Regenerate'}</span>
                       </button>
