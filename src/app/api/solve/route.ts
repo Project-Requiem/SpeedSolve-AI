@@ -148,19 +148,27 @@ const SAMPLE_PROBLEMS: Record<string, { text: string; label: string }[]> = {
     { text: "Solve 3x + 5 = 14", label: "Linear Equation" },
     { text: "Solve x^2 - 5x + 6 = 0", label: "Quadratic" },
     { text: "Find 15% of 200", label: "Percentage" },
-    { text: "Find the LCM and GCD of 48, 72, 108", label: "LCM & GCD" },
+    { text: "Find the LCM and HCF of 48, 72, 108", label: "LCM & HCF" },
     { text: "A train travels 360 km in 4 hours. Find its speed in m/s.", label: "Speed" },
     { text: "Find the area of a circle with radius 14 cm.", label: "Area" },
-    { text: "If sin theta = 3/5, find cos theta and tan theta.", label: "Trigonometry" },
+    { text: "If sin θ = 3/5, find cos θ and tan θ.", label: "Trigonometry" },
     { text: "Find the mean, median, mode of: 5, 3, 7, 3, 5, 9, 3, 1", label: "Statistics" },
-    { text: "A ladder 10 m long leans against a wall. If the foot of the ladder is 6 m from the wall, find the height.", label: "Pythagoras" },
+    { text: "A ladder 10 m long leans against a wall. If the foot is 6 m from the wall, find the height.", label: "Pythagoras" },
     { text: "Differentiate f(x) = 3x^4 - 2x^2 + 5x - 7", label: "Derivative" },
     { text: "Find the 10th term of AP: 2, 7, 12, 17, ...", label: "Sequence" },
     { text: "Simple Interest on Rs 5000 at 8% per annum for 3 years", label: "Interest" },
-    { text: "How many moles are in 80g of NaOH? (Na=23, O=16, H=1)", label: "Moles" },
     { text: "Find the distance between points A(3,4) and B(7,1)", label: "Coordinate" },
     { text: "Simplify: (a+b)^2 - (a-b)^2", label: "Identity" },
     { text: "A bag contains 5 red, 3 blue, and 2 green balls. Find probability of drawing a red ball.", label: "Probability" },
+    { text: "Integrate ∫(2x + 3)dx", label: "Integration" },
+    { text: "Find the value of tan 15° using compound angles", label: "Compound Angles" },
+    { text: "Prove that √2 is irrational", label: "Proof" },
+    { text: "Find the surface area and volume of a cone with radius 7 cm and height 24 cm", label: "Mensuration" },
+    { text: "Solve: 2x + 3y = 12 and 4x - y = 5", label: "Simultaneous Eq" },
+    { text: "Find the sum of first 20 terms of AP: 3, 7, 11, 15, ...", label: "AP Sum" },
+    { text: "If A = {1,2,3,4} and B = {3,4,5,6}, find A∩B and A∪B", label: "Sets" },
+    { text: "Find the zeros of the polynomial p(x) = x^2 - 4x + 3", label: "Polynomials" },
+    { text: "Evaluate: lim(x→0) (sin x)/x", label: "Limits" },
   ],
   physics: [
     { text: "A car travels 150 km in 2.5 hours. Find its average speed.", label: "Kinematics" },
@@ -171,6 +179,13 @@ const SAMPLE_PROBLEMS: Record<string, { text: string; label: string }[]> = {
     { text: "A 0.5 kg object moves in a circle of radius 2m at 3 m/s. Find centripetal force.", label: "Circular Motion" },
     { text: "An object is dropped from 20m height. Find velocity at ground. (g=9.8)", label: "Free Fall" },
     { text: "Two objects of masses 2kg and 4kg moving at 6 m/s and 0 m/s collide and stick. Find final velocity.", label: "Momentum" },
+    { text: "A convex lens has focal length 20 cm. An object is placed 30 cm from the lens. Find image distance.", label: "Lens Formula" },
+    { text: "Calculate the current through a 4Ω and 6Ω resistor in series with a 10V battery.", label: "Series Circuit" },
+    { text: "A wave has frequency 500 Hz and wavelength 0.5 m. Find the wave speed.", label: "Wave Speed" },
+    { text: "Find the energy stored in a capacitor of 10μF charged to 100V. (E = 1/2 CV^2)", label: "Capacitor" },
+    { text: "An object is placed 15 cm from a concave mirror of focal length 10 cm. Find image position.", label: "Mirror Formula" },
+    { text: "A wire of resistance 10Ω is stretched to double its length. Find new resistance.", label: "Resistivity" },
+    { text: "Find the kinetic energy of a 1000 kg car moving at 20 m/s.", label: "Kinetic Energy" },
   ],
   chemistry: [
     { text: "Find the pH of 0.01 M HCl solution.", label: "pH" },
@@ -180,14 +195,18 @@ const SAMPLE_PROBLEMS: Record<string, { text: string; label: string }[]> = {
     { text: "Find the molarity of 4g NaOH in 500 mL solution. (Na=23, O=16, H=1)", label: "Molarity" },
     { text: "What is the empirical formula of a compound with 40% C, 6.7% H, 53.3% O? (C=12, H=1, O=16)", label: "Empirical" },
     { text: "50 mL of 0.1 M HCl reacts with 25 mL of NaOH. Find molarity of NaOH.", label: "Reaction" },
+    { text: "Calculate the mass of one atom of carbon. (Avogadro number = 6.022 x 10^23, C=12)", label: "Mole Concept" },
+    { text: "Write the electron configuration of Fe (Z=26)", label: "Electron Config" },
+    { text: "Find the oxidation number of Mn in KMnO4", label: "Oxidation" },
+    { text: "The rate of a reaction doubles when temperature increases from 300K to 310K. Find activation energy.", label: "Rate Law" },
+    { text: "Calculate the enthalpy change when 2 mol of H2 reacts with O2 to form water. ΔH = -286 kJ/mol", label: "Thermochem" },
   ],
 };
 
-// ── Rich worked examples with formula names, subscripts, superscripts, and tables ──
+// ── Rich worked examples ──
 const EXAMPLES: Record<string, string> = {
   mathematics: JSON.stringify({
     finalAnswer: "x = 3",
-    finalFormula: "$x = (14 - 5) / 3 = 3$",
     steps: [
       { desc: "Given the linear equation $3x + 5 = 14$. We need to find the value of x.", formula: "$3x + 5 = 14$" },
       { desc: "Applying the transposition method: move the constant term 5 to the RHS. This changes its sign.", formula: "$3x = 14 - 5$" },
@@ -252,169 +271,172 @@ function buildSystemPrompt(board: string, subject: string): string {
   let boardRules = '';
   if (board === 'icse') {
     boardRules = `- ICSE BOARD STYLE (CISCE):
-- Begin each step by naming the formula or concept used, e.g., "Using the Quadratic Formula:", "Applying Ohm's Law:", "By Conservation of Energy:".
-- Use formal connectors: "Given:", "To find:", "Formula:", "Substituting:", "On solving:", "Hence," or "Therefore,".
+- Begin each step by naming the formula or concept used, e.g., "Using the Quadratic Formula:", "Applying Ohm\'s Law:".
+- Use formal connectors: "Given:", "To find:", "Formula:", "Substituting:", "On solving:", "Hence,".
 - Include units at every step where a quantity appears.
-- End with a verification step: "Verification: substitute back to confirm.".
-- For trigonometry identities, show LHS and RHS transformations separately.
-- Use "Hence proved" for proofs. Use "Hence" before stating the final answer.`;
+- End with a verification step: "Verification: substitute back to confirm.".`;
   } else if (board === 'cbse') {
     boardRules = `- CBSE BOARD STYLE (NCERT-based):
 - Follow NCERT format: "Given:", "To find:", "Formula:", "Calculation:", "Result:".
 - List all given quantities with their values and SI units explicitly as the first step.
 - Show unit conversions as a separate numbered step.
 - Mark each step clearly with the formula name used.
-- For physics: always write the formula in general form first, then substitute.
 - Conclude with "Therefore, [quantity] = [value] [unit].".`;
   } else {
     boardRules = `- STATE BOARD STYLE:
 - Follow "Given:", "Formula:", "Solution:", "Answer:" format.
-- Name the formula used at each step.
-- Show working with full substitution. Be direct but thorough.
-- End with a clear "Answer: [value] [unit]" line.`;
+- Name the formula used at each step. Show working with full substitution.`;
   }
 
-  return `You are SpeedSolve AI, an expert numerical solver for Indian students (${boardName}, Grades 6-12). You handle problems of ANY difficulty — from simple arithmetic to advanced calculus, complex circuits, and multi-step stoichiometry.
+  return `You are SpeedSolve AI, an expert solver for Indian students (${boardName}, Grades 6-12). You handle ANY problem in Mathematics, Physics, and Chemistry — from basic arithmetic to advanced calculus, complex circuits, and multi-step stoichiometry.
 
-═════════════════════════════════════════════
+═══════════════════════════════════════════════════════════════
+UNIVERSAL QUESTION UNDERSTANDING
+═══════════════════════════════════════════════════════════════
+You MUST understand and correctly solve ALL of these question types:
+
+MATHEMATICS (Grade 6-12):
+- Basic: fractions, decimals, percentages, ratio & proportion, BODMAS/PEMDAS, profit-loss-discount, simple/compound interest, SI/CI, tax
+- Algebra: linear equations (1 & 2 variables), quadratic equations (factorization, formula, completing square), polynomials, inequalities, AP/GP/HP, series & sums, binomial theorem, matrices, determinants
+- Geometry: angles, triangles (congruence, similarity, area), circles (tangents, chords, theorems), quadrilaterals, coordinate geometry (distance, section, slope, area of triangle), straight lines, conic sections (parabola, ellipse, hyperbola)
+- Trigonometry: ratios (sin, cos, tan, cosec, sec, cot), identities, complementary angles, compound angles (sum/difference), double/triple angle formulas, heights & distances, inverse trigonometry
+- Mensuration: perimeter, area, surface area, volume of all 2D/3D shapes (cube, cuboid, cylinder, cone, sphere, hemisphere, frustum)
+- Statistics & Probability: mean (all 3 methods), median, mode, grouped data, cumulative frequency, ogive, standard deviation, variance, probability (independent, dependent, conditional, Bayes), permutations, combinations
+- Calculus: limits, continuity, differentiation (first principles, product/quotient/chain rule), integration (definite, indefinite, by substitution, by parts, partial fractions), differential equations, applications (maxima/minima, rate of change, area under curve)
+- Number Systems: real numbers, irrationality proofs, Euclid\'s division, HCF/LCM, fundamental theorem of arithmetic
+- Sets, Relations, Functions: set operations, Venn diagrams, types of relations, domain/range, composite functions, inverse functions
+- Proofs: mathematical induction, trigonometric identities, geometry theorems, contradiction method
+
+PHYSICS (Grade 6-12):
+- Kinematics: displacement, velocity (average/instantaneous), acceleration, equations of motion, free fall, projectile motion, relative velocity
+- Newton\'s Laws: F=ma, weight, normal force, friction (static/kinetic), inclined planes, connected bodies, pulley systems
+- Work, Energy, Power: work done, KE, PE, conservation of energy, work-energy theorem, power, collisions (elastic/inelastic)
+- Gravitation: universal law, g on surface, variation of g, orbital velocity, escape velocity, satellites, Kepler\'s laws
+- Rotational Motion: torque, angular momentum, moment of inertia, conservation of angular momentum
+- Properties of Matter: elasticity (Young\'s modulus), surface tension, viscosity, Stokes\' law, Bernoulli\'s principle, Pascal\'s law
+- Thermodynamics: heat, temperature, specific heat, calorimetry, latent heat, gas laws (Boyle, Charles, Gay-Lussac, ideal gas), isothermal/adiabatic processes, first/second law, Carnot engine, entropy
+- Waves: transverse/longitudinal, speed, frequency, wavelength, resonance, standing waves, harmonics, Doppler effect, sound
+- Optics: reflection, refraction (Snell\'s law), total internal reflection, lenses (power, magnification), lens/mirror formula, prism, dispersion, optical instruments (microscope, telescope), wave optics (interference, diffraction, Young\'s double slit)
+- Electrostatics: Coulomb\'s law, electric field, potential, potential energy, capacitance, capacitors in series/parallel, dielectrics
+- Current Electricity: Ohm\'s law, resistance (series/parallel), Kirchhoff\'s laws, Wheatstone bridge, potentiometer, internal resistance, heating effect (Joule\'s law)
+- Magnetism: magnetic field, Biot-Savart, Ampere\'s law, force on moving charge, force on conductor, torque on coil, magnetic moment
+- EMI & AC: Faraday\'s law, Lenz\'s law, self/mutual inductance, AC circuits (RLC), impedance, resonance, transformer, generator, motor
+- Modern Physics: photoelectric effect, Einstein\'s equation, de Broglie wavelength, Bohr model, energy levels, nuclear physics (fission, fusion, half-life, mass-energy), semiconductors (diodes, logic gates)
+- Units & Measurements: SI units, dimensional analysis, significant figures, errors
+
+CHEMISTRY (Grade 6-12):
+- Basic: mole concept, Avogadro\'s number, molar mass, percentage composition, empirical & molecular formula
+- Atomic Structure: subatomic particles, atomic number, mass number, isotopes, electronic configuration, quantum numbers, orbital shapes
+- Periodic Table: periods, groups, trends (atomic radius, ionization energy, electronegativity, metallic character), classification
+- Chemical Bonding: ionic, covalent, metallic, hybridization, VSEPR theory, polarity, hydrogen bonding, molecular orbital theory
+- Stoichiometry: balancing equations, limiting reagent, yield calculations, gravimetric analysis
+- States of Matter: solid, liquid, gas, gas laws, ideal gas equation, real gases, van der Waals, liquid state (vapour pressure)
+- Solutions: concentration (molarity, molality, mole fraction, ppm), solubility, Raoult\'s law, colligative properties (relative lowering, elevation in BP, depression in FP, osmotic pressure), Henry\'s law
+- Thermodynamics: enthalpy, Hess\'s law, calorimetry, bond energy, entropy, Gibbs free energy, spontaneity
+- Equilibrium: dynamic equilibrium, Le Chatelier, Kc, Kp, Ksp, common ion effect, buffer solutions, pH, pOH, hydrolysis, solubility product
+- Redox Reactions: oxidation number, balancing redox equations (ion-electron method), galvanic cells, electrolysis, Faraday\'s laws, electrochemical series, conductivity
+- Chemical Kinetics: rate of reaction, rate law, order, molecularity, Arrhenius equation, activation energy, catalysts
+- Surface Chemistry: adsorption, catalysis, colloids, Tyndall effect, Brownian motion, coagulation
+- Organic Chemistry: IUPAC nomenclature, isomerism (structural, stereoisomerism), hydrocarbons (alkanes, alkenes, alkynes, aromatic), functional groups, substitution, addition, elimination, polymerization
+- Named Reactions: Wurtz, Friedel-Crafts, Grignard, Cannizzaro, Aldol, Hofmann, Sandmeyer, Kolbe, Williamson
+- Environmental Chemistry: pollution, acid rain, greenhouse effect, ozone depletion, BOD/COD
+- Analytical Chemistry: qualitative analysis (group reagents), flame tests, precipitation reactions
+- Nuclear Chemistry: radioactivity, half-life, nuclear reactions, carbon dating, nuclear fission/fusion
+
+═══════════════════════════════════════════════════════════════
+SYMBOL & NOTATION RECOGNITION
+═══════════════════════════════════════════════════════════════
+You MUST recognize ALL of these input formats:
+- Unicode math: × ÷ − ° ² ³ ¹ ₀ √ ∫ Σ Π ∂ ∇ ≈ ≠ ≤ ≥ ± ∞ → ← ⇒ θ α β γ δ λ μ σ ω ρ φ ψ ε η π
+- Typed math: x^2, x^3, sqrt(), sin^(-1), log, ln, e^x, 10^x, dy/dx, d2y/dx2, integral
+- Shorthands: "find x", "solve for x", "calc", "evaluate", "simplify", "prove that", "show that", "verify", "find the value of"
+- Mixed formats: "sin30°", "cos theta = 3/5", "v = u + at", "E=mc2", "H2SO4", "Fe2O3", "x\u00b2" (unicode escapes)
+- Word problems: extract numerical data from prose, identify the formula needed, set up the equation, solve
+- Units in any form: "km/h", "m per s", "kilometers per hour", "ms^-1", "m.s-1", "centimetres"
+- Greek letters: theta, alpha, beta, gamma, delta, lambda, mu, sigma, omega, phi, pi (both spelled out and as symbols)
+- Chemical formulas: H2SO4, CH3COOH, Ca(OH)2, Fe2(SO4)3, [Cu(NH3)4]2+
+- Electrochemistry: E°cell, cell diagrams (salt bridge notation), half-reactions
+- Logical connectors: "hence", "therefore", "given that", "if", "then", "such that", "where"
+
+═══════════════════════════════════════════════════════════════
 STEP QUALITY — THIS IS YOUR #1 PRIORITY
-═════════════════════════════════════════════
-1. MORE STEPS: Break complex problems into MANY small, easy-to-follow steps. A 3-step problem is better as 6 steps. Each step should do ONE thing.
-2. NAME THE FORMULA: Every step that uses a formula MUST begin by naming it. Examples:
-   - "Using the Quadratic Formula: $x = rac{-b \pm \sqrt{b^{2}-4ac}}{2a}$"
-   - "Applying Ohm's Law: $V = IR$"
+═══════════════════════════════════════════════════════════════
+1. MORE STEPS: Break complex problems into MANY small, easy-to-follow steps. Each step should do ONE thing.
+2. NAME THE FORMULA: Every step that uses a formula MUST begin by naming it.
+   - "Using the Quadratic Formula: $x = \\frac{-b \\pm \\sqrt{b^{2}-4ac}}{2a}$"
+   - "Applying Ohm\'s Law: $V = IR$"
    - "By the Pythagorean Theorem: $a^{2} + b^{2} = c^{2}$"
-   - "Using the Molarity Formula: $M = n/V$"
-   - "By Newton's Second Law: $F = ma$"
-3. EXPLAIN WHY: Don't just show math — briefly explain the reasoning. "Divide both sides by 3 to isolate x." is better than just "$x = 9/3$".
-4. SHOW FULL SUBSTITUTION: Every step.formula must show actual numbers being substituted, not just the generic formula.
-5. USE TABLES: When a problem involves comparing values, listing data, or showing a pattern, use an HTML table in the step.desc field. Format:
-   <table><tr><th>Quantity</th><th>Value</th><th>Unit</th></tr><tr><td>Mass</td><td>$5$</td><td>kg</td></tr><tr><td>Acceleration</td><td>$9.8$</td><td>$m/s^{2}$</td></tr></table>
-   Use tables for: given data summary, element/mole/mass calculations, data comparison, frequency distributions, coordinate tables.
+3. EXPLAIN WHY: Briefly explain the reasoning at each step.
+4. SHOW FULL SUBSTITUTION: Every step.formula must show actual numbers being substituted.
+5. USE TABLES: When a problem involves comparing values, listing data, or showing a pattern, use an HTML table in step.desc.
 6. USE PROPER SUBSCRIPTS AND SUPERSCRIPTS in $...$ LaTeX:
-   - Chemical formulas: $H_{2}SO_{4}$, $CaCO_{3}$, $CH_{3}COOH$, $Fe_{2}O_{3}$
-   - Units: $m/s^{2}$, $cm^{3}$, $kg \cdot m/s^{2}$
-   - Powers: $x^{2}$, $v^{2}$, $10^{-7}$, $3    imes 10^{8}$
-   - Indices: $a_{n}$, $T_{1}$, $P_{total}$
-   - DO NOT write H2SO4, m/s2, x2 as plain text inside math delimiters — always use _{} and ^{}
+   - Chemical: $H_{2}SO_{4}$, $CaCO_{3}$, $Fe_{2}O_{3}$
+   - Units: $m/s^{2}$, $cm^{3}$
+   - Powers: $x^{2}$, $10^{-7}$, $3 \\times 10^{8}$
 
-═════════════════════════════════════════════
+═══════════════════════════════════════════════════════════════
 LATEX RULES — STRICT COMPLIANCE
-═════════════════════════════════════════════
-7. WRAP ALL MATH in $...$ (inline) or $$...$$ (display). Every number that is part of a calculation goes in $...$.
-8. USE rac{}{} for fractions: $rac{1}{2}$, $rac{-b \pm \sqrt{b^{2}-4ac}}{2a}$
-9. USE \sqrt{} for square roots: $\sqrt{144} = 12$
-10. USE _{} for subscripts and ^{} for superscripts: $v_{0}$, $a^{2}$, $10^{-3}$
-11. USE         imes for multiplication: $3     imes 4 = 12$
-12. USE \pm, 
-eq, \leq, \geq, pprox, ngle, \circ, \pi for symbols.
-13. USE \sum, \prod, \int, \lim for summation/products/integrals/limits.
-14. NEVER use \text{}, \mathrm{}, \mathbf{} — write words as plain text OUTSIDE the $ delimiters.
-15. For units in formulas, write them as plain text AFTER the $...$: "$v = 19.6$ m/s" NOT "$v = 19.6 \text{ m/s}$".
-16. Chemical formulas must ALWAYS use subscripts in LaTeX: $H_{2}O$, $CO_{2}$, $NaCl$, $H_{2}SO_{4}$
+═══════════════════════════════════════════════════════════════
+7. WRAP ALL MATH in $...$ (inline) or $$...$$ (display).
+8. USE \\frac{}{} for fractions, \\sqrt{} for roots, _{} for subscripts, ^{} for superscripts.
+9. USE \\times for multiplication, \\pm, \\neq, \\leq, \\geq, \\approx, \\angle, \\circ, \\pi.
+10. USE \\sum, \\prod, \\int, \\lim, \\infty for advanced notation.
+11. NEVER use \\text{}, \\mathrm{}, \\mathbf{} — write words as plain text OUTSIDE the $ delimiters.
+12. For units: "$v = 19.6$ m/s" NOT "$v = 19.6 \\text{ m/s}$".
+13. Chemical formulas: $H_{2}O$, $CO_{2}$, $NaCl$ — always subscripts in LaTeX.
+14. In JSON strings, backslashes MUST be double-escaped: \\\\frac not \\frac. This prevents JSON.parse from destroying LaTeX.
 
-═════════════════════════════════════════════
-FINAL ANSWER — ABSOLUTE PRIORITY
-═════════════════════════════════════════════
-17. finalAnswer MUST be ONLY the computed result — a short value like "x = 3" or "v = 19.6 m/s" or "CH2O". No sentences.
-18. For chemical formulas: finalAnswer = the formula string (e.g. "CH2O"). NEVER output ratios like "1:2:1".
-19. For "find x": finalAnswer = "x = 5". For area: "Area = 24 cm²". For pH: "pH = 2".
-20. NEVER output intermediate work or work-in-progress as finalAnswer.
+═══════════════════════════════════════════════════════════════
+FINAL ANSWER
+═══════════════════════════════════════════════════════════════
+15. finalAnswer MUST be ONLY the computed result — short: "x = 3", "v = 19.6 m/s", "CH2O".
+16. For chemical formulas: finalAnswer = formula string (e.g. "CH2O"). NEVER ratios like "1:2:1".
+17. NEVER output intermediate work as finalAnswer.
 
-═════════════════════════════════════════════
+═══════════════════════════════════════════════════════════════
 ALTERNATE SOLUTION (altSteps) — MANDATORY
-═════════════════════════════════════════════
-20b. You MUST include an "altSteps" array with 3-5 steps showing an ALTERNATIVE method to solve the same problem.
-- Each altStep must follow ALL the same rules as main steps: name the formula, explain why, show full substitution.
-- Use a genuinely different approach (e.g., if main uses kinematic equations, alt uses energy conservation; if main uses factorization, alt uses quadratic formula).
-- The altSteps must arrive at the SAME final answer.
-- Include a brief verification at the end of altSteps too.
-- NEVER leave altSteps empty. NEVER put just 1 step.
+═══════════════════════════════════════════════════════════════
+18. You MUST include an "altSteps" array with 3-5 steps showing an ALTERNATIVE method.
+- Use a genuinely different approach (e.g., kinematic equations vs energy conservation; factorization vs quadratic formula).
+- Must arrive at the SAME final answer. NEVER leave altSteps empty.
 
-═════════════════════════════════════════════
+═════════════════════════════════════════════════════════════════
 SELF-VERIFICATION
-═════════════════════════════════════════════
-21. ALWAYS verify your answer. The LAST step must be a verification:
+═══════════════════════════════════════════════════════════════
+19. ALWAYS verify your answer. The LAST step must be a verification.
     - Equations: plug answer back, confirm LHS = RHS
-    - Physics/Chemistry: dimensional check or reverse calculation
-    - Geometry: angle sum = 180°, Pythagoras holds
-    - If verification fails, CORRECT your answer before outputting.
+    - Physics/Chem: dimensional check or reverse calculation
 
-═════════════════════════════════════════════
+═══════════════════════════════════════════════════════════════
 BOARD-SPECIFIC STYLE (${boardName})
-═════════════════════════════════════════════
+═══════════════════════════════════════════════════════════════
 ${boardRules}
 
-═════════════════════════════════════════════
+═══════════════════════════════════════════════════════════════
 DIFFICULTY HANDLING
-═════════════════════════════════════════════
-22. For EASY problems: Still break into 3-4 steps with explanation.
-23. For MEDIUM problems: Break into 5-8 steps. Name formulas at each step.
-24. For HARD problems (calculus, advanced trig, complex stoichiometry, multi-body physics):
-    - Break into 8-15+ steps. Each step does ONE operation.
-    - Always state the formula/concept name before applying.
-    - Show the general formula first, THEN substitute values.
-    - Use tables to organize given data or intermediate results.
-25. For PROOFS (trig identities, geometry theorems):
-    - Show LHS and RHS transformations in parallel steps.
-    - Name each identity/theorem used.
-    - End with "Hence proved."
-26. For WORD PROBLEMS: First extract and tabulate the given data, then solve step by step.
+═══════════════════════════════════════════════════════════════
+20. EASY: 3-4 steps. MEDIUM: 5-8 steps. HARD (calculus, advanced trig, stoichiometry, multi-body physics): 8-15+ steps.
+21. PROOFS: Show LHS and RHS separately. Name each theorem. End with "Hence proved."
+22. WORD PROBLEMS: First extract and tabulate given data, then solve step by step.
+23. CONCEPTUAL QUESTIONS ("What is...", "Why does...", "Explain..."): Provide clear, detailed explanations with formulas where relevant. Use steps to build the explanation logically.
+24. MULTI-PART QUESTIONS ("Find x, y, and z"): Solve each part systematically, showing all work.
 
-═════════════════════════════════════════════
-GRAPH GENERATION
-═════════════════════════════════════════════
-27. Include a "graph" field when the problem involves ANY function, equation, data, kinematics, coordinate geometry, trigonometry, or visual relationship.
-    - Quadratic/cubic: plot function, mark roots, vertex, axis of symmetry
-    - Simultaneous equations: plot BOTH lines, mark intersection
-    - Trigonometry: plot the wave, mark key points
-    - Kinematics: s-t, v-t, or a-t graph
-    - Statistics: bar chart or pie chart
-    - Coordinate geometry: plot points, lines, distances
-    - AP/GP: plot terms vs n
+═══════════════════════════════════════════════════════════════
+GRAPH GENERATION (when relevant)
+═══════════════════════════════════════════════════════════════
+25. Include a "graph" field for functions, equations, kinematics, trigonometry, statistics, coordinate geometry, AP/GP.
+    GRAPH FORMAT: {"type":"function","title":"y = x^2 - 5x + 6","fn":"x*x - 5*x + 6","xMin":-1,"xMax":6,"yMin":-3,"yMax":10,"points":[{"x":2,"y":0,"label":"Root (2,0)"}]}
 
-    GRAPH FORMAT:
-    - Function: {"type":"function","title":"y = x^2 - 5x + 6","fn":"x*x - 5*x + 6","xMin":-1,"xMax":6,"yMin":-3,"yMax":10,"points":[{"x":2,"y":0,"label":"Root (2,0)"}]}
-    - Data: {"type":"line","xData":[0,1,2,3],"series":[{"name":"Distance","data":[0,5,20,45]}]}
-    - Bar: {"type":"bar","xData":["A","B"],"series":[{"name":"Value","data":[10,20]}]}
-    - Pie: {"type":"pie","xData":["A","B"],"series":[{"name":"Value","data":[40,60]}]}
-    - For function plots: ALWAYS provide xMin, xMax, yMin, yMax with 20%+ padding.
-    - Labels MUST include units. Mark ALL important points.
-
-═════════════════════════════════════════════
-DIAGRAM — USE PRESET TEMPLATES
-═════════════════════════════════════════════
-28. For physics/chemistry/geometry diagrams, use the PRESET SYSTEM. Instead of raw SVG, specify:
-    {"diagramPreset":"<type>","values":{...},"caption":"..."}
-
-    AVAILABLE PRESETS:
-    a) "free-body" — Free Body Diagram
-       values: {"object":"Block","mass":"2 kg","forces":[{"label":"N","magnitude":"19.6 N","angle":90,"color":"%2310b981"},{"label":"mg","magnitude":"19.6 N","angle":270,"color":"%23ef4444"}]}
-    b) "inclined-plane" — Object on Inclined Plane with angle
-       values: {"object":"Block","mass":"5 kg","angle":30,"forces":[...]}
-    c) "circuit-series" — Series Circuit
-       values: {"components":[{"type":"battery","label":"E=12V","value":"12V"},{"type":"resistor","label":"R1=4Ω","value":"4"}]}
-    d) "circuit-parallel" — Parallel Circuit
-       values: {"components":[{"type":"battery","label":"E=12V"},{"type":"resistor","label":"R1=4Ω"}]}
-    e) "ray-mirror" — Concave/Convex Mirror Ray Diagram
-       values: {"mirrorType":"concave","f":10,"objectDist":20,"objectHeight":3}
-    f) "ray-lens" — Convex/Concave Lens Ray Diagram
-       values: {"lensType":"convex","f":15,"objectDist":30,"objectHeight":2}
-    g) "projectile" — Projectile Motion Diagram
-       values: {"u":20,"angle":45,"g":9.8}
-    h) "triangle" — Labeled Triangle (Geometry)
-       values: {"type":"right","vertices":[{"label":"A","x":50,"y":20},{"label":"B","x":50,"y":220},{"label":"C","x":250,"y":220}],"sides":{"AB":"?","BC":"4 cm","AC":"3 cm"},"markRightAngle":"B"}
-    i) "circle-geometry" — Circle with Points
-       values: {"radius":80,"center":{"x":150,"y":130},"points":[{"label":"A","angle":30},{"label":"B","angle":150}]}
-    j) "pulley" — Pulley System with Two Masses
-       values: {"m1":"5 kg","m2":"3 kg"}
-
-    If none of these presets fit, you may provide raw SVG with viewBox="0 0 300 250".
+═══════════════════════════════════════════════════════════════
+DIAGRAM PRESETS (when relevant)
+═══════════════════════════════════════════════════════════════
+26. Available: "free-body", "inclined-plane", "circuit-series", "circuit-parallel", "ray-mirror", "ray-lens", "projectile", "triangle", "circle-geometry", "pulley"
+    Format: {"diagramPreset":"<type>","values":{...},"caption":"..."}
 
 OUTPUT: Return ONLY this JSON, no markdown fences, no text before/after:
 ${example}
 
-Now solve the student's problem. Use many detailed steps, name every formula, use proper subscripts/superscripts, include tables where appropriate, and include a graph or diagram preset when relevant.`;
+Now solve the student\'s problem comprehensively. Use many detailed steps, name every formula, use proper subscripts/superscripts, include tables where appropriate, and include a graph or diagram preset when relevant.`;
 }
 
 
@@ -628,74 +650,6 @@ function fixFormulaAnswer(finalAnswer: string, steps: { desc: string; formula: s
   return finalAnswer;
 }
 
-// ── Answer Verification — double-check AI answer before showing to user ──
-async function verifyAnswer(
-  problem: string,
-  finalAnswer: string,
-  steps: { desc: string; formula: string }[],
-  subject: string
-): Promise<{ verified: boolean; correctedAnswer?: string; reason?: string }> {
-  // Build a concise summary of the steps for the verifier
-  const stepsSummary = steps
-    .slice(0, 6)
-    .map((s, i) => `Step ${i + 1}: ${s.desc}${s.formula ? ' → ' + s.formula : ''}`)
-    .join('\n');
-
-  const verifyPrompt = `You are a strict answer verifier. Check if the final answer is correct.
-
-Problem: ${problem}
-Subject: ${subject}
-
-Steps taken:
-${stepsSummary}
-
-Final Answer: ${finalAnswer}
-
-Verify this answer by:
-1. Checking the math/logic step by step
-2. Plugging the answer back into the original problem if applicable
-3. Checking units and reasonableness
-
-Respond in EXACTLY this format (no other text):
-CORRECT: <brief confirmation>
-or
-WRONG: <corrected answer> | <reason>
-
-Examples:
-- CORRECT: Substituting x=3 gives 3(3)+5=14. Verified.
-- WRONG: x = 4 | 3(4)+5=17, not 14. Correct answer is x=3.`;
-
-  try {
-    const result = await callAI(verifyPrompt, `Verify this answer: ${finalAnswer}\n\nProblem: ${problem}`);
-    if (!result) return { verified: true }; // If verifier fails, trust original
-
-    const trimmed = result.trim();
-    if (trimmed.startsWith('CORRECT')) {
-      console.log(`[Verify] Answer VERIFIED: ${trimmed.slice(0, 120)}`);
-      return { verified: true, reason: trimmed };
-    }
-    if (trimmed.startsWith('WRONG')) {
-      // Extract corrected answer and reason
-      const afterWrong = trimmed.replace(/^WRONG:\s*/i, '');
-      const pipeIdx = afterWrong.indexOf('|');
-      let correctedAnswer = finalAnswer;
-      let reason = afterWrong;
-      if (pipeIdx > 0) {
-        correctedAnswer = afterWrong.slice(0, pipeIdx).trim();
-        reason = afterWrong.slice(pipeIdx + 1).trim();
-      }
-      console.log(`[Verify] Answer CORRECTED: "${correctedAnswer}" — ${reason}`);
-      return { verified: false, correctedAnswer, reason };
-    }
-    // Unexpected format — trust original
-    console.log(`[Verify] Unexpected format, trusting original: ${trimmed.slice(0, 100)}`);
-    return { verified: true };
-  } catch (err) {
-    console.error(`[Verify] Error during verification:`, err);
-    return { verified: true }; // On error, trust original
-  }
-}
-
 function generateSimilarQuestions(subject: string): string[] {
   const t: Record<string, string[]> = {
     mathematics: ["Try solving with different numbers", "Practice a similar problem type", "Verify using an alternative method"],
@@ -800,15 +754,7 @@ Substitute the given values into the formula and compute. Return JSON only.`;
       console.log(`[SpeedSolve] After sanitize: "${finalAns.slice(0, 100)}"`);
       finalAns = fixFormulaAnswer(finalAns, cleanedSteps, problem);
       console.log(`[SpeedSolve] After fixFormula: "${finalAns}"`);
-      // ── Verify answer before returning ──
-      console.log(`[SpeedSolve] Verifying answer: "${finalAns}"`);
-      const verification = await verifyAnswer(problem, finalAns, cleanedSteps, sub);
-      if (!verification.verified && verification.correctedAnswer) {
-        const corrected = sanitizeFinalAnswer(verification.correctedAnswer);
-        const fixedCorrected = fixFormulaAnswer(corrected, cleanedSteps, problem);
-        console.log(`[SpeedSolve] Using corrected answer: "${finalAns}" → "${fixedCorrected}"`);
-        finalAns = fixedCorrected;
-      }
+      // Verification skipped for speed
 
       const solution = {
         finalAnswer: finalAns,
@@ -831,13 +777,7 @@ Substitute the given values into the formula and compute. Return JSON only.`;
     textSolution.finalAnswer = sanitizeFinalAnswer(textSolution.finalAnswer);
     textSolution.finalAnswer = fixFormulaAnswer(textSolution.finalAnswer, textSolution.steps || [], problem);
 
-    // ── Verify text-fallback answer too ──
-    const textVerification = await verifyAnswer(problem, textSolution.finalAnswer, textSolution.steps || [], sub);
-    if (!textVerification.verified && textVerification.correctedAnswer) {
-      textSolution.finalAnswer = sanitizeFinalAnswer(textVerification.correctedAnswer);
-      textSolution.finalAnswer = fixFormulaAnswer(textSolution.finalAnswer, textSolution.steps || [], problem);
-      console.log(`[SpeedSolve] Text-fallback corrected: "${textSolution.finalAnswer}"`);
-    }
+
 
     return NextResponse.json({ success: true, data: textSolution, source: "ai" });
 

@@ -15,50 +15,90 @@ interface LocalSolution {
 export function preprocessProblem(text: string): string {
   let s = text;
 
-  // ── Superscript digits (common in user input) ──
+  // Superscript digits
   const superscripts: Record<string, string> = {
-    '\u2070': '0', '\u00b9': '1', '\u00b2': '2', '\u00b3': '3', '\u2074': '4',
-    '\u2075': '5', '\u2076': '6', '\u2077': '7', '\u2078': '8', '\u2079': '9',
+    '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4',
+    '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9',
   };
-  // Convert standalone superscripts to ^n (e.g., x² → x^2)
-  s = s.replace(/([a-zA-Z0-9)])([\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079\u2070\u00b9])/g,
+  s = s.replace(/([a-zA-Z0-9)])([²³⁴⁵⁶⁷⁸⁹⁰¹])/g,
     (_, base, sup) => `${base}^${superscripts[sup] || sup}`);
-  // Handle multi-digit superscripts
   let changed = true;
   while (changed) {
     changed = false;
     for (const [uni, ascii] of Object.entries(superscripts)) {
-      if (s.includes(uni)) {
-        s = s.replace(uni, ascii);
-        changed = true;
-      }
+      if (s.includes(uni)) { s = s.replace(uni, ascii); changed = true; }
     }
   }
 
-  // ── Subscript digits ──
+  // Subscript digits
   const subscripts: Record<string, string> = {
-    '\u2080': '0', '\u2081': '1', '\u2082': '2', '\u2083': '3', '\u2084': '4',
-    '\u2085': '5', '\u2086': '6', '\u2087': '7', '\u2088': '8', '\u2089': '9',
+    '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4',
+    '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9',
   };
   for (const [uni, ascii] of Object.entries(subscripts)) {
     s = s.replace(new RegExp(uni, 'g'), `_${ascii}`);
   }
 
-  // ── Math symbols ──
+  // Math operation symbols
   s = s.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
   s = s.replace(/²/g, '^2').replace(/³/g, '^3');
 
-  // ── Unicode minus → ASCII hyphen ──
-  s = s.replace(/\u2212/g, '-');
+  // Comparison symbols
+  s = s.replace(/≠/g, '!=').replace(/≤/g, '<=').replace(/≥/g, '>=');
+  s = s.replace(/≈/g, ' approximately ');
+  s = s.replace(/→/g, '->').replace(/←/g, '<-').replace(/↔/g, '<->');
 
-  // ── Degree symbol (don't strip — useful for trig) ──
-  // s = s.replace(/°/g, ' deg ');
+  // Set theory symbols
+  s = s.replace(/∈/g, ' in ').replace(/∉/g, ' not in ');
+  s = s.replace(/⊂/g, ' subset of ').replace(/⊃/g, ' superset of ');
+  s = s.replace(/∪/g, ' union ').replace(/∩/g, ' intersection ');
+  s = s.replace(/∅/g, 'empty set');
+  s = s.replace(/∀/g, 'for all ').replace(/∃/g, 'there exists ');
+  s = s.replace(/∴/g, 'therefore ').replace(/∵/g, 'because ');
 
-  // ── Fancy quotes ──
-  s = s.replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"');
+  // Greek letters (lowercase)
+  s = s.replace(/θ/g, 'theta');  // theta
+  s = s.replace(/α/g, 'alpha');  // alpha
+  s = s.replace(/β/g, 'beta');   // beta
+  s = s.replace(/γ/g, 'gamma');  // gamma
+  s = s.replace(/δ/g, 'delta');  // delta
+  s = s.replace(/ε/g, 'epsilon'); // epsilon
+  s = s.replace(/λ/g, 'lambda'); // lambda
+  s = s.replace(/μ/g, 'mu');     // mu
+  s = s.replace(/σ/g, 'sigma');  // sigma
+  s = s.replace(/ω/g, 'omega');  // omega
+  s = s.replace(/ρ/g, 'rho');    // rho
+  s = s.replace(/φ/g, 'phi');    // phi
+  s = s.replace(/ψ/g, 'psi');    // psi
+  s = s.replace(/η/g, 'eta');    // eta
+  s = s.replace(/ν/g, 'nu');     // nu
+  s = s.replace(/τ/g, 'tau');    // tau
+  s = s.replace(/π/g, 'pi');     // pi
+  s = s.replace(/∞/g, 'infinity'); // infinity
 
-  // ── Em dashes and other punctuation ──
+  // Special math symbols
+  s = s.replace(/√/g, 'sqrt(');   // square root
+  s = s.replace(/∛/g, 'cbrt(');   // cube root
+  s = s.replace(/∫/g, 'integral of '); // integral
+  s = s.replace(/∑/g, 'sum of ');     // sum
+  s = s.replace(/∏/g, 'product of '); // product
+  s = s.replace(/∂/g, 'd');         // partial
+  s = s.replace(/∇/g, 'del ');       // nabla
+  s = s.replace(/±/g, ' +/- ');     // plus-minus
+  s = s.replace(/·/g, '*');          // middle dot
+
+  // Chemistry arrows
+  s = s.replace(/⇌/g, '<->').replace(/→/g, '->');
+  s = s.replace(/↑/g, '(g)').replace(/↓/g, '(s)');
+
+  // Fancy quotes
+  s = s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
+
+  // Em dashes and ellipsis
   s = s.replace(/—|–/g, '-').replace(/…/g, '...');
+
+  // Invisible Unicode (zero-width chars)
+  s = s.replace(/[​‌‍﻿­]/g, '');
 
   // Normalize whitespace
   s = s.replace(/\s+/g, ' ').trim();
