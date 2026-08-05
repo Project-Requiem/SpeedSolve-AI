@@ -1,39 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
 import { tryLocalSolve, preprocessProblem } from "./local-solver";
 import { isPromptInjection, INJECTION_MESSAGE } from "@/lib/injection-guard";
 
-const geminiAI = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY || "",
-});
-
-// ── AI Provider 1: Google Gemini ──
-async function callGemini(systemPrompt: string, userPrompt: string): Promise<string> {
-  if (!process.env.GEMINI_API_KEY) return "";
-  const models = ["gemini-2.0-flash", "gemini-2.5-pro"];
-  for (const model of models) {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        const response = await geminiAI.models.generateContent({
-          model,
-          contents: userPrompt,
-          config: { systemInstruction: systemPrompt, temperature: 0.1, maxOutputTokens: 8192 },
-        });
-        const text = response.text || "";
-        if (text.trim().length > 20) {
-          console.log(`[SpeedSolve] Gemini ${model} OK (${text.length} chars)`);
-          return text;
-        }
-      } catch (err: any) {
-        console.error(`[SpeedSolve] Gemini ${model}: ${err?.message?.slice(0, 100)}`);
-      }
-      await new Promise(r => setTimeout(r, 1000));
-    }
-  }
-  return "";
-}
-
-// ── AI Provider 2: Groq (free, fast, OpenAI-compatible) ──
+// ── AI Provider: Groq (fast, OpenAI-compatible) ──
 async function callGroq(systemPrompt: string, userPrompt: string): Promise<string> {
   const key = process.env.GROQ_API_KEY;
   if (!key) return "";
@@ -71,18 +40,13 @@ async function callGroq(systemPrompt: string, userPrompt: string): Promise<strin
   return "";
 }
 
-// ── Try all AI providers in sequence ──
+// ── Call Groq directly ──
 async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
-  // Try Gemini first
-  const geminiResult = await callGemini(systemPrompt, userPrompt);
-  if (geminiResult) return geminiResult;
-
-  // Fallback to Groq
-  console.log("[SpeedSolve] Gemini failed, trying Groq...");
+  console.log("[SpeedSolve] Calling Groq...");
   const groqResult = await callGroq(systemPrompt, userPrompt);
   if (groqResult) return groqResult;
 
-  console.error("[SpeedSolve] ALL AI providers failed");
+  console.error("[SpeedSolve] Groq failed");
   return "";
 }
 
