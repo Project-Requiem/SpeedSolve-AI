@@ -561,11 +561,15 @@ export default function Home() {
     }, 300)
 
     try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 60000) // 60s timeout
       const res = await fetch('/api/solve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ problem: trimmed, subject: activeSubject, board }),
+        signal: controller.signal,
       })
+      clearTimeout(timeoutId)
       const data = await res.json()
       clearInterval(progressRef.current!)
       if (data.error) {
@@ -605,9 +609,13 @@ export default function Home() {
           }
         }, 150)
       }
-    } catch {
+    } catch (err: any) {
       clearInterval(progressRef.current!)
-      setError('Network error. Please check your connection and try again.')
+      if (err?.name === 'AbortError') {
+        setError('Request timed out. The AI providers may be busy - please try again.')
+      } else {
+        setError('Network error. Please check your connection and try again.')
+      }
       setLoading(false)
     }
   }, [problem, subject, board])

@@ -12,7 +12,7 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<str
   if (!process.env.GEMINI_API_KEY) return "";
   const models = ["gemini-2.0-flash", "gemini-2.5-pro", "gemini-2.5-flash"];
   for (const model of models) {
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const response = await geminiAI.models.generateContent({
           model,
@@ -39,36 +39,33 @@ async function callGroq(systemPrompt: string, userPrompt: string): Promise<strin
   if (!key) return "";
   const models = ["llama-3.3-70b-versatile", "deepseek-r1-distill-llama-70b", "llama-3.1-8b-instant", "gemma2-9b-it"];
   for (const model of models) {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt },
-            ],
-            temperature: 0.1,
-            max_tokens: 8192,
-          }),
-          signal: AbortSignal.timeout(35000),
-        });
-        if (!res.ok) {
-          console.error(`[SpeedSolve] Groq ${model}: ${res.status}`);
-          continue;
-        }
-        const data = await res.json();
-        const text = data?.choices?.[0]?.message?.content || "";
-        if (text.trim().length > 20) {
-          console.log(`[SpeedSolve] Groq ${model} OK (${text.length} chars)`);
-          return text;
-        }
-      } catch (err: any) {
-        console.error(`[SpeedSolve] Groq ${model}: ${err?.message?.slice(0, 100)}`);
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          temperature: 0.1,
+          max_tokens: 8192,
+        }),
+        signal: AbortSignal.timeout(35000),
+      });
+      if (!res.ok) {
+        console.error(`[SpeedSolve] Groq ${model}: ${res.status}`);
+        continue;
       }
-      await new Promise(r => setTimeout(r, 500));
+      const data = await res.json();
+      const text = data?.choices?.[0]?.message?.content || "";
+      if (text.trim().length > 20) {
+        console.log(`[SpeedSolve] Groq ${model} OK (${text.length} chars)`);
+        return text;
+      }
+    } catch (err: any) {
+      console.error(`[SpeedSolve] Groq ${model}: ${err?.message?.slice(0, 100)}`);
     }
   }
   return "";
@@ -130,13 +127,7 @@ async function callAI(systemPrompt: string, userPrompt: string): Promise<string>
   const orResult = await callOpenRouter(systemPrompt, userPrompt);
   if (orResult) return orResult;
 
-  // 4. Retry Gemini one more time (transient errors)
-  console.log("[SpeedSolve] All providers failed, retrying Gemini...");
-  await new Promise(r => setTimeout(r, 2000));
-  const retryResult = await callGemini(systemPrompt, userPrompt);
-  if (retryResult) return retryResult;
-
-  console.error("[SpeedSolve] ALL AI providers failed after full retry");
+  console.error("[SpeedSolve] ALL AI providers failed");
   return "";
 }
 
@@ -482,29 +473,13 @@ Now solve the student's problem. Use many detailed steps, name every formula, us
 }
 
 
-// ── Solution Quality Validator ──
+// ── Solution Quality Validator (lightweight) ──
 function isSolutionClean(p: any): boolean {
   if (!p) return false;
-  const chk = (s: string): boolean => {
-    if (!s) return true;
-    if (/[​‌‍﻿­⁠-⁤]/.test(s)) return false;
-    const ls = s.split("\n");
-    if (ls.length > 5) {
-      const ne = ls.filter((l: string) => l.trim().length > 0);
-      if (ne.length > 6 && ne.reduce((a: number, l: string) => a + l.trim().length, 0) / ne.length < 5) return false;
-    }
-    if (/\bEm\s+for\b/.test(s) || /\bof\s+moles\b/.test(s)) return false;
-    if (/\\f(?!rac|orall)/.test(s)) return false;
-    return true;
-  };
-  if (!chk(p.finalAnswer)) return false;
-  if (!chk(p.finalFormula)) return false;
-  for (let i = 0; i < (p.steps || []).length; i++) {
-    if (!chk(p.steps[i]?.desc)) return false;
-    if (!chk(p.steps[i]?.formula)) return false;
-  }
+  if (!p.finalAnswer || !Array.isArray(p.steps) || p.steps.length === 0) return false;
   return true;
 }
+
 // ── JSON extraction ──
 // STRATEGY: Don't try to double-escape LaTeX before JSON.parse.
 // Instead, let JSON.parse do its thing (which destroys \f→0x0C etc.),
@@ -894,73 +869,7 @@ function fixFormulaAnswer(finalAnswer: string, steps: { desc: string; formula: s
   return finalAnswer;
 }
 
-// ── Answer Verification — double-check AI answer before showing to user ──
-async function verifyAnswer(
-  problem: string,
-  finalAnswer: string,
-  steps: { desc: string; formula: string }[],
-  subject: string
-): Promise<{ verified: boolean; correctedAnswer?: string; reason?: string }> {
-  // Build a concise summary of the steps for the verifier
-  const stepsSummary = steps
-    .slice(0, 6)
-    .map((s, i) => `Step ${i + 1}: ${s.desc}${s.formula ? ' → ' + s.formula : ''}`)
-    .join('\n');
-
-  const verifyPrompt = `You are a strict answer verifier. Check if the final answer is correct.
-
-Problem: ${problem}
-Subject: ${subject}
-
-Steps taken:
-${stepsSummary}
-
-Final Answer: ${finalAnswer}
-
-Verify this answer by:
-1. Checking the math/logic step by step
-2. Plugging the answer back into the original problem if applicable
-3. Checking units and reasonableness
-
-Respond in EXACTLY this format (no other text):
-CORRECT: <brief confirmation>
-or
-WRONG: <corrected answer> | <reason>
-
-Examples:
-- CORRECT: Substituting x=3 gives 3(3)+5=14. Verified.
-- WRONG: x = 4 | 3(4)+5=17, not 14. Correct answer is x=3.`;
-
-  try {
-    const result = await callAI(verifyPrompt, `Verify this answer: ${finalAnswer}\n\nProblem: ${problem}`);
-    if (!result) return { verified: true }; // If verifier fails, trust original
-
-    const trimmed = result.trim();
-    if (trimmed.startsWith('CORRECT')) {
-      console.log(`[Verify] Answer VERIFIED: ${trimmed.slice(0, 120)}`);
-      return { verified: true, reason: trimmed };
-    }
-    if (trimmed.startsWith('WRONG')) {
-      // Extract corrected answer and reason
-      const afterWrong = trimmed.replace(/^WRONG:\s*/i, '');
-      const pipeIdx = afterWrong.indexOf('|');
-      let correctedAnswer = finalAnswer;
-      let reason = afterWrong;
-      if (pipeIdx > 0) {
-        correctedAnswer = afterWrong.slice(0, pipeIdx).trim();
-        reason = afterWrong.slice(pipeIdx + 1).trim();
-      }
-      console.log(`[Verify] Answer CORRECTED: "${correctedAnswer}" — ${reason}`);
-      return { verified: false, correctedAnswer, reason };
-    }
-    // Unexpected format — trust original
-    console.log(`[Verify] Unexpected format, trusting original: ${trimmed.slice(0, 100)}`);
-    return { verified: true };
-  } catch (err) {
-    console.error(`[Verify] Error during verification:`, err);
-    return { verified: true }; // On error, trust original
-  }
-}
+// ── Utility functions ──
 
 function generateSimilarQuestions(subject: string): string[] {
   const t: Record<string, string[]> = {
@@ -1048,25 +957,7 @@ Substitute the given values into the formula and compute. Return JSON only.`;
     }
 
     // Try to parse JSON from AI response (deepCleanLaTeX runs inside extractJSON)
-    // Quality gate: if solution is garbled, regenerate up to 3 times
-    let parsed = extractJSON(raw);
-    let clean = isSolutionClean(parsed);
-    let retries = 0;
-    while (!clean && retries < 3) {
-      console.warn("[SpeedSolve] Solution garbled, regenerating (" + (retries+1) + "/3)...");
-      const rr = await callAI(systemPrompt, userPrompt);
-      if (!rr) break;
-      const rp = extractJSON(rr);
-      if (isSolutionClean(rp)) {
-        parsed = rp;
-        clean = true;
-        console.log("[SpeedSolve] Regeneration " + (retries+1) + " succeeded");
-      }
-      retries++;
-    }
-    if (!clean && parsed) {
-      console.warn("[SpeedSolve] All regenerations dirty, using repaired result");
-    }
+    const parsed = extractJSON(raw);
 
     if (parsed && parsed.finalAnswer && Array.isArray(parsed.steps) && parsed.steps.length > 0) {
       const cleanedSteps = (parsed.steps || []).map((s: any) => ({
@@ -1084,15 +975,8 @@ Substitute the given values into the formula and compute. Return JSON only.`;
       console.log(`[SpeedSolve] After sanitize: "${finalAns.slice(0, 100)}"`);
       finalAns = fixFormulaAnswer(finalAns, cleanedSteps, problem);
       console.log(`[SpeedSolve] After fixFormula: "${finalAns}"`);
-      // ── Verify answer before returning ──
-      console.log(`[SpeedSolve] Verifying answer: "${finalAns}"`);
-      const verification = await verifyAnswer(problem, finalAns, cleanedSteps, sub);
-      if (!verification.verified && verification.correctedAnswer) {
-        const corrected = sanitizeFinalAnswer(verification.correctedAnswer);
-        const fixedCorrected = fixFormulaAnswer(corrected, cleanedSteps, problem);
-        console.log(`[SpeedSolve] Using corrected answer: "${finalAns}" → "${fixedCorrected}"`);
-        finalAns = fixedCorrected;
-      }
+      // Verification skipped — nuclearLatexRepair + isSolutionClean handle quality.
+      // Previously verifyAnswer made an extra AI call per solve, causing timeouts.
 
       const solution = {
         finalAnswer: finalAns,
@@ -1111,19 +995,13 @@ Substitute the given values into the formula and compute. Return JSON only.`;
     // JSON parse failed but we have text - build solution from raw text
     console.warn(`[SpeedSolve] JSON parse failed, building from raw text (${raw.length} chars)`);
     const textSolution = buildSolutionFromText(raw, sub, brd);
-    // Sanitize and apply formula fix to fallback path too
-    textSolution.finalAnswer = sanitizeFinalAnswer(textSolution.finalAnswer);
-    textSolution.finalAnswer = fixFormulaAnswer(textSolution.finalAnswer, textSolution.steps || [], problem);
+    // Run nuclearLatexRepair on the fallback solution too!
+    const repairedTextSolution = deepCleanLaTeX(textSolution);
+    // Sanitize and apply formula fix
+    repairedTextSolution.finalAnswer = sanitizeFinalAnswer(repairedTextSolution.finalAnswer);
+    repairedTextSolution.finalAnswer = fixFormulaAnswer(repairedTextSolution.finalAnswer, repairedTextSolution.steps || [], problem);
 
-    // ── Verify text-fallback answer too ──
-    const textVerification = await verifyAnswer(problem, textSolution.finalAnswer, textSolution.steps || [], sub);
-    if (!textVerification.verified && textVerification.correctedAnswer) {
-      textSolution.finalAnswer = sanitizeFinalAnswer(textVerification.correctedAnswer);
-      textSolution.finalAnswer = fixFormulaAnswer(textSolution.finalAnswer, textSolution.steps || [], problem);
-      console.log(`[SpeedSolve] Text-fallback corrected: "${textSolution.finalAnswer}"`);
-    }
-
-    return NextResponse.json({ success: true, data: textSolution, source: "ai" });
+    return NextResponse.json({ success: true, data: repairedTextSolution, source: "ai" });
 
   } catch (err) {
     console.error("Solve API error:", err);
