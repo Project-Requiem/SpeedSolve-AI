@@ -22,15 +22,22 @@ interface Solution {
   diagram: any | null
 }
 
-type Subject = 'mathematics' | 'physics' | 'chemistry'
+type Subject = 'mathematics' | 'physics' | 'chemistry' | 'biology' | 'english' | 'history' | 'geography' | 'economics' | 'civics' | 'computerscience'
 type Board = 'icse' | 'cbse' | 'state'
 
-const SUBJECTS: Subject[] = ['mathematics', 'physics', 'chemistry']
+const SUBJECTS: Subject[] = ['mathematics', 'physics', 'chemistry', 'biology', 'english', 'history', 'geography', 'economics', 'civics', 'computerscience']
 
 const SUBJECT_META: Record<Subject, { name: string; badge: string; gradient: string; color: string }> = {
-  mathematics: { name: 'Mathematics', badge: 'Math', gradient: 'linear-gradient(135deg, #7c3aed, #8b5cf6)', color: '#8b5cf6' },
-  physics:     { name: 'Physics',     badge: 'Physics', gradient: 'linear-gradient(135deg, #f97316, #ef4444)', color: '#f97316' },
-  chemistry:   { name: 'Chemistry',   badge: 'Chemistry', gradient: 'linear-gradient(135deg, #10b981, #06b6d4)', color: '#10b981' },
+  mathematics:     { name: 'Mathematics',     badge: 'Math',     gradient: 'linear-gradient(135deg, #7c3aed, #8b5cf6)', color: '#8b5cf6' },
+  physics:         { name: 'Physics',         badge: 'Physics',   gradient: 'linear-gradient(135deg, #f97316, #ef4444)', color: '#f97316' },
+  chemistry:       { name: 'Chemistry',       badge: 'Chem',     gradient: 'linear-gradient(135deg, #10b981, #06b6d4)', color: '#10b981' },
+  biology:         { name: 'Biology',         badge: 'Bio',      gradient: 'linear-gradient(135deg, #16a34a, #22c55e)', color: '#16a34a' },
+  english:         { name: 'English',         badge: 'Eng',      gradient: 'linear-gradient(135deg, #8b5cf6, #a78bfa)', color: '#8b5cf6' },
+  history:         { name: 'History',         badge: 'Hist',     gradient: 'linear-gradient(135deg, #b45309, #d97706)', color: '#b45309' },
+  geography:       { name: 'Geography',       badge: 'Geo',      gradient: 'linear-gradient(135deg, #0ea5e9, #38bdf8)', color: '#0ea5e9' },
+  economics:       { name: 'Economics',       badge: 'Econ',     gradient: 'linear-gradient(135deg, #059669, #34d399)', color: '#059669' },
+  civics:          { name: 'Civics',          badge: 'Civics',   gradient: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#6366f1' },
+  computerscience: { name: 'Computer Sc.',    badge: 'CS',       gradient: 'linear-gradient(135deg, #2563eb, #3b82f6)', color: '#2563eb' },
 }
 
 const TICKER_FORMULAS = [
@@ -115,7 +122,7 @@ function cleanBareLatex(text: string): string {
 // ─── Auto Subject Detection ──────────────────────────────────────
 function detectSubject(text: string): Subject | null {
   const lower = text.toLowerCase()
-  const scores: Record<Subject, number> = { mathematics: 0, physics: 0, chemistry: 0 }
+  const scores: Record<Subject, number> = { mathematics: 0, physics: 0, chemistry: 0, biology: 0, english: 0, history: 0, geography: 0, economics: 0, civics: 0, computerscience: 0 }
 
   // Physics indicators (strong signal)
   const physicsTerms = ['newton', 'velocity', 'acceleration', 'force', 'momentum', 'kinetic energy', 'potential energy', 'joule', 'watt', 'ohm', 'ampere', 'coulomb', 'voltage', 'current', 'resistance', 'capacit', 'induct', 'frequency', 'wavelength', 'refraction', 'reflection', 'lens', 'mirror', 'focal length', 'friction', 'gravity', 'gravitation', 'torque', 'angular', 'centripetal', 'pendulum', 'projectile', 'trajectory', 'circuit', 'magnetic field', 'electric field', 'wave', 'sound', 'light', 'speed of light', 'work done', 'power', 'thermal', 'heat capacity', 'specific heat', 'latent heat', 'conduction', 'convection', 'radiation', 'pressure', 'buoyancy', 'density', 'stress', 'strain', 'youngs modulus', 'hookes law', 'bernoulli', 'pascals law', 'archimedes', 'doppler', 'photoelectric', 'nuclear', 'radioactive', 'half-life', 'fission', 'fusion', 'quantum', 'photon', 'electron volt', 'mass of electron', 'charge on electron', 'planck', 'farad', 'henry', 'tesla', 'weber', 'flux', 'emf', 'pd', 'kg m/s', 'm/s²', 'n/c', 'v/m', 'hooke', 'kgf', 'dyne', 'erg', 'horse power']
@@ -140,6 +147,38 @@ function detectSubject(text: string): Subject | null {
   // Math formula patterns
   const mathPatterns = [/\bx\^?\d?\s*[+=]\s*\d/, /\b(?:sin|cos|tan|log|ln)\s*\(/, /\b(?:sum|sigma|pi)\s*\(?\s*\d/, /\b\d+\s*\/\s*\d+\s*[+-]\s*\d+\s*\/\s*\d+/, /\b(?:f\(|g\(|h\()\s*x/]
   mathPatterns.forEach(p => { if (p.test(lower)) scores.mathematics += 1.5 })
+
+  // Biology indicators
+  const bioTerms = ['photosynthesis', 'respiration', 'mitosis', 'meiosis', 'dna', 'rna', 'chromosome', 'gene', 'enzyme', 'cell', 'tissue', 'organ', 'species', 'ecosystem', 'biodiversity', 'evolution', 'darwin', 'natural selection', 'digestion', 'excretion', 'circulation', 'nervous', 'hormone', 'reproduction', 'pollination', 'fertilization', 'protein', 'carbohydrate', 'lipid', 'vitamin', 'mineral', 'bacteria', 'virus', 'fungi', 'protozoa', 'algae', 'lichen', 'nitrogen cycle', 'carbon cycle', 'food chain', 'food web', 'adaptation', 'mutation', 'dominant', 'recessive', 'genotype', 'phenotype', 'homologous', 'analogous', 'taxonomy', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'speciation', 'extinction', 'biome', 'trophic level', 'producer', 'consumer', 'decomposer', 'abiotic', 'biotic', 'chloroplast', 'mitochondria', 'ribosome', 'nucleus', 'membrane', 'osmosis', 'diffusion', 'transpiration', 'blood', 'heart', 'lung', 'kidney', 'liver', 'brain', 'neuron', 'reflex', 'vaccine', 'antibody', 'antigen', 'pathogen', 'immunity']
+  bioTerms.forEach(t => { if (lower.includes(t)) scores.biology += 2 })
+
+  // English indicators
+  const engTerms = ['letter to the editor', 'formal letter', 'informal letter', 'essay on', 'article on', 'speech on', 'debate on', 'report writing', 'notice writing', 'poster making', 'change the voice', 'active voice', 'passive voice', 'direct speech', 'indirect speech', 'narration', 'transformation of sentences', 'transform the sentence', 'remove too', 'tense', 'parts of speech', 'noun', 'pronoun', 'adjective', 'adverb', 'verb', 'preposition', 'conjunction', 'interjection', 'subject verb agreement', 'clauses', 'relative clause', 'conditional sentence', 'synonym', 'antonym', 'one word substitution', 'idiom', 'phrase', 'figure of speech', 'simile', 'metaphor', 'personification', 'alliteration', 'hyperbole', 'onomatopoeia', 'oxymoron', 'irony', 'rhyme scheme', 'summary', 'comprehension', 'precis', 'paragraph writing', 'story writing', 'email writing', 'diary entry', 'book review', 'character sketch', 'theme', 'refrence to context', 'appreciation', 'flamingo', 'vistas', 'hornbill', 'snapshot', 'footprints']
+  engTerms.forEach(t => { if (lower.includes(t)) scores.english += 2 })
+  const engPatterns = [/\b(?:write\s+(?:a|an)\s+(?:letter|essay|article|speech|debate|report|notice|paragraph|story|email|diary))/i, /\b(?:change\s+(?:the\s+)?voice|transform|convert)\b/i, /\b(?:active|passive)\s+voice\b/i, /\b(?:direct|indirect)\s+speech\b/i, /\b(?:remove\s+['"]?too['"]?)\b/i]
+  engPatterns.forEach(p => { if (p.test(lower)) scores.english += 1.5 })
+
+  // History indicators
+  const histTerms = ['french revolution', 'russian revolution', 'industrial revolution', 'world war', 'cold war', 'british rule', 'colonial', 'independence', 'freedom struggle', 'mahatma gandhi', 'nehru', 'subhash chandra bose', 'revolt of 1857', 'salt march', 'civil disobedience', 'non-cooperation', 'quit india', 'partition', 'mauryan', 'gupta', 'mughal', 'delhi sultanate', 'chola', 'vijayanagara', 'babur', 'akbar', 'shivaji', 'raja ram mohan roy', 'tipu sultan', 'rani lakshmibai', 'united nations', 'league of nations', 'treaty of', 'colonization', 'decolonization', 'nationalism', 'imperialism', 'fascism', 'nazism', 'communism', 'socialism', 'democracy', 'monarchy', 'feudalism', 'renaissance', 'reformation', 'enlightenment']
+  histTerms.forEach(t => { if (lower.includes(t)) scores.history += 2 })
+  const histPatterns = [/\b(?:causes?|effects?|significance|impact|consequences?)\s+(?:of|on)\s+(?:the\s+)?/i, /\b(?:explain|describe|discuss)\s+(?:the\s+)?(?:causes?|events?|features?|impact)/i]
+  histPatterns.forEach(p => { if (p.test(lower)) scores.history += 0.5 })
+
+  // Geography indicators
+  const geoTerms = ['climate', 'weather', 'monsoon', 'rainfall', 'temperature', 'latitude', 'longitude', 'altitude', 'topography', 'soil', 'vegetation', 'forest', 'wildlife', 'biodiversity', 'plate tectonic', 'earthquake', 'volcano', 'tsunami', 'erosion', 'deposition', 'river', 'glacier', 'ocean', 'continent', 'island', 'peninsula', 'map', 'globe', 'scale', 'contour', 'toposheet', 'sustainable development', 'global warming', 'greenhouse', 'pollution', 'deforestation', 'desertification', 'urbanization', 'migration', 'population density', 'resource', 'mineral', 'energy resource', 'water resource', 'solar', 'wind energy', 'hydel', 'thermal power', 'nuclear power', 'industries', 'agriculture', 'irrigation', 'crop', 'green revolution', 'landform', 'mountain', 'plateau', 'plain', 'coast']
+  geoTerms.forEach(t => { if (lower.includes(t)) scores.geography += 2 })
+
+  // Economics indicators
+  const econTerms = ['demand', 'supply', 'price', 'market', 'gdp', 'national income', 'inflation', 'deflation', 'unemployment', 'poverty', 'budget', 'tax', 'revenue', 'fiscal', 'monetary', 'rbi', 'reserve bank', 'money', 'banking', 'credit', 'interest rate', 'consumer', 'producer', 'utility', 'marginal', 'equilibrium', 'elasticity', 'oligopoly', 'monopoly', 'perfect competition', 'production', 'cost', 'fixed cost', 'variable cost', 'total cost', 'average cost', 'opportunity cost', 'economic growth', 'development', 'planning', 'five year plan', 'niti aayog', 'globalization', 'liberalization', 'privatization', 'wto', 'trade', 'export', 'import', 'balance of payment', 'current account', 'capital account', 'subsidy', 'public goods', 'externalities', 'index number', 'wholesale price', 'consumer price']
+  econTerms.forEach(t => { if (lower.includes(t)) scores.economics += 2 })
+
+  // Civics indicators
+  const civTerms = ['fundamental rights', 'directive principles', 'fundamental duties', 'preamble', 'constitution', 'amendment', 'parliament', 'lok sabha', 'rajya sabha', 'president', 'prime minister', 'governor', 'chief minister', 'judiciary', 'supreme court', 'high court', 'election', 'voting', 'political party', 'democracy', 'republic', 'federal', 'unitary', 'panchayat', 'municipality', 'local government', 'civil liberty', 'gender equality', 'social justice', 'reservation', 'secular', 'sovereign', 'article ', 'right to equality', 'right to freedom', 'cultural and educational', 'right to constitutional', 'citizenship', 'bill of rights', 'separation of powers', 'executive', 'legislature', 'bureaucracy', 'cabinet', 'council of ministers', 'coalition', 'opposition', 'united nations', 'human rights']
+  civTerms.forEach(t => { if (lower.includes(t)) scores.civics += 2 })
+
+  // Computer Science indicators
+  const csTerms = ['python', 'java', 'programming', 'algorithm', 'flowchart', 'variable', 'data type', 'integer', 'string', 'float', 'boolean', 'array', 'list', 'loop', 'for loop', 'while loop', 'if else', 'function', 'class', 'object', 'inheritance', 'polymorphism', 'encapsulation', 'abstraction', 'sql', 'database', 'query', 'table', 'select', 'insert', 'update', 'delete', 'join', 'primary key', 'foreign key', 'normalization', 'binary', 'octal', 'hexadecimal', 'ascii', 'unicode', 'logic gate', 'and gate', 'or gate', 'not gate', 'truth table', 'boolean algebra', 'networking', 'internet', 'protocol', 'tcp/ip', 'html', 'css', 'javascript', 'operating system', 'memory', 'ram', 'rom', 'cpu', 'stack', 'queue', 'linked list', 'tree', 'graph', 'sorting', 'searching', 'recursion', 'output', 'syntax', 'compile', 'debug', 'cyber', 'privacy', 'intellectual property']
+  csTerms.forEach(t => { if (lower.includes(t)) scores.computerscience += 2 })
 
   // Find the winner
   const entries = Object.entries(scores) as [Subject, number][]
@@ -398,6 +437,77 @@ export default function Home() {
 
   // ── Feature 7: Retry with AI / Regenerate ──
   const [retryingAI, setRetryingAI] = useState(false)
+
+  // ── Smart Regenerate: sends previous answer context so AI corrects itself ──
+  const smartRegenerate = useCallback(async () => {
+    const trimmed = problem.trim()
+    if (!trimmed || !solution) return
+
+    setRetryingAI(true)
+    setLoading(true)
+    setError('')
+    setShowAlt(false)
+    setFlashAnswer(false)
+    setProgress(0)
+
+    // Build previous answer context for smart retry
+    const prevAnswer = solution.finalAnswer || solution.finalFormula || ''
+    const prevStepsSummary = solution.steps
+      ?.slice(0, 5)
+      .map((s, i) => `Step ${i + 1}: ${s.desc.slice(0, 100)}`)
+      .join('; ') || ''
+
+    let p = 0
+    progressRef.current = setInterval(() => {
+      p += Math.random() * 8
+      if (p > 92) p = 92
+      setProgress(p)
+    }, 400)
+
+    try {
+      const res = await fetch('/api/solve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          problem: trimmed,
+          subject,
+          board,
+          forceAI: true,
+          previousAnswer: prevAnswer,
+          previousSteps: prevStepsSummary,
+        }),
+      })
+      const data = await res.json()
+      clearInterval(progressRef.current!)
+      if (data.error) {
+        setError(data.error)
+        setLoading(false)
+        setRetryingAI(false)
+      } else if (data.data) {
+        setSolution(data.data)
+        setSolveSource('ai')
+        setProgress(100)
+        setTimeout(() => {
+          setLoading(false)
+          setRetryingAI(false)
+          setTimeout(() => setFlashAnswer(true), 50)
+          setTimeout(() => setFlashAnswer(false), 800)
+          setTimeout(() => {
+            document.querySelectorAll('.steps-container.reveal').forEach(el => {
+              el.classList.remove('reveal')
+              void el.offsetWidth
+              el.classList.add('reveal')
+            })
+          }, 100)
+        }, 150)
+      }
+    } catch {
+      clearInterval(progressRef.current!)
+      setError('Network error. Please check your connection and try again.')
+      setLoading(false)
+      setRetryingAI(false)
+    }
+  }, [problem, subject, board, solution])
 
   const openNotSatisfied = useCallback(() => {
     const ans = solution?.finalAnswer || solution?.finalFormula || ''
@@ -1309,7 +1419,14 @@ export default function Home() {
             {([
               { key: 'mathematics' as Subject, icon: <>&sum;</>, desc: 'Algebra · Calculus · Geometry · Trig · Stats · Probability' },
               { key: 'physics' as Subject, icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>, desc: 'Kinematics · Forces · Energy · Waves · Electricity · Optics' },
-              { key: 'chemistry' as Subject, icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 2v4l-2 4v10h8V10l-2-4V2M6 12h12"/></svg>, desc: 'Stoichiometry · Moles · Gas Laws · pH · Equilibrium · Reactions' },
+              { key: 'chemistry' as Subject, icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 2v4l-2 4v10h8V10l-2-4V2M6 12h12"/></svg>, desc: 'Stoichiometry · Moles · Gas Laws · pH · Equilibrium · Organic' },
+              { key: 'biology' as Subject, icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"/><path d="M8 12s1.5 4 4 4 4-4 4-4-1.5-4-4-4-4 4-4 4z"/><path d="M12 6v2M12 16v2"/></svg>, desc: 'Cell Biology · Genetics · Ecology · Human Physiology · Evolution' },
+              { key: 'english' as Subject, icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>, desc: 'Grammar · Writing · Literature · Comprehension · Vocabulary' },
+              { key: 'history' as Subject, icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, desc: 'Indian History · World History · Freedom Struggle · Civilizations' },
+              { key: 'geography' as Subject, icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>, desc: 'Climate · Landforms · Resources · Map Work · Indian Geography' },
+              { key: 'economics' as Subject, icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>, desc: 'Demand · Supply · GDP · Indian Economy · Statistics' },
+              { key: 'civics' as Subject, icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>, desc: 'Constitution · Parliament · Rights · Governance · Elections' },
+              { key: 'computerscience' as Subject, icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>, desc: 'Python · SQL · Data Structures · Logic Gates · Networking' },
             ]).map(s => (
               <button key={s.key} className={`subject-card${subject === s.key ? ' active' : ''}${subjectGlow === s.key ? ' glow-pulse' : ''}`} data-subject={s.key} onClick={() => handleSubjectChange(s.key)}>
                 <div className="subj-icon">{s.icon}</div>
@@ -1685,7 +1802,7 @@ export default function Home() {
                           <span>Not satisfied?</span>
                         </button>
                       )}
-                      <button className="btn-regenerate" onClick={() => { if (!retryingAI && !loading) { setRetryingAI(true); solve(); setTimeout(() => setRetryingAI(false), 500) } }} disabled={retryingAI || loading}>
+                      <button className="btn-regenerate" onClick={smartRegenerate} disabled={retryingAI || loading}>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={retryingAI ? { animation: 'spin 1s linear infinite' } : {}}><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
                         <span>{retryingAI ? 'Solving...' : 'Regenerate'}</span>
                       </button>

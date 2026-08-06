@@ -34,6 +34,13 @@
   --math: #6366f1;
   --physics: #ea580c;
   --chemistry: #059669;
+  --biology: #16a34a;
+  --english: #8b5cf6;
+  --history: #b45309;
+  --geography: #0ea5e9;
+  --economics: #059669;
+  --civics: #6366f1;
+  --computerscience: #2563eb;
   --success: #059669;
   --warning: #d97706;
   --error: #dc2626;
@@ -409,7 +416,7 @@ body {
 }
 .selector-inner { display: flex; flex-direction: column; gap: 14px; }
 .selector-label { font-size: clamp(0.65rem, 0.7vw, 0.72rem); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; text-align: center; }
-.subject-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(10px, 1.2vw, 14px); }
+.subject-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: clamp(10px, 1.2vw, 14px); }
 
 .auto-switch-toast { display:flex;align-items:center;gap:8px;justify-content:center;margin-top:10px;padding:8px 18px;border-radius:100px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;font-size:0.78rem;font-weight:500;font-family:var(--font);animation:toastIn 0.35s ease,toastOut 0.35s ease 2s forwards; }
 .auto-switch-toast strong { font-weight:700; }
@@ -432,12 +439,26 @@ body {
 .subject-card[data-subject="mathematics"]::before { background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,247,0.08)); }
 .subject-card[data-subject="physics"]::before { background: linear-gradient(135deg, rgba(234,88,12,0.08), rgba(220,38,38,0.08)); }
 .subject-card[data-subject="chemistry"]::before { background: linear-gradient(135deg, rgba(5,150,105,0.08), rgba(13,148,136,0.08)); }
+.subject-card[data-subject="biology"]::before { background: linear-gradient(135deg, rgba(22,163,74,0.08), rgba(34,197,94,0.08)); }
+.subject-card[data-subject="english"]::before { background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(167,139,250,0.08)); }
+.subject-card[data-subject="history"]::before { background: linear-gradient(135deg, rgba(180,83,9,0.08), rgba(217,119,6,0.08)); }
+.subject-card[data-subject="geography"]::before { background: linear-gradient(135deg, rgba(14,165,233,0.08), rgba(56,189,248,0.08)); }
+.subject-card[data-subject="economics"]::before { background: linear-gradient(135deg, rgba(5,150,105,0.08), rgba(52,211,153,0.08)); }
+.subject-card[data-subject="civics"]::before { background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(129,140,248,0.08)); }
+.subject-card[data-subject="computerscience"]::before { background: linear-gradient(135deg, rgba(37,99,235,0.08), rgba(59,130,246,0.08)); }
 .subject-card:hover::before, .subject-card.active::before { opacity: 1; }
 .subject-card:hover { border-color: var(--text-muted); transform: translateY(-2px); box-shadow: var(--shadow-md); }
 .subject-card.active { transform: translateY(-2px); }
 .subject-card[data-subject="mathematics"].active { border-color: var(--math); box-shadow: 0 8px 30px rgba(99,102,241,0.2); }
 .subject-card[data-subject="physics"].active { border-color: var(--physics); box-shadow: 0 8px 30px rgba(234,88,12,0.2); }
 .subject-card[data-subject="chemistry"].active { border-color: var(--chemistry); box-shadow: 0 8px 30px rgba(5,150,105,0.2); }
+.subject-card[data-subject="biology"].active { border-color: var(--biology); box-shadow: 0 8px 30px rgba(22,163,74,0.2); }
+.subject-card[data-subject="english"].active { border-color: var(--english); box-shadow: 0 8px 30px rgba(139,92,246,0.2); }
+.subject-card[data-subject="history"].active { border-color: var(--history); box-shadow: 0 8px 30px rgba(180,83,9,0.2); }
+.subject-card[data-subject="geography"].active { border-color: var(--geography); box-shadow: 0 8px 30px rgba(14,165,233,0.2); }
+.subject-card[data-subject="economics"].active { border-color: var(--economics); box-shadow: 0 8px 30px rgba(5,150,105,0.2); }
+.subject-card[data-subject="civics"].active { border-color: var(--civics); box-shadow: 0 8px 30px rgba(99,102,241,0.2); }
+.subject-card[data-subject="computerscience"].active { border-color: var(--computerscience); box-shadow: 0 8px 30px rgba(37,99,235,0.2); }
 
 .subj-icon {
   width: clamp(40px, 3.5vw, 48px); height: clamp(40px, 3.5vw, 48px);
@@ -448,6 +469,13 @@ body {
 .subject-card[data-subject="mathematics"] .subj-icon { background: rgba(99,102,241,0.12); color: var(--math); }
 .subject-card[data-subject="physics"] .subj-icon { background: rgba(234,88,12,0.12); color: var(--physics); }
 .subject-card[data-subject="chemistry"] .subj-icon { background: rgba(5,150,105,0.12); color: var(--chemistry); }
+.subject-card[data-subject="biology"] .subj-icon { background: rgba(22,163,74,0.12); color: var(--biology); }
+.subject-card[data-subject="english"] .subj-icon { background: rgba(139,92,246,0.12); color: var(--english); }
+.subject-card[data-subject="history"] .subj-icon { background: rgba(180,83,9,0.12); color: var(--history); }
+.subject-card[data-subject="geography"] .subj-icon { background: rgba(14,165,233,0.12); color: var(--geography); }
+.subject-card[data-subject="economics"] .subj-icon { background: rgba(5,150,105,0.12); color: var(--economics); }
+.subject-card[data-subject="civics"] .subj-icon { background: rgba(99,102,241,0.12); color: var(--civics); }
+.subject-card[data-subject="computerscience"] .subj-icon { background: rgba(37,99,235,0.12); color: var(--computerscience); }
 
 .subj-info { display: flex; flex-direction: column; gap: 2px; position: relative; z-index: 1; min-width: 0; }
 .subj-name { font-size: clamp(0.88rem, 0.95vw, 0.98rem); font-weight: 600; color: var(--text-primary); }
@@ -456,6 +484,13 @@ body {
 .subject-card[data-subject="mathematics"].active .subj-check { color: var(--math); }
 .subject-card[data-subject="physics"].active .subj-check { color: var(--physics); }
 .subject-card[data-subject="chemistry"].active .subj-check { color: var(--chemistry); }
+.subject-card[data-subject="biology"].active .subj-check { color: var(--biology); }
+.subject-card[data-subject="english"].active .subj-check { color: var(--english); }
+.subject-card[data-subject="history"].active .subj-check { color: var(--history); }
+.subject-card[data-subject="geography"].active .subj-check { color: var(--geography); }
+.subject-card[data-subject="economics"].active .subj-check { color: var(--economics); }
+.subject-card[data-subject="civics"].active .subj-check { color: var(--civics); }
+.subject-card[data-subject="computerscience"].active .subj-check { color: var(--computerscience); }
 .subject-card.active .subj-check { opacity: 1; transform: scale(1); }
 
 /* ===========================
@@ -630,6 +665,7 @@ body {
 .view-answer-fab svg { flex-shrink: 0; }
 @media (max-width: 1024px) {
   .view-answer-fab { display: flex; }
+  .subject-cards { grid-template-columns: repeat(3, 1fr); }
 }
 
 /* ── Cursor Aura (desktop only) ── */
@@ -1302,7 +1338,7 @@ body {
 
 @media (max-width: 768px) {
   .board-row { padding: 88px 16px 0; }
-  .subject-cards { grid-template-columns: 1fr; }
+  .subject-cards { grid-template-columns: repeat(2, 1fr); }
   .panel-body { padding: 14px; }
   .app-container { padding: 0 16px 40px; }
   .subject-selector { padding: 12px 16px 14px; }
