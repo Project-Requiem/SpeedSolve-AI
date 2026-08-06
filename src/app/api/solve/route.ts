@@ -244,7 +244,7 @@ const BOARD_TIPS: Record<string, Record<string, string[]>> = {
   },
 };
 
-// ── Sample problems for ALL subjects ──
+// ── Sample problems ──
 const SAMPLE_PROBLEMS: Record<string, { text: string; label: string }[]> = {
   mathematics: [
     { text: "Solve 3x + 5 = 14", label: "Linear Equation" },
@@ -276,54 +276,9 @@ const SAMPLE_PROBLEMS: Record<string, { text: string; label: string }[]> = {
     { text: "Write the electron configuration of Fe (Z=26)", label: "Electron Config" },
     { text: "Empirical formula of a compound with 40% C, 6.7% H, 53.3% O?", label: "Empirical" },
   ],
-  biology: [
-    { text: "Explain the process of photosynthesis with a balanced equation.", label: "Photosynthesis" },
-    { text: "Differentiate between mitosis and meiosis.", label: "Cell Division" },
-    { text: "Describe the human digestive system.", label: "Digestive System" },
-    { text: "What is the function of DNA? Explain its structure.", label: "DNA" },
-    { text: "Explain the nitrogen cycle in detail.", label: "Nitrogen Cycle" },
-    { text: "What are the types of natural selection? Explain with examples.", label: "Evolution" },
-  ],
-  english: [
-    { text: "Write a letter to the editor about water pollution in your city.", label: "Letter Writing" },
-    { text: "Change the voice: 'She wrote a poem.'", label: "Voice Change" },
-    { text: "Write an essay on 'Importance of Education'.", label: "Essay" },
-    { text: "Rewrite as indirect speech: He said, 'I am going home.'", label: "Narration" },
-    { text: "Transform: He is too weak to walk. (Remove 'too')", label: "Transformation" },
-    { text: "Write a summary of the poem 'The Road Not Taken'.", label: "Poetry" },
-  ],
-  history: [
-    { text: "What were the causes of the French Revolution?", label: "French Revolution" },
-    { text: "Explain the significance of the Salt March.", label: "Freedom Struggle" },
-    { text: "Describe the impact of British rule on Indian economy.", label: "Colonialism" },
-    { text: "What were the main features of the Indian Constitution?", label: "Constitution" },
-  ],
-  geography: [
-    { text: "Explain the factors affecting India's climate.", label: "Climate" },
-    { text: "What are the types of forests in India?", label: "Forests" },
-    { text: "Describe the plate tectonic theory.", label: "Plate Tectonics" },
-    { text: "What is sustainable development? Explain with examples.", label: "Sustainability" },
-  ],
-  economics: [
-    { text: "Explain the law of demand with a diagram.", label: "Demand" },
-    { text: "Calculate GDP from: C=500, I=200, G=150, NX=50", label: "GDP" },
-    { text: "Differentiate between revenue deficit and fiscal deficit.", label: "Deficits" },
-    { text: "What are the types of unemployment? Explain.", label: "Unemployment" },
-  ],
-  civics: [
-    { text: "What are the Fundamental Rights guaranteed by the Indian Constitution?", label: "Fundamental Rights" },
-    { text: "Explain the role of the Prime Minister in the Parliamentary system.", label: "Executive" },
-    { text: "What is the importance of local self-government (Panchayati Raj)?", label: "Panchayati Raj" },
-  ],
-  computerscience: [
-    { text: "Write a Python program to check if a number is prime.", label: "Python" },
-    { text: "What is the output of: print(type(3/2))?", label: "Output Type" },
-    { text: "Explain the difference between SQL and NoSQL databases.", label: "Databases" },
-    { text: "Write a function to calculate factorial using recursion.", label: "Recursion" },
-  ],
 };
 
-// ── Rich worked examples for key subjects ──
+// ── Rich worked examples ──
 const EXAMPLES: Record<string, string> = {
   mathematics: JSON.stringify({
     finalAnswer: "x = 3",
@@ -379,41 +334,6 @@ const EXAMPLES: Record<string, string> = {
     ],
     similar: ["Molarity of 9.8g $H_{2}SO_{4}$ in 250 mL", "Grams of $KOH$ for 200 mL of 0.5 M?"],
     mistakes: ["Forgetting mL to L conversion", "Wrong atomic masses", "Confusing molarity with molality"],
-  }),
-  biology: JSON.stringify({
-    finalAnswer: "Photosynthesis is the process by which green plants prepare food using $CO_{2}$, $H_{2}O$, and sunlight in chlorophyll-containing cells.",
-    steps: [
-      { desc: "Photosynthesis is a photochemical process in the chloroplasts of green plant cells. The green pigment chlorophyll absorbs light energy.", formula: "" },
-      { desc: "RAW MATERIALS: Carbon dioxide ($CO_{2}$) from air through stomata, Water ($H_{2}O$) from soil via roots, Sunlight absorbed by chlorophyll.", formula: "" },
-      { desc: "Two phases: LIGHT REACTION (thylakoid membranes) — water splits, $O_{2}$ released, ATP and NADPH formed. DARK REACTION / CALVIN CYCLE (stroma) — $CO_{2}$ fixed using ATP and NADPH to form glucose.", formula: "" },
-      { desc: "BALANCED EQUATION:", formula: "$6CO_{2} + 6H_{2}O \rightarrow C_{6}H_{12}O_{6} + 6O_{2}$" },
-      { desc: "FACTORS: Light intensity, $CO_{2}$ concentration, Temperature, Water. Rate increases with these up to an optimum, then plateaus or declines.", formula: "" },
-      { desc: "SIGNIFICANCE: Primary source of atmospheric oxygen. Base of all food chains. Maintains $CO_{2}$/$O_{2}$ balance.", formula: "" },
-    ],
-    altSteps: [
-      { desc: "Photosynthesis = conversion of light energy into chemical energy stored in glucose.", formula: "" },
-      { desc: "Overall equation: 6 molecules of $CO_{2}$ and 6 of $H_{2}O$ produce 1 glucose and 6 $O_{2}$.", formula: "$6CO_{2} + 6H_{2}O \rightarrow C_{6}H_{12}O_{6} + 6O_{2}$" },
-      { desc: "Glucose is used for respiration or stored as starch. Oxygen is released as by-product through stomata.", formula: "" },
-    ],
-    similar: ["Explain the light reaction of photosynthesis", "Differences between photosynthesis and respiration?"],
-    mistakes: ["Confusing raw materials and products", "Forgetting chlorophyll's role", "Not writing the balanced equation"],
-  }),
-  english: JSON.stringify({
-    finalAnswer: "A poem was written by her.",
-    steps: [
-      { desc: "IDENTIFY: The sentence 'She wrote a poem.' is in ACTIVE VOICE — the subject (She) performs the action (wrote) on the object (a poem). Convert to PASSIVE VOICE.", formula: "" },
-      { desc: "STEP 1 — Identify Subject, Verb, Object: Subject = She, Verb (past tense) = wrote, Object = a poem.", formula: "" },
-      { desc: "STEP 2 — Move the Object to Subject position: 'A poem' becomes the new subject.", formula: "" },
-      { desc: "STEP 3 — Change verb to passive form. Past tense uses 'was/were' + past participle. 'A poem' is singular, so use 'was'. Past participle of 'wrote' is 'written'.", formula: "" },
-      { desc: "STEP 4 — Original subject 'She' becomes agent, introduced by 'by'.", formula: "" },
-      { desc: "RESULT: Active: She wrote a poem. → Passive: A poem was written by her.", formula: "" },
-    ],
-    altSteps: [
-      { desc: "QUICK RULE: Subject + Verb + Object → Object + was/were + past participle + by + Subject", formula: "" },
-      { desc: "Apply: 'a poem' + 'was' + 'written' + 'by' + 'her'.", formula: "" },
-    ],
-    similar: ["Change to passive: 'They play cricket.'", "Change to active: 'The cake was eaten by the children.'"],
-    mistakes: ["Forgetting past participle form", "Using 'by' with intransitive verbs", "Wrong was/were for subject number"],
   }),
 };
 
@@ -865,13 +785,6 @@ function generateSimilarQuestions(subject: string): string[] {
     mathematics: ["Try solving with different numbers", "Practice a similar problem type", "Verify using an alternative method"],
     physics: ["What if you double the mass or force?", "Try using a different formula", "How does the answer change with g=10?"],
     chemistry: ["What if the concentration was halved?", "Solve a similar stoichiometry problem", "Balance the equation and verify"],
-    biology: ["Can you explain this process with a diagram?", "What are the real-life applications?", "How does this relate to human health?"],
-    english: ["Try transforming the sentence in a different way", "Practice a similar grammar rule", "Write a similar letter/essay on a different topic"],
-    history: ["What were the long-term effects?", "Can you compare this with a similar event?", "How did this impact other regions?"],
-    geography: ["Can you explain this with a map/diagram?", "How does this vary across different regions?", "What are the current challenges?"],
-    economics: ["What happens if we change the conditions?", "Can you illustrate with a real example?", "How does this relate to the Indian economy?"],
-    civics: ["Can you give a recent example?", "What are the limitations of this provision?", "How does this compare with other countries?"],
-    computerscience: ["Can you write this in a different way?", "What is the output if we change the input?", "Trace through the code step by step"],
   };
   return t[subject] || t.mathematics;
 }
@@ -881,13 +794,6 @@ function generateCommonMistakes(subject: string): string[] {
     mathematics: ["Not following BODMAS/PEMDAS order", "Sign errors when moving terms", "Wrong formula for the problem type"],
     physics: ["Forgetting unit conversions (km/h to m/s)", "Wrong kinematic equation", "Missing units in final answer"],
     chemistry: ["Forgetting to balance the equation", "Wrong atomic masses", "Not converting mL to L for molarity"],
-    biology: ["Confusing similar processes (e.g., mitosis vs meiosis)", "Missing key steps in a pathway", "Incorrect terminology"],
-    english: ["Tense inconsistency", "Subject-verb agreement error", "Wrong transformation rule applied"],
-    history: ["Confusing dates or events", "Missing key causes or effects", "Not structuring the answer properly"],
-    geography: ["Confusing similar landforms or climate zones", "Missing data or specific examples", "Incorrect map locations"],
-    economics: ["Confusing similar economic terms", "Wrong formula or calculation", "Missing real-life examples"],
-    civics: ["Confusing fundamental rights with DPSPs", "Wrong article number", "Missing key provisions"],
-    computerscience: ["Syntax errors in code", "Off-by-one errors", "Confusing similar concepts (e.g., stack vs queue)"],
   };
   return t[subject] || t.mathematics;
 }
@@ -896,16 +802,9 @@ const SUBJECT_META: Record<string, { label: string; icon: string; color: string 
   mathematics: { label: "Mathematics", icon: "\u03A3", color: "#6366f1" },
   physics: { label: "Physics", icon: "\u269B\uFE0F", color: "#ea580c" },
   chemistry: { label: "Chemistry", icon: "\u2697\uFE0F", color: "#059669" },
-  biology: { label: "Biology", icon: "\uD83C\uDF31", color: "#16a34a" },
-  english: { label: "English", icon: "\uD83D\uDCDD", color: "#8b5cf6" },
-  history: { label: "History", icon: "\uD83D\uDCDA", color: "#b45309" },
-  geography: { label: "Geography", icon: "\uD83C\uDF0D", color: "#0ea5e9" },
-  economics: { label: "Economics", icon: "\uD83D\uDCB0", color: "#059669" },
-  civics: { label: "Civics", icon: "\uD83C\uDFDB\uFE0F", color: "#6366f1" },
-  computerscience: { label: "Computer Science", icon: "\uD83D\uDCBB", color: "#2563eb" },
 };
 
-const ALL_SUBJECTS = ["mathematics", "physics", "chemistry", "biology", "english", "history", "geography", "economics", "civics", "computerscience"];
+const ALL_SUBJECTS = ["mathematics", "physics", "chemistry"];
 
 // ── MAIN POST HANDLER ──
 export async function POST(request: NextRequest) {

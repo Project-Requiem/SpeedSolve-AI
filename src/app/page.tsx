@@ -22,22 +22,15 @@ interface Solution {
   diagram: any | null
 }
 
-type Subject = 'mathematics' | 'physics' | 'chemistry' | 'biology' | 'english' | 'history' | 'geography' | 'economics' | 'civics' | 'computerscience'
+type Subject = 'mathematics' | 'physics' | 'chemistry'
 type Board = 'icse' | 'cbse' | 'state'
 
-const SUBJECTS: Subject[] = ['mathematics', 'physics', 'chemistry', 'biology', 'english', 'history', 'geography', 'economics', 'civics', 'computerscience']
+const SUBJECTS: Subject[] = ['mathematics', 'physics', 'chemistry']
 
 const SUBJECT_META: Record<Subject, { name: string; badge: string; gradient: string; color: string }> = {
   mathematics:     { name: 'Mathematics',     badge: 'Math',     gradient: 'linear-gradient(135deg, #7c3aed, #8b5cf6)', color: '#8b5cf6' },
   physics:         { name: 'Physics',         badge: 'Physics',   gradient: 'linear-gradient(135deg, #f97316, #ef4444)', color: '#f97316' },
   chemistry:       { name: 'Chemistry',       badge: 'Chem',     gradient: 'linear-gradient(135deg, #10b981, #06b6d4)', color: '#10b981' },
-  biology:         { name: 'Biology',         badge: 'Bio',      gradient: 'linear-gradient(135deg, #16a34a, #22c55e)', color: '#16a34a' },
-  english:         { name: 'English',         badge: 'Eng',      gradient: 'linear-gradient(135deg, #8b5cf6, #a78bfa)', color: '#8b5cf6' },
-  history:         { name: 'History',         badge: 'Hist',     gradient: 'linear-gradient(135deg, #b45309, #d97706)', color: '#b45309' },
-  geography:       { name: 'Geography',       badge: 'Geo',      gradient: 'linear-gradient(135deg, #0ea5e9, #38bdf8)', color: '#0ea5e9' },
-  economics:       { name: 'Economics',       badge: 'Econ',     gradient: 'linear-gradient(135deg, #059669, #34d399)', color: '#059669' },
-  civics:          { name: 'Civics',          badge: 'Civics',   gradient: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#6366f1' },
-  computerscience: { name: 'Computer Sc.',    badge: 'CS',       gradient: 'linear-gradient(135deg, #2563eb, #3b82f6)', color: '#2563eb' },
 }
 
 const TICKER_FORMULAS = [
@@ -122,7 +115,7 @@ function cleanBareLatex(text: string): string {
 // ─── Auto Subject Detection ──────────────────────────────────────
 function detectSubject(text: string): Subject | null {
   const lower = text.toLowerCase()
-  const scores: Record<Subject, number> = { mathematics: 0, physics: 0, chemistry: 0, biology: 0, english: 0, history: 0, geography: 0, economics: 0, civics: 0, computerscience: 0 }
+  const scores: Record<Subject, number> = { mathematics: 0, physics: 0, chemistry: 0 }
 
   // Physics indicators (strong signal)
   const physicsTerms = ['newton', 'velocity', 'acceleration', 'force', 'momentum', 'kinetic energy', 'potential energy', 'joule', 'watt', 'ohm', 'ampere', 'coulomb', 'voltage', 'current', 'resistance', 'capacit', 'induct', 'frequency', 'wavelength', 'refraction', 'reflection', 'lens', 'mirror', 'focal length', 'friction', 'gravity', 'gravitation', 'torque', 'angular', 'centripetal', 'pendulum', 'projectile', 'trajectory', 'circuit', 'magnetic field', 'electric field', 'wave', 'sound', 'light', 'speed of light', 'work done', 'power', 'thermal', 'heat capacity', 'specific heat', 'latent heat', 'conduction', 'convection', 'radiation', 'pressure', 'buoyancy', 'density', 'stress', 'strain', 'youngs modulus', 'hookes law', 'bernoulli', 'pascals law', 'archimedes', 'doppler', 'photoelectric', 'nuclear', 'radioactive', 'half-life', 'fission', 'fusion', 'quantum', 'photon', 'electron volt', 'mass of electron', 'charge on electron', 'planck', 'farad', 'henry', 'tesla', 'weber', 'flux', 'emf', 'pd', 'kg m/s', 'm/s²', 'n/c', 'v/m', 'hooke', 'kgf', 'dyne', 'erg', 'horse power']
@@ -147,38 +140,6 @@ function detectSubject(text: string): Subject | null {
   // Math formula patterns
   const mathPatterns = [/\bx\^?\d?\s*[+=]\s*\d/, /\b(?:sin|cos|tan|log|ln)\s*\(/, /\b(?:sum|sigma|pi)\s*\(?\s*\d/, /\b\d+\s*\/\s*\d+\s*[+-]\s*\d+\s*\/\s*\d+/, /\b(?:f\(|g\(|h\()\s*x/]
   mathPatterns.forEach(p => { if (p.test(lower)) scores.mathematics += 1.5 })
-
-  // Biology indicators
-  const bioTerms = ['photosynthesis', 'respiration', 'mitosis', 'meiosis', 'dna', 'rna', 'chromosome', 'gene', 'enzyme', 'cell', 'tissue', 'organ', 'species', 'ecosystem', 'biodiversity', 'evolution', 'darwin', 'natural selection', 'digestion', 'excretion', 'circulation', 'nervous', 'hormone', 'reproduction', 'pollination', 'fertilization', 'protein', 'carbohydrate', 'lipid', 'vitamin', 'mineral', 'bacteria', 'virus', 'fungi', 'protozoa', 'algae', 'lichen', 'nitrogen cycle', 'carbon cycle', 'food chain', 'food web', 'adaptation', 'mutation', 'dominant', 'recessive', 'genotype', 'phenotype', 'homologous', 'analogous', 'taxonomy', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'speciation', 'extinction', 'biome', 'trophic level', 'producer', 'consumer', 'decomposer', 'abiotic', 'biotic', 'chloroplast', 'mitochondria', 'ribosome', 'nucleus', 'membrane', 'osmosis', 'diffusion', 'transpiration', 'blood', 'heart', 'lung', 'kidney', 'liver', 'brain', 'neuron', 'reflex', 'vaccine', 'antibody', 'antigen', 'pathogen', 'immunity']
-  bioTerms.forEach(t => { if (lower.includes(t)) scores.biology += 2 })
-
-  // English indicators
-  const engTerms = ['letter to the editor', 'formal letter', 'informal letter', 'essay on', 'article on', 'speech on', 'debate on', 'report writing', 'notice writing', 'poster making', 'change the voice', 'active voice', 'passive voice', 'direct speech', 'indirect speech', 'narration', 'transformation of sentences', 'transform the sentence', 'remove too', 'tense', 'parts of speech', 'noun', 'pronoun', 'adjective', 'adverb', 'verb', 'preposition', 'conjunction', 'interjection', 'subject verb agreement', 'clauses', 'relative clause', 'conditional sentence', 'synonym', 'antonym', 'one word substitution', 'idiom', 'phrase', 'figure of speech', 'simile', 'metaphor', 'personification', 'alliteration', 'hyperbole', 'onomatopoeia', 'oxymoron', 'irony', 'rhyme scheme', 'summary', 'comprehension', 'precis', 'paragraph writing', 'story writing', 'email writing', 'diary entry', 'book review', 'character sketch', 'theme', 'refrence to context', 'appreciation', 'flamingo', 'vistas', 'hornbill', 'snapshot', 'footprints']
-  engTerms.forEach(t => { if (lower.includes(t)) scores.english += 2 })
-  const engPatterns = [/\b(?:write\s+(?:a|an)\s+(?:letter|essay|article|speech|debate|report|notice|paragraph|story|email|diary))/i, /\b(?:change\s+(?:the\s+)?voice|transform|convert)\b/i, /\b(?:active|passive)\s+voice\b/i, /\b(?:direct|indirect)\s+speech\b/i, /\b(?:remove\s+['"]?too['"]?)\b/i]
-  engPatterns.forEach(p => { if (p.test(lower)) scores.english += 1.5 })
-
-  // History indicators
-  const histTerms = ['french revolution', 'russian revolution', 'industrial revolution', 'world war', 'cold war', 'british rule', 'colonial', 'independence', 'freedom struggle', 'mahatma gandhi', 'nehru', 'subhash chandra bose', 'revolt of 1857', 'salt march', 'civil disobedience', 'non-cooperation', 'quit india', 'partition', 'mauryan', 'gupta', 'mughal', 'delhi sultanate', 'chola', 'vijayanagara', 'babur', 'akbar', 'shivaji', 'raja ram mohan roy', 'tipu sultan', 'rani lakshmibai', 'united nations', 'league of nations', 'treaty of', 'colonization', 'decolonization', 'nationalism', 'imperialism', 'fascism', 'nazism', 'communism', 'socialism', 'democracy', 'monarchy', 'feudalism', 'renaissance', 'reformation', 'enlightenment']
-  histTerms.forEach(t => { if (lower.includes(t)) scores.history += 2 })
-  const histPatterns = [/\b(?:causes?|effects?|significance|impact|consequences?)\s+(?:of|on)\s+(?:the\s+)?/i, /\b(?:explain|describe|discuss)\s+(?:the\s+)?(?:causes?|events?|features?|impact)/i]
-  histPatterns.forEach(p => { if (p.test(lower)) scores.history += 0.5 })
-
-  // Geography indicators
-  const geoTerms = ['climate', 'weather', 'monsoon', 'rainfall', 'temperature', 'latitude', 'longitude', 'altitude', 'topography', 'soil', 'vegetation', 'forest', 'wildlife', 'biodiversity', 'plate tectonic', 'earthquake', 'volcano', 'tsunami', 'erosion', 'deposition', 'river', 'glacier', 'ocean', 'continent', 'island', 'peninsula', 'map', 'globe', 'scale', 'contour', 'toposheet', 'sustainable development', 'global warming', 'greenhouse', 'pollution', 'deforestation', 'desertification', 'urbanization', 'migration', 'population density', 'resource', 'mineral', 'energy resource', 'water resource', 'solar', 'wind energy', 'hydel', 'thermal power', 'nuclear power', 'industries', 'agriculture', 'irrigation', 'crop', 'green revolution', 'landform', 'mountain', 'plateau', 'plain', 'coast']
-  geoTerms.forEach(t => { if (lower.includes(t)) scores.geography += 2 })
-
-  // Economics indicators
-  const econTerms = ['demand', 'supply', 'price', 'market', 'gdp', 'national income', 'inflation', 'deflation', 'unemployment', 'poverty', 'budget', 'tax', 'revenue', 'fiscal', 'monetary', 'rbi', 'reserve bank', 'money', 'banking', 'credit', 'interest rate', 'consumer', 'producer', 'utility', 'marginal', 'equilibrium', 'elasticity', 'oligopoly', 'monopoly', 'perfect competition', 'production', 'cost', 'fixed cost', 'variable cost', 'total cost', 'average cost', 'opportunity cost', 'economic growth', 'development', 'planning', 'five year plan', 'niti aayog', 'globalization', 'liberalization', 'privatization', 'wto', 'trade', 'export', 'import', 'balance of payment', 'current account', 'capital account', 'subsidy', 'public goods', 'externalities', 'index number', 'wholesale price', 'consumer price']
-  econTerms.forEach(t => { if (lower.includes(t)) scores.economics += 2 })
-
-  // Civics indicators
-  const civTerms = ['fundamental rights', 'directive principles', 'fundamental duties', 'preamble', 'constitution', 'amendment', 'parliament', 'lok sabha', 'rajya sabha', 'president', 'prime minister', 'governor', 'chief minister', 'judiciary', 'supreme court', 'high court', 'election', 'voting', 'political party', 'democracy', 'republic', 'federal', 'unitary', 'panchayat', 'municipality', 'local government', 'civil liberty', 'gender equality', 'social justice', 'reservation', 'secular', 'sovereign', 'article ', 'right to equality', 'right to freedom', 'cultural and educational', 'right to constitutional', 'citizenship', 'bill of rights', 'separation of powers', 'executive', 'legislature', 'bureaucracy', 'cabinet', 'council of ministers', 'coalition', 'opposition', 'united nations', 'human rights']
-  civTerms.forEach(t => { if (lower.includes(t)) scores.civics += 2 })
-
-  // Computer Science indicators
-  const csTerms = ['python', 'java', 'programming', 'algorithm', 'flowchart', 'variable', 'data type', 'integer', 'string', 'float', 'boolean', 'array', 'list', 'loop', 'for loop', 'while loop', 'if else', 'function', 'class', 'object', 'inheritance', 'polymorphism', 'encapsulation', 'abstraction', 'sql', 'database', 'query', 'table', 'select', 'insert', 'update', 'delete', 'join', 'primary key', 'foreign key', 'normalization', 'binary', 'octal', 'hexadecimal', 'ascii', 'unicode', 'logic gate', 'and gate', 'or gate', 'not gate', 'truth table', 'boolean algebra', 'networking', 'internet', 'protocol', 'tcp/ip', 'html', 'css', 'javascript', 'operating system', 'memory', 'ram', 'rom', 'cpu', 'stack', 'queue', 'linked list', 'tree', 'graph', 'sorting', 'searching', 'recursion', 'output', 'syntax', 'compile', 'debug', 'cyber', 'privacy', 'intellectual property']
-  csTerms.forEach(t => { if (lower.includes(t)) scores.computerscience += 2 })
 
   // Find the winner
   const entries = Object.entries(scores) as [Subject, number][]
@@ -602,7 +563,33 @@ export default function Home() {
     setTimeout(() => setSubjectGlow(null), 500)
   }, [subject])
 
-  // ── Client-side JSON extraction (same logic as server) ──
+  // ── Client-side Groq key pool + rotation ──
+  const groqKeysRef = useRef<string[]>([])
+  const keyHealthRef = useRef<Record<number, 'ok' | 'dead'>>({})
+  useEffect(() => {
+    fetch('/api/config').then(r => r.json()).then(d => {
+      groqKeysRef.current = (d.groqKeys || []).filter((k: string) => k.length > 10)
+    }).catch(() => {})
+  }, [])
+
+  const getNextKey = (): string | null => {
+    const keys = groqKeysRef.current
+    if (keys.length === 0) return null
+    // Try each key, skip dead ones, wrap around
+    for (let i = 0; i < keys.length; i++) {
+      const idx = (Date.now() + i) % keys.length
+      if (keyHealthRef.current[idx] !== 'dead') return keys[idx]
+    }
+    // All marked dead — reset and try first
+    keyHealthRef.current = {}
+    return keys[0]
+  }
+
+  const markKeyDead = (key: string) => {
+    const idx = groqKeysRef.current.indexOf(key)
+    if (idx >= 0) keyHealthRef.current[idx] = 'dead'
+  }
+
   const extractJSON = (text: string): any | null => {
     if (!text) return null
     let cleaned = text.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim()
@@ -635,14 +622,7 @@ export default function Home() {
   }
 
   // ── Client-side Groq call (bypasses server geo-block) ──
-  const groqKeyRef = useRef('')
-  useEffect(() => {
-    fetch('/api/config').then(r => r.json()).then(d => { groqKeyRef.current = d.groqKey || '' }).catch(() => {})
-  }, [])
-
   const callGroqFromBrowser = async (problemText: string, activeSubject: string, activeBoard: string, prevAnswer?: string, prevSteps?: string): Promise<Solution | null> => {
-    const key = groqKeyRef.current
-    if (!key) return null
     try {
       // Get system prompt from server (lightweight, no AI call)
       const promptRes = await fetch('/api/prompt', {
@@ -661,58 +641,71 @@ export default function Home() {
       const userPrompt = `Subject: ${activeSubject.toUpperCase()}\nBoard: ${boardLabel}\nProblem: ${problemText}${retryNote}\nSubstitute the given values into the formula and compute. Return JSON only.`
 
       const models = ['llama-3.3-70b-versatile', 'deepseek-r1-distill-llama-70b']
-      for (const model of models) {
-        try {
-          const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model,
-              messages: [
-                { role: 'system', content: promptData.systemPrompt },
-                { role: 'user', content: userPrompt },
-              ],
-              temperature: 0.1,
-              max_tokens: 8192,
-            }),
-            signal: AbortSignal.timeout(30000),
-          })
-          if (!res.ok) continue
-          const data = await res.json()
-          const text = data?.choices?.[0]?.message?.content || ''
-          if (text.trim().length < 20) continue
-          // Parse JSON from response
-          const parsed = extractJSON(text)
-          if (parsed && parsed.finalAnswer && Array.isArray(parsed.steps) && parsed.steps.length > 0) {
-            return {
-              finalAnswer: parsed.finalAnswer || '',
-              finalFormula: parsed.finalFormula || '',
-              steps: (parsed.steps || []).map((s: any) => ({ desc: s.desc || '', formula: s.formula || '' })),
-              altSteps: (parsed.altSteps || []).map((s: any) => ({ desc: s.desc || '', formula: s.formula || '' })),
-              similar: Array.isArray(parsed.similar) ? parsed.similar.slice(0, 4) : [],
-              mistakes: Array.isArray(parsed.mistakes) ? parsed.mistakes.slice(0, 5) : [],
-              examTips: [],
-              graph: parsed.graph?.type ? parsed.graph : null,
-              diagram: null,
+      const seenKeys = new Set<string>()
+
+      // Try up to 3 different keys
+      for (let keyAttempt = 0; keyAttempt < 3; keyAttempt++) {
+        const key = getNextKey()
+        if (!key || seenKeys.has(key)) break
+        seenKeys.add(key)
+
+        for (const model of models) {
+          try {
+            const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                model,
+                messages: [
+                  { role: 'system', content: promptData.systemPrompt },
+                  { role: 'user', content: userPrompt },
+                ],
+                temperature: 0.1,
+                max_tokens: 8192,
+              }),
+              signal: AbortSignal.timeout(25000),
+            })
+            if (res.status === 401 || res.status === 403) {
+              markKeyDead(key)
+              break // skip to next key
             }
-          }
-          // JSON parse failed - build from raw text
-          const lines = text.split('\n').filter((l: string) => l.trim().length > 5)
-          const steps = lines.slice(0, 8).map((l: string) => ({
-            desc: l.trim().replace(/^[\d.]+[).]\s*/, ''),
-            formula: '',
-          }))
-          let answer = steps.length > 0 ? steps[steps.length - 1].desc : text.slice(0, 200)
-          const answerLines = answer.split(/[\n=]/).map((l: string) => l.trim()).filter((l: string) => l.length > 0 && l.length < 80)
-          if (answerLines.length > 0) answer = answerLines[answerLines.length - 1]
-          return {
-            finalAnswer: answer,
-            finalFormula: '',
-            steps: steps.length > 0 ? steps : [{ desc: text.slice(0, 300), formula: '' }],
-            altSteps: [], similar: [], mistakes: [], examTips: [],
-            graph: null, diagram: null,
-          }
-        } catch (e) { continue }
+            if (!res.ok) continue
+            const data = await res.json()
+            const text = data?.choices?.[0]?.message?.content || ''
+            if (text.trim().length < 20) continue
+            // Parse JSON from response
+            const parsed = extractJSON(text)
+            if (parsed && parsed.finalAnswer && Array.isArray(parsed.steps) && parsed.steps.length > 0) {
+              return {
+                finalAnswer: parsed.finalAnswer || '',
+                finalFormula: parsed.finalFormula || '',
+                steps: (parsed.steps || []).map((s: any) => ({ desc: s.desc || '', formula: s.formula || '' })),
+                altSteps: (parsed.altSteps || []).map((s: any) => ({ desc: s.desc || '', formula: s.formula || '' })),
+                similar: Array.isArray(parsed.similar) ? parsed.similar.slice(0, 4) : [],
+                mistakes: Array.isArray(parsed.mistakes) ? parsed.mistakes.slice(0, 5) : [],
+                examTips: [],
+                graph: parsed.graph?.type ? parsed.graph : null,
+                diagram: null,
+              }
+            }
+            // JSON parse failed - build from raw text
+            const lines = text.split('\n').filter((l: string) => l.trim().length > 5)
+            const steps = lines.slice(0, 8).map((l: string) => ({
+              desc: l.trim().replace(/^[\d.]+[).]\s*/, ''),
+              formula: '',
+            }))
+            let answer = steps.length > 0 ? steps[steps.length - 1].desc : text.slice(0, 200)
+            const answerLines = answer.split(/[\n=]/).map((l: string) => l.trim()).filter((l: string) => l.length > 0 && l.length < 80)
+            if (answerLines.length > 0) answer = answerLines[answerLines.length - 1]
+            return {
+              finalAnswer: answer,
+              finalFormula: '',
+              steps: steps.length > 0 ? steps : [{ desc: text.slice(0, 300), formula: '' }],
+              altSteps: [], similar: [], mistakes: [], examTips: [],
+              graph: null, diagram: null,
+            }
+          } catch (e) { continue }
+        }
       }
     } catch (e) {}
     return null
@@ -1547,13 +1540,6 @@ export default function Home() {
               { key: 'mathematics' as Subject, icon: <>&sum;</>, desc: 'Algebra · Calculus · Geometry · Trig · Stats · Probability' },
               { key: 'physics' as Subject, icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>, desc: 'Kinematics · Forces · Energy · Waves · Electricity · Optics' },
               { key: 'chemistry' as Subject, icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 2v4l-2 4v10h8V10l-2-4V2M6 12h12"/></svg>, desc: 'Stoichiometry · Moles · Gas Laws · pH · Equilibrium · Organic' },
-              { key: 'biology' as Subject, icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"/><path d="M8 12s1.5 4 4 4 4-4 4-4-1.5-4-4-4-4 4-4 4z"/><path d="M12 6v2M12 16v2"/></svg>, desc: 'Cell Biology · Genetics · Ecology · Human Physiology · Evolution' },
-              { key: 'english' as Subject, icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>, desc: 'Grammar · Writing · Literature · Comprehension · Vocabulary' },
-              { key: 'history' as Subject, icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, desc: 'Indian History · World History · Freedom Struggle · Civilizations' },
-              { key: 'geography' as Subject, icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>, desc: 'Climate · Landforms · Resources · Map Work · Indian Geography' },
-              { key: 'economics' as Subject, icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>, desc: 'Demand · Supply · GDP · Indian Economy · Statistics' },
-              { key: 'civics' as Subject, icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>, desc: 'Constitution · Parliament · Rights · Governance · Elections' },
-              { key: 'computerscience' as Subject, icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>, desc: 'Python · SQL · Data Structures · Logic Gates · Networking' },
             ]).map(s => (
               <button key={s.key} className={`subject-card${subject === s.key ? ' active' : ''}${subjectGlow === s.key ? ' glow-pulse' : ''}`} data-subject={s.key} onClick={() => handleSubjectChange(s.key)}>
                 <div className="subj-icon">{s.icon}</div>
