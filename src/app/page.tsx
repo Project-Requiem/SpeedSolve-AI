@@ -447,9 +447,29 @@ export default function Home() {
           }, 100)
         }, 150)
       } else {
-        setError('AI is currently unavailable. Please try again.')
-        setLoading(false)
-        setRetryingAI(false)
+        // Browser Groq failed → try server-side as fallback
+        try {
+          const serverRes = await fetch('/api/solve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ problem: trimmed, subject, board, forceAI: true }),
+          })
+          const serverData = await serverRes.json()
+          if (serverData.data) {
+            setSolution(serverData.data)
+            setSolveSource(serverData.source === 'ai' ? 'ai' : 'local')
+            setProgress(100)
+            setTimeout(() => { setLoading(false); setRetryingAI(false) }, 150)
+          } else {
+            setError('AI is currently unavailable. Please try again.')
+            setLoading(false)
+            setRetryingAI(false)
+          }
+        } catch {
+          setError('AI is currently unavailable. Please try again.')
+          setLoading(false)
+          setRetryingAI(false)
+        }
       }
     } catch {
       clearInterval(progressRef.current!)
@@ -566,22 +586,36 @@ export default function Home() {
   // ── Client-side Groq key pool + rotation ──
   const groqKeysRef = useRef<string[]>([])
   const keyHealthRef = useRef<Record<number, 'ok' | 'dead'>>({})
-  useEffect(() => {
+  const keyIndexRef = useRef(0) // stable round-robin counter
+  const keysReadyRef = useRef(false)
+  const keysLoadedPromiseRef = useRef<Promise<void>>(
     fetch('/api/config').then(r => r.json()).then(d => {
       groqKeysRef.current = (d.groqKeys || []).filter((k: string) => k.length > 10)
-    }).catch(() => {})
-  }, [])
+      keysReadyRef.current = true
+    }).catch(() => { keysReadyRef.current = true })
+  )
+  useEffect(() => { keysLoadedPromiseRef.current }, [])
+
+  const waitForKeys = async (): Promise<boolean> => {
+    if (keysReadyRef.current) return groqKeysRef.current.length > 0
+    await keysLoadedPromiseRef.current
+    return groqKeysRef.current.length > 0
+  }
 
   const getNextKey = (): string | null => {
     const keys = groqKeysRef.current
     if (keys.length === 0) return null
-    // Try each key, skip dead ones, wrap around
+    // Stable round-robin: try each key, skip dead ones
     for (let i = 0; i < keys.length; i++) {
-      const idx = (Date.now() + i) % keys.length
-      if (keyHealthRef.current[idx] !== 'dead') return keys[idx]
+      const idx = (keyIndexRef.current + i) % keys.length
+      if (keyHealthRef.current[idx] !== 'dead') {
+        keyIndexRef.current = (idx + 1) % keys.length // advance for next call
+        return keys[idx]
+      }
     }
     // All marked dead — reset and try first
     keyHealthRef.current = {}
+    keyIndexRef.current = 0
     return keys[0]
   }
 
@@ -624,6 +658,10 @@ export default function Home() {
   // ── Client-side Groq call (bypasses server geo-block) ──
   const callGroqFromBrowser = async (problemText: string, activeSubject: string, activeBoard: string, prevAnswer?: string, prevSteps?: string): Promise<Solution | null> => {
     try {
+      // Wait for keys to be loaded from /api/config
+      const hasKeys = await waitForKeys()
+      if (!hasKeys) return null
+
       // Get system prompt from server (lightweight, no AI call)
       const promptRes = await fetch('/api/prompt', {
         method: 'POST',
@@ -642,9 +680,10 @@ export default function Home() {
 
       const models = ['llama-3.3-70b-versatile', 'deepseek-r1-distill-llama-70b']
       const seenKeys = new Set<string>()
+      const totalKeys = groqKeysRef.current.length
 
-      // Try up to 3 different keys
-      for (let keyAttempt = 0; keyAttempt < 3; keyAttempt++) {
+      // Try ALL available keys (up to totalKeys)
+      for (let keyAttempt = 0; keyAttempt < totalKeys; keyAttempt++) {
         const key = getNextKey()
         if (!key || seenKeys.has(key)) break
         seenKeys.add(key)
@@ -663,11 +702,15 @@ export default function Home() {
                 temperature: 0.1,
                 max_tokens: 8192,
               }),
-              signal: AbortSignal.timeout(25000),
+              signal: AbortSignal.timeout(30000),
             })
             if (res.status === 401 || res.status === 403) {
               markKeyDead(key)
               break // skip to next key
+            }
+            if (res.status === 429) {
+              // Rate limited — try next key without marking dead
+              break
             }
             if (!res.ok) continue
             const data = await res.json()
@@ -876,9 +919,29 @@ export default function Home() {
           }
         }, 150)
       } else {
-        setError('AI is currently unavailable. Please try again.')
-        setLoading(false)
-        setRetryingAI(false)
+        // Browser Groq failed → try server-side as fallback
+        try {
+          const serverRes = await fetch('/api/solve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ problem: trimmed, subject, board, forceAI: true }),
+          })
+          const serverData = await serverRes.json()
+          if (serverData.data) {
+            setSolution(serverData.data)
+            setSolveSource(serverData.source === 'ai' ? 'ai' : 'local')
+            setProgress(100)
+            setTimeout(() => { setLoading(false); setRetryingAI(false) }, 150)
+          } else {
+            setError('AI is currently unavailable. Please try again.')
+            setLoading(false)
+            setRetryingAI(false)
+          }
+        } catch {
+          setError('AI is currently unavailable. Please try again.')
+          setLoading(false)
+          setRetryingAI(false)
+        }
       }
     } catch {
       clearInterval(progressRef.current!)
@@ -886,7 +949,7 @@ export default function Home() {
       setLoading(false)
       setRetryingAI(false)
     }
-  }, [problem, subject, board])
+  }, [problem, subject, board, solution])
 
   // ── Feature 2: Copy answer ──
   const copyAnswer = useCallback(() => {
