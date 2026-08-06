@@ -455,7 +455,7 @@ export default function Home() {
             body: JSON.stringify({ problem: trimmed, subject, board, forceAI: true }),
           })
           const serverData = await serverRes.json()
-          if (serverData.data) {
+          if (serverData.data && isValidSolution(serverData.data)) {
             setSolution(serverData.data)
             setSolveSource(serverData.source === 'ai' ? 'ai' : 'local')
             setProgress(100)
@@ -478,6 +478,19 @@ export default function Home() {
       setRetryingAI(false)
     }
   }, [problem, subject, board, solution])
+
+  // ── AI Answer Validation: reject junk/wrong/refusal answers ──
+  function isValidSolution(sol: any): boolean {
+    if (!sol || !sol.finalAnswer) return false
+    const ans = (sol.finalAnswer || '').toLowerCase()
+    if (ans.length < 2) return false
+    const refusePhrases = ['i cannot', "i can't", 'i am unable', "i'm unable", 'not sure', 'don\'t know', 'unable to', 'cannot solve', 'no solution', 'insufficient', 'please provide', 'cannot be determined']
+    if (refusePhrases.some(p => ans.includes(p))) return false
+    if (sol.steps && Array.isArray(sol.steps)) {
+      if (sol.steps.length > 0 && sol.steps.every((s: any) => (s.desc || '').length < 3)) return false
+    }
+    return true
+  }
 
   const openNotSatisfied = useCallback(() => {
     const ans = solution?.finalAnswer || solution?.finalFormula || ''
@@ -719,6 +732,16 @@ export default function Home() {
             // Parse JSON from response
             const parsed = extractJSON(text)
             if (parsed && parsed.finalAnswer && Array.isArray(parsed.steps) && parsed.steps.length > 0) {
+              // ── AI Answer Validation: reject junk/wrong/refusal answers ──
+              const answerStr = (parsed.finalAnswer || '').toLowerCase()
+              const refusePhrases = ['i cannot', "i can't", 'i am unable', "i'm unable", 'not sure', 'i don\'t know', "i don't know", 'unable to', 'cannot solve', 'no solution', 'insufficient information', 'please provide more', 'cannot be determined', 'unclear']
+              if (refusePhrases.some(p => answerStr.includes(p))) continue
+              if (parsed.finalAnswer.length < 2) continue
+              if (parsed.steps.every((s: any) => (s.desc || '').length < 5)) continue
+              // Check for garbage (too many special chars, not enough real content)
+              const contentChars = (parsed.finalAnswer + parsed.steps.map((s: any) => s.desc || '').join('')).replace(/[^a-zA-Z0-9.\-+=%\s]/g, '')
+              const totalChars = parsed.finalAnswer.length + parsed.steps.map((s: any) => s.desc || '').join('').length
+              if (totalChars > 20 && contentChars.length / totalChars < 0.3) continue
               return {
                 finalAnswer: parsed.finalAnswer || '',
                 finalFormula: parsed.finalFormula || '',
@@ -732,6 +755,10 @@ export default function Home() {
               }
             }
             // JSON parse failed - build from raw text
+            // Validate raw text isn't a refusal
+            const lowerText = text.toLowerCase()
+            const isRefusal = /i cannot|i can't|unable to|not sure|don't know|cannot solve|no solution|insufficient|please provide/i.test(lowerText)
+            if (isRefusal) continue
             const lines = text.split('\n').filter((l: string) => l.trim().length > 5)
             const steps = lines.slice(0, 8).map((l: string) => ({
               desc: l.trim().replace(/^[\d.]+[).]\s*/, ''),
@@ -851,7 +878,7 @@ export default function Home() {
         clearInterval(progressRef.current!)
         setError(serverData.error)
         setLoading(false)
-      } else if (serverData.data) {
+      } else if (serverData.data && isValidSolution(serverData.data)) {
         showResult(serverData.data, serverData.source === 'ai' ? 'ai' : 'error')
       } else {
         clearInterval(progressRef.current!)
@@ -927,7 +954,7 @@ export default function Home() {
             body: JSON.stringify({ problem: trimmed, subject, board, forceAI: true }),
           })
           const serverData = await serverRes.json()
-          if (serverData.data) {
+          if (serverData.data && isValidSolution(serverData.data)) {
             setSolution(serverData.data)
             setSolveSource(serverData.source === 'ai' ? 'ai' : 'local')
             setProgress(100)
