@@ -465,26 +465,11 @@ export default function Home() {
     }, 400)
 
     try {
-      const res = await fetch('/api/solve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          problem: trimmed,
-          subject,
-          board,
-          forceAI: true,
-          previousAnswer: prevAnswer,
-          previousSteps: prevStepsSummary,
-        }),
-      })
-      const data = await res.json()
+      // Call Groq directly from browser with previous context
+      const aiResult = await callGroqFromBrowser(trimmed, subject, board, prevAnswer, prevStepsSummary)
       clearInterval(progressRef.current!)
-      if (data.error) {
-        setError(data.error)
-        setLoading(false)
-        setRetryingAI(false)
-      } else if (data.data) {
-        setSolution(data.data)
+      if (aiResult) {
+        setSolution(aiResult)
         setSolveSource('ai')
         setProgress(100)
         setTimeout(() => {
@@ -500,6 +485,10 @@ export default function Home() {
             })
           }, 100)
         }, 150)
+      } else {
+        setError('AI is currently unavailable. Please try again.')
+        setLoading(false)
+        setRetryingAI(false)
       }
     } catch {
       clearInterval(progressRef.current!)
@@ -613,6 +602,122 @@ export default function Home() {
     setTimeout(() => setSubjectGlow(null), 500)
   }, [subject])
 
+  // ── Client-side JSON extraction (same logic as server) ──
+  const extractJSON = (text: string): any | null => {
+    if (!text) return null
+    let cleaned = text.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim()
+    try { return JSON.parse(cleaned) } catch {}
+    let searchFrom = 0
+    while (searchFrom < cleaned.length) {
+      const start = cleaned.indexOf('{', searchFrom)
+      if (start === -1) return null
+      let depth = 0, inString = false, escape = false, end = -1
+      for (let i = start; i < cleaned.length; i++) {
+        const ch = cleaned[i]
+        if (escape) { escape = false; continue }
+        if (ch === '\\') { escape = true; continue }
+        if (ch === '"') { inString = !inString; continue }
+        if (inString) continue
+        if (ch === '{') depth++
+        else if (ch === '}') { depth--; if (depth === 0) { end = i; break } }
+      }
+      if (end !== -1) {
+        let candidate = cleaned.slice(start, end + 1)
+          .replace(/,\s*([\]}])/g, '$1')
+          .replace(/\n/g, ' ').replace(/\t/g, ' ').replace(/  +/g, ' ').trim()
+        try { return JSON.parse(candidate) } catch {}
+        candidate = candidate.replace(/[\x00-\x1f\x7f]/g, '')
+        try { return JSON.parse(candidate) } catch {}
+      }
+      searchFrom = start + 1
+    }
+    return null
+  }
+
+  // ── Client-side Groq call (bypasses server geo-block) ──
+  const groqKeyRef = useRef('')
+  useEffect(() => {
+    fetch('/api/config').then(r => r.json()).then(d => { groqKeyRef.current = d.groqKey || '' }).catch(() => {})
+  }, [])
+
+  const callGroqFromBrowser = async (problemText: string, activeSubject: string, activeBoard: string, prevAnswer?: string, prevSteps?: string): Promise<Solution | null> => {
+    const key = groqKeyRef.current
+    if (!key) return null
+    try {
+      // Get system prompt from server (lightweight, no AI call)
+      const promptRes = await fetch('/api/prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ board: activeBoard, subject: activeSubject, previousAnswer: prevAnswer, previousSteps: prevSteps }),
+      })
+      const promptData = await promptRes.json()
+      if (!promptData.systemPrompt) return null
+
+      const boardLabel = activeBoard === 'icse' ? 'ICSE' : activeBoard === 'cbse' ? 'CBSE' : 'State Board'
+      let retryNote = ''
+      if (prevAnswer) {
+        retryNote = `\n\nIMPORTANT: This is a RETRY. The previous answer was: "${prevAnswer}"\nThe student was not satisfied. Please solve this CORRECTLY.`
+      }
+      const userPrompt = `Subject: ${activeSubject.toUpperCase()}\nBoard: ${boardLabel}\nProblem: ${problemText}${retryNote}\nSubstitute the given values into the formula and compute. Return JSON only.`
+
+      const models = ['llama-3.3-70b-versatile', 'deepseek-r1-distill-llama-70b']
+      for (const model of models) {
+        try {
+          const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model,
+              messages: [
+                { role: 'system', content: promptData.systemPrompt },
+                { role: 'user', content: userPrompt },
+              ],
+              temperature: 0.1,
+              max_tokens: 8192,
+            }),
+            signal: AbortSignal.timeout(30000),
+          })
+          if (!res.ok) continue
+          const data = await res.json()
+          const text = data?.choices?.[0]?.message?.content || ''
+          if (text.trim().length < 20) continue
+          // Parse JSON from response
+          const parsed = extractJSON(text)
+          if (parsed && parsed.finalAnswer && Array.isArray(parsed.steps) && parsed.steps.length > 0) {
+            return {
+              finalAnswer: parsed.finalAnswer || '',
+              finalFormula: parsed.finalFormula || '',
+              steps: (parsed.steps || []).map((s: any) => ({ desc: s.desc || '', formula: s.formula || '' })),
+              altSteps: (parsed.altSteps || []).map((s: any) => ({ desc: s.desc || '', formula: s.formula || '' })),
+              similar: Array.isArray(parsed.similar) ? parsed.similar.slice(0, 4) : [],
+              mistakes: Array.isArray(parsed.mistakes) ? parsed.mistakes.slice(0, 5) : [],
+              examTips: [],
+              graph: parsed.graph?.type ? parsed.graph : null,
+              diagram: null,
+            }
+          }
+          // JSON parse failed - build from raw text
+          const lines = text.split('\n').filter((l: string) => l.trim().length > 5)
+          const steps = lines.slice(0, 8).map((l: string) => ({
+            desc: l.trim().replace(/^[\d.]+[).]\s*/, ''),
+            formula: '',
+          }))
+          let answer = steps.length > 0 ? steps[steps.length - 1].desc : text.slice(0, 200)
+          const answerLines = answer.split(/[\n=]/).map((l: string) => l.trim()).filter((l: string) => l.length > 0 && l.length < 80)
+          if (answerLines.length > 0) answer = answerLines[answerLines.length - 1]
+          return {
+            finalAnswer: answer,
+            finalFormula: '',
+            steps: steps.length > 0 ? steps : [{ desc: text.slice(0, 300), formula: '' }],
+            altSteps: [], similar: [], mistakes: [], examTips: [],
+            graph: null, diagram: null,
+          }
+        } catch (e) { continue }
+      }
+    } catch (e) {}
+    return null
+  }
+
   const solve = useCallback(async () => {
     const trimmed = problem.trim()
     if (!trimmed) return
@@ -638,7 +743,6 @@ export default function Home() {
     setSolveSource('local')
     setProgress(0)
 
-    // Animate progress bar (only meaningful for AI solves)
     let p = 0
     progressRef.current = setInterval(() => {
       p += Math.random() * 15
@@ -646,50 +750,77 @@ export default function Home() {
       setProgress(p)
     }, 300)
 
+    const showResult = (sol: Solution, source: 'ai' | 'local') => {
+      clearInterval(progressRef.current!)
+      setSolution(sol)
+      setSolveSource(source)
+      setProgress(100)
+      setTimeout(() => {
+        setLoading(false)
+        setTimeout(() => setFlashAnswer(true), 50)
+        setTimeout(() => setFlashAnswer(false), 800)
+        setTimeout(() => {
+          document.querySelectorAll('.steps-container.reveal').forEach(el => {
+            el.classList.remove('reveal')
+            void el.offsetWidth
+            el.classList.add('reveal')
+          })
+        }, 100)
+        if (window.innerWidth <= 1024) {
+          setTimeout(() => {
+            const el = outputBodyRef.current
+            if (!el) return
+            const rect = el.getBoundingClientRect()
+            const navH = window.innerWidth <= 768 ? 60 : 68
+            if (rect.top > navH + 20) {
+              const y = window.scrollY + rect.top - navH - 8
+              window.scrollTo({ top: y, behavior: 'smooth' })
+            }
+          }, 200)
+        }
+      }, 150)
+    }
+
     try {
-      const res = await fetch('/api/solve', {
+      // For STEM subjects, try local solver first (instant)
+      const stemSubjects = ['mathematics', 'physics', 'chemistry']
+      if (stemSubjects.includes(activeSubject)) {
+        const localRes = await fetch('/api/solve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ problem: trimmed, subject: activeSubject, board }),
+        })
+        const localData = await localRes.json()
+        if (localData.data && localData.source === 'local') {
+          showResult(localData.data, 'local')
+          return
+        }
+      }
+
+      // Local solver didn't handle it (or non-STEM) → call Groq directly from browser
+      const aiResult = await callGroqFromBrowser(trimmed, activeSubject, board)
+      if (aiResult) {
+        showResult(aiResult, 'ai')
+        return
+      }
+
+      // Browser Groq failed → try server-side as last resort
+      const serverRes = await fetch('/api/solve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ problem: trimmed, subject: activeSubject, board }),
+        body: JSON.stringify({ problem: trimmed, subject: activeSubject, board, forceAI: true }),
       })
-      const data = await res.json()
-      clearInterval(progressRef.current!)
-      if (data.error) {
-        setError(data.error)
+      const serverData = await serverRes.json()
+      if (serverData.error) {
+        clearInterval(progressRef.current!)
+        setError(serverData.error)
         setLoading(false)
-      } else if (data.data) {
-        setSolution(data.data)
-        setSolveSource(data.source === 'ai' ? 'ai' : data.source === 'error' ? 'error' : 'local')
-        setProgress(100)
-        // Small delay so loading → solution transition is smooth
-        setTimeout(() => {
-          setLoading(false)
-          // Flash animation
-          setTimeout(() => setFlashAnswer(true), 50)
-          setTimeout(() => setFlashAnswer(false), 800)
-          // Reveal steps animation
-          setTimeout(() => {
-            document.querySelectorAll('.steps-container.reveal').forEach(el => {
-              el.classList.remove('reveal')
-              void el.offsetWidth
-              el.classList.add('reveal')
-            })
-          }, 100)
-          // Scroll to solution only if it's below the viewport on mobile
-          if (window.innerWidth <= 1024) {
-            setTimeout(() => {
-              const el = outputBodyRef.current
-              if (!el) return
-              const rect = el.getBoundingClientRect()
-              const navH = window.innerWidth <= 768 ? 60 : 68
-              // Only scroll if the output panel top is below the visible area (below navbar + some margin)
-              if (rect.top > navH + 20) {
-                const y = window.scrollY + rect.top - navH - 8
-                window.scrollTo({ top: y, behavior: 'smooth' })
-              }
-            }, 200)
-          }
-        }, 150)
+      } else if (serverData.data) {
+        showResult(serverData.data, serverData.source === 'ai' ? 'ai' : 'error')
+      } else {
+        clearInterval(progressRef.current!)
+        setError('Could not solve this problem. Please try again.')
+        setLoading(false)
       }
     } catch {
       clearInterval(progressRef.current!)
@@ -698,7 +829,7 @@ export default function Home() {
     }
   }, [problem, subject, board])
 
-  // ── Feature 7: Retry with AI ──
+  // ── Feature 7: Retry with AI (client-side Groq) ──
   const retryWithAI = useCallback(async () => {
     const trimmed = problem.trim()
     if (!trimmed) return
@@ -719,19 +850,11 @@ export default function Home() {
     }, 400)
 
     try {
-      const res = await fetch('/api/solve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ problem: trimmed, subject, board, forceAI: true }),
-      })
-      const data = await res.json()
+      // Call Groq directly from browser
+      const aiResult = await callGroqFromBrowser(trimmed, subject, board)
       clearInterval(progressRef.current!)
-      if (data.error) {
-        setError(data.error)
-        setLoading(false)
-        setRetryingAI(false)
-      } else if (data.data) {
-        setSolution(data.data)
+      if (aiResult) {
+        setSolution(aiResult)
         setSolveSource('ai')
         setProgress(100)
         setTimeout(() => {
@@ -759,6 +882,10 @@ export default function Home() {
             }, 200)
           }
         }, 150)
+      } else {
+        setError('AI is currently unavailable. Please try again.')
+        setLoading(false)
+        setRetryingAI(false)
       }
     } catch {
       clearInterval(progressRef.current!)
