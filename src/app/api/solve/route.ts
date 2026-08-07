@@ -705,6 +705,40 @@ function cleanLatex(text: string): string {
     .replace(/\\mathbf\{([^}]*)\}/g, "$1");
 }
 
+// ── AI Answer Validation ──
+const JUNK_PATTERNS = [
+  /^(i\s*(can\s*not|cannot|don'?t|am\s*unable)|sorry|apologize|unable\s+to)/i,
+  /^(as\s+an\s+ai|I'?m\s*an?\s*(?:AI|language|assistant))/i,
+  /(not\s*(?:sure|certain|able)|don'?t\s*have|no\s*(?:access|information|way))/i,
+  /(?:cannot|can\s*not)\s*(?:provide|generate|give|determine|solve|answer)/i,
+  /(?:inappropriate|harmful|unethical|against\s*(?:my|the|our))/i,
+  /(?:hate|discriminat|offensive|violent)/i,
+  /I\s*(?:do\s*not|don'?t)\s*(?:have|know|understand)/i,
+  /(?:please\s*try|try\s*again|contact|consult|refer\s*to)/i,
+  /(?:outside\s*my|beyond\s*my|not\s*in\s*my|not\s*within)/i,
+  /\.{3,}(?!\d)/,  // 3+ consecutive dots (not decimals)
+  /^[\s\n]+$/,  // Empty/whitespace only
+];
+
+function isJunkAnswer(answer: string): boolean {
+  if (!answer || answer.trim().length < 3) return true;
+  const lower = answer.trim();
+  for (const pat of JUNK_PATTERNS) {
+    if (pat.test(lower)) return true;
+  }
+  return false;
+}
+
+function isLowQualityAnswer(answer: string, steps: { desc: string }[]): boolean {
+  if (!answer || answer.trim().length < 2) return true;
+  if (answer.length < 5 && !/\d/.test(answer)) return true;
+  if (steps.length === 0) return true;
+  // All steps are very short (less than 15 chars each) — likely junk
+  const avgStepLen = steps.reduce((sum, s) => sum + s.desc.length, 0) / steps.length;
+  if (avgStepLen < 15 && steps.length <= 2) return true;
+  return false;
+}
+
 function sanitizeFinalAnswer(answer: string): string {
   if (!answer) return answer;
   let clean = answer.trim();
@@ -894,6 +928,30 @@ Substitute the given values into the formula and compute. Return JSON only.`;
     let parsed = extractJSON(raw);
 
     if (parsed && parsed.finalAnswer && Array.isArray(parsed.steps) && parsed.steps.length > 0) {
+      // ── Validate AI answer quality ──
+      const rawAns = cleanLatex(parsed.finalAnswer) || "";
+      const rawSteps = parsed.steps || [];
+      if (isJunkAnswer(rawAns) || isLowQualityAnswer(rawAns, rawSteps)) {
+        console.warn(`[SpeedSolve] AI answer rejected as junk/low-quality: "${rawAns.slice(0, 80)}..."`);
+        // Fall back to local solver if STEM
+        if (stemSubjects.includes(sub)) {
+          const fallback = await tryLocalSolve(processed, sub);
+          if (fallback) {
+            if (fallback.similar.length === 0) fallback.similar = generateSimilarQuestions(sub);
+            if (fallback.mistakes.length === 0) fallback.mistakes = generateCommonMistakes(sub);
+            fallback.examTips = BOARD_TIPS[brd]?.[sub] || [];
+            return NextResponse.json({ success: true, data: fallback, source: "local" });
+          }
+        }
+        return NextResponse.json({
+          success: true, data: {
+            finalAnswer: "Please try again.",
+            finalFormula: "",
+            steps: [{ desc: "Could not process this question right now. Please try again.", formula: "" }],
+            altSteps: [], similar: [], mistakes: [], examTips: [],
+          }, source: "error",
+        });
+      }
       const cleanedSteps = (parsed.steps || []).map((s: any) => ({
         desc: cleanLatex(s.desc || ""),
         formula: cleanLatex(s.formula || ""),
@@ -925,7 +983,19 @@ Substitute the given values into the formula and compute. Return JSON only.`;
     const textSolution = buildSolutionFromText(raw, sub, brd);
     textSolution.finalAnswer = sanitizeFinalAnswer(textSolution.finalAnswer);
     textSolution.finalAnswer = fixFormulaAnswer(textSolution.finalAnswer, textSolution.steps || [], problem);
-    return NextResponse.json({ success: true, data: textSolution, source: "ai" });
+    if (isJunkAnswer(textSolution.finalAnswer) || isLowQualityAnswer(textSolution.finalAnswer, textSolution.steps || [])) {
+      console.warn('[SpeedSolve] Text-built solution also rejected, trying local fallback');
+      if (stemSubjects.includes(sub)) {
+        const fallback = await tryLocalSolve(processed, sub);
+        if (fallback) {
+          if (fallback.similar.length === 0) fallback.similar = generateSimilarQuestions(sub);
+          if (fallback.mistakes.length === 0) fallback.mistakes = generateCommonMistakes(sub);
+          fallback.examTips = BOARD_TIPS[brd]?.[sub] || [];
+          return NextResponse.json({ success: true, data: fallback, source: 'local' });
+        }
+      }
+    }
+    return NextResponse.json({ success: true, data: textSolution, source: 'ai' });
 
   } catch (err) {
     console.error("Solve API error:", err);
