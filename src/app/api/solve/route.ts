@@ -736,6 +736,67 @@ function isLowQualityAnswer(answer: string, steps: { desc: string }[]): boolean 
   // All steps are very short (less than 15 chars each) — likely junk
   const avgStepLen = steps.reduce((sum, s) => sum + s.desc.length, 0) / steps.length;
   if (avgStepLen < 15 && steps.length <= 2) return true;
+  // Every step has the same description — AI echo
+  const uniqueDescs = new Set(steps.map(s => s.desc.trim().slice(0, 30)));
+  if (steps.length >= 3 && uniqueDescs.size === 1) return true;
+  return false;
+}
+
+// ── Enhanced AI answer validation ──
+const WRONG_ANSWER_PATTERNS: RegExp[] = [
+  // AI refuses or deflects
+  /^(i|we)\s*(can\s*not|cannot|won'?t|will\s*not)\s*(?:be\s*able\s*)?(?:to\s*)?(?:provide|give|determine|solve|answer|calculate|compute)/i,
+  /(?:not\s*(?:enough|sufficient)\s*(?:information|data|details))|incomplete\s*information/i,
+  /(?:cannot|can'?t|unable)\s*(?:to\s*)?(?:determine|find|calculate|compute|solve)/i,
+  // AI hedging / non-answers
+  /^(it\s*(?:is\s*|would\s*be)\s*(?:difficult|hard|impossible|unclear))/i,
+  /^(the|this|there)\s+(?:is|appears|seems)\s+to\s+be\s+(?:no|not\s*a)\s+(?:simple|clear|direct|single|unique)/i,
+  /(?:ambiguous|unclear|insufficient|incomplete)\s+(?:question|problem|data|information)/i,
+  // Verbatim copy of question as answer
+  /^(what|find|calculate|determine|evaluate|solve|compute|show|prove)/i,
+  // Answer is just units or labels without numbers
+  /^(?:the\s+)?(?:answer|result|solution|value)\s*(?:is\s*)?(?:not|\?|:|\.$)/i,
+  // AI meta-commentary
+  /(?:as\s+(?:an|a)\s+(?:AI|language\s*model|assistant|chatbot))/i,
+  /(?:I\s+(?:do\s*not|don'?t)\s*(?:have|know|understand|possess))/i,
+  /(?:outside\s*(?:of\s*)?my|beyond\s*my|not\s*(?:within|in)\s*my)\s*(?:knowledge|scope|capability|training|ability)/i,
+];
+
+function isWrongOrRefusalAnswer(answer: string, steps: { desc: string }[], problem: string): boolean {
+  if (!answer) return true;
+  const lower = answer.trim().toLowerCase();
+
+  // Check against wrong-answer patterns
+  for (const pat of WRONG_ANSWER_PATTERNS) {
+    if (pat.test(lower)) {
+      console.warn(`[Validation] Rejected by pattern: ${pat.source.slice(0, 60)}...`);
+      return true;
+    }
+  }
+
+  // Answer is suspiciously close to the question text (AI echo)
+  const probWords = problem.toLowerCase().split(/\s+/).slice(0, 8);
+  const ansWords = lower.split(/\s+/).slice(0, 6);
+  if (probWords.length >= 4 && ansWords.length >= 4) {
+    const overlap = probWords.filter(w => w.length > 3 && ansWords.includes(w)).length;
+    if (overlap >= 3) {
+      console.warn('[Validation] Rejected: answer echoes the question');
+      return true;
+    }
+  }
+
+  // Answer contains "example" or "for instance" as the final answer (AI giving a generic response)
+  if (/^(?:for\s*(?:example|instance)|e\.?g\.?|such\s*as)/i.test(lower)) {
+    console.warn('[Validation] Rejected: generic example response');
+    return true;
+  }
+
+  // If the answer is very long (>500 chars) and contains no numbers, it's likely prose
+  if (answer.length > 500 && !/\d/.test(answer)) {
+    console.warn('[Validation] Rejected: long prose without numbers');
+    return true;
+  }
+
   return false;
 }
 
@@ -931,8 +992,8 @@ Substitute the given values into the formula and compute. Return JSON only.`;
       // ── Validate AI answer quality ──
       const rawAns = cleanLatex(parsed.finalAnswer) || "";
       const rawSteps = parsed.steps || [];
-      if (isJunkAnswer(rawAns) || isLowQualityAnswer(rawAns, rawSteps)) {
-        console.warn(`[SpeedSolve] AI answer rejected as junk/low-quality: "${rawAns.slice(0, 80)}..."`);
+      if (isJunkAnswer(rawAns) || isLowQualityAnswer(rawAns, rawSteps) || isWrongOrRefusalAnswer(rawAns, rawSteps, problem)) {
+        console.warn(`[SpeedSolve] AI answer rejected (junk/low-quality/wrong): "${rawAns.slice(0, 80)}..."`);
         // Fall back to local solver if STEM
         if (stemSubjects.includes(sub)) {
           const fallback = await tryLocalSolve(processed, sub);
@@ -983,8 +1044,8 @@ Substitute the given values into the formula and compute. Return JSON only.`;
     const textSolution = buildSolutionFromText(raw, sub, brd);
     textSolution.finalAnswer = sanitizeFinalAnswer(textSolution.finalAnswer);
     textSolution.finalAnswer = fixFormulaAnswer(textSolution.finalAnswer, textSolution.steps || [], problem);
-    if (isJunkAnswer(textSolution.finalAnswer) || isLowQualityAnswer(textSolution.finalAnswer, textSolution.steps || [])) {
-      console.warn('[SpeedSolve] Text-built solution also rejected, trying local fallback');
+    if (isJunkAnswer(textSolution.finalAnswer) || isLowQualityAnswer(textSolution.finalAnswer, textSolution.steps || []) || isWrongOrRefusalAnswer(textSolution.finalAnswer, textSolution.steps || [], problem)) {
+      console.warn('[SpeedSolve] Text-built solution also rejected (junk/low-quality/wrong), trying local fallback');
       if (stemSubjects.includes(sub)) {
         const fallback = await tryLocalSolve(processed, sub);
         if (fallback) {

@@ -1,5 +1,6 @@
 // SpeedSolve AI - Local Numerical Solver v2 (EXPANDED)
 // Covers: Math, Physics, Chemistry for CBSE/ICSE/State Board 6-12
+import {tryJEESolve} from "./local-solver-jee";
 
 interface LocalSolution {
   finalAnswer: string;
@@ -1334,8 +1335,16 @@ const PATTERNS:PatternRule[]=[
   {regex:/(\d+)th\s+term\s+of\s+AP/i,solver:solveAPSum,useFullText:true},
 ];
 
+// ── JEE Advanced/Mains/KCET Extension: tried first above ──────────────
+
 export async function tryLocalSolve(problem:string,subject:string):Promise<LocalSolution|null>{
   const norm=problem.toLowerCase().trim();
+
+  // Try JEE-level solvers FIRST (they handle harder problems)
+  const jeeSol=tryJEESolve(norm,subject);
+  if(jeeSol){console.log(`[Local-JEE] Solved: "${norm.slice(0,60)}..."`);return jeeSol;}
+
+  // Fall back to CBSE/ICSE board-level solvers
   for(const rule of PATTERNS){
     const match=norm.match(rule.regex);
     if(match){
