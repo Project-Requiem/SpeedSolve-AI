@@ -513,8 +513,10 @@ export default function Home() {
   const [showUploadMenu, setShowUploadMenu] = useState(false)
   const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number; type: string } | null>(null)
   const [extracting, setExtracting] = useState(false)
-  const [extractPhase, setExtractPhase] = useState<'extracting' | 'solving'>('extracting')
+  const [extractPhase, setExtractPhase] = useState<'extracting' | 'preview' | 'solving'>('extracting')
   const [dragOver, setDragOver] = useState(false)
+  const [extractedQuestions, setExtractedQuestions] = useState<string[] | null>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
 
   // Close upload popover on outside click
   useEffect(() => {
@@ -1096,9 +1098,9 @@ export default function Home() {
 
   // ── File upload & extraction ──
   const handleFileUpload = useCallback(async (file: File) => {
-    const maxSize = 10 * 1024 * 1024 // 10MB
+    const maxSize = 15 * 1024 * 1024 // 15MB
     if (file.size > maxSize) {
-      setError('File too large. Maximum 10MB.')
+      setError('File too large. Maximum 15MB.')
       return
     }
 
@@ -1107,6 +1109,7 @@ export default function Home() {
     setExtractPhase('extracting')
     setError('')
     setShowUploadMenu(false)
+    setExtractedQuestions(null)
 
     try {
       const formData = new FormData()
@@ -1123,41 +1126,85 @@ export default function Home() {
 
       const extractedText = data.text || ''
       if (extractedText) {
+        // Store multi-question data if available
+        if (data.questions && data.questions.length > 1) {
+          setExtractedQuestions(data.questions)
+        }
+
+        // Show preview for user to verify/edit before solving
         setProblem(extractedText)
-        setUploadedFile(null)
-        // Auto-solve with the extracted text DIRECTLY (bypass stale closure)
-        setExtractPhase('solving')
-        await fetch('/api/solve', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ problem: extractedText, subject, board }),
-        }).then(async (solveRes) => {
-          const solveData = await solveRes.json()
-          if (solveData.error) {
-            setError(solveData.error)
-          } else if (solveData.data) {
-            setSolution(solveData.data)
-            setSolveSource(solveData.source === 'ai' ? 'ai' : 'error')
-            setProgress(100)
-            setTimeout(() => { setLoading(false) }, 200)
-          }
-        }).catch(() => {
-          setError('Failed to solve extracted problem.')
-        })
-      } else {
-        setError('No text could be extracted from this file.')
+        setExtractPhase('preview')
+        setExtracting(false)
+        return
       }
+      setError('No text could be extracted from this file.')
     } catch {
       setError('Failed to process file. Please try again.')
     } finally {
+      if (extractPhase !== 'preview') setExtracting(false)
+    }
+  }, [subject, board, extractPhase])
+
+  // Solve from preview
+  const solveExtracted = useCallback(async () => {
+    if (!problem.trim()) return
+    setExtractPhase('solving')
+    setExtracting(true)
+    setExtractedQuestions(null)
+    setLoading(true)
+    setSolveSource('local')
+    setSolution(null)
+    setError('')
+    setProgress(0)
+
+    const progressInterval = setInterval(() => {
+      setProgress(p => {
+        if (p >= 90) return p
+        return p + Math.random() * 15
+      })
+    }, 400)
+
+    try {
+      const solveRes = await fetch('/api/solve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ problem: problem.trim(), subject, board }),
+      })
+      const solveData = await solveRes.json()
+      clearInterval(progressInterval)
+      setProgress(100)
+
+      if (solveData.error) {
+        setError(solveData.error)
+      } else if (solveData.data) {
+        setSolution(solveData.data)
+        setSolveSource(solveData.source === 'ai' ? 'ai' : solveData.source === 'local' ? 'local' : 'error')
+      }
+      setTimeout(() => { setLoading(false); setExtracting(false); setUploadedFile(null) }, 200)
+    } catch {
+      clearInterval(progressInterval)
+      setError('Failed to solve extracted problem.')
+      setLoading(false)
       setExtracting(false)
     }
-  }, [subject, board])
+  }, [problem, subject, board])
+
+  // Pick a specific question from multi-question extraction
+  const pickQuestion = useCallback((q: string) => {
+    setProblem(q)
+    setExtractedQuestions(null)
+  }, [])
 
   const onFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) handleFileUpload(file)
     e.target.value = '' // reset so same file can be re-uploaded
+  }, [handleFileUpload])
+
+  const onCameraChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) handleFileUpload(file)
+    e.target.value = ''
   }, [handleFileUpload])
 
   const formatFileSize = (bytes: number) => {
@@ -1705,13 +1752,28 @@ export default function Home() {
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                             Upload Image
                           </button>
+                          <button
+                            className="upload-popover-item"
+                            onClick={() => cameraInputRef.current?.click()}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                            Take Photo
+                          </button>
                         </div>
                       )}
                       <input
                         ref={fileInputRef}
                         type="file"
-                        accept=".pdf,.png,.jpg,.jpeg,.webp"
+                        accept=".pdf,.png,.jpg,.jpeg,.webp,.bmp,.heic,.heif"
                         onChange={onFileChange}
+                        style={{ display: 'none' }}
+                      />
+                      <input
+                        ref={cameraInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={onCameraChange}
                         style={{ display: 'none' }}
                       />
                     </div>
@@ -1734,16 +1796,49 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* File preview / extracting indicator */}
-              {extracting && (
+              {extracting && extractPhase === 'extracting' && (
                 <div className="file-preview-bar">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-start)" strokeWidth="2" strokeLinecap="round" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                    <span className="file-preview-name" style={{ color: 'var(--accent-start)' }}>{extractPhase === 'extracting' ? 'Extracting text' : 'Solving'} from {uploadedFile?.name || 'file'}...</span>
+                    <span className="file-preview-name" style={{ color: 'var(--accent-start)' }}>Extracting text from {uploadedFile?.name || 'file'}...</span>
                   </div>
                 </div>
               )}
-              {uploadedFile && !extracting && (
+              {extracting && extractPhase === 'solving' && (
+                <div className="file-preview-bar">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-start)" strokeWidth="2" strokeLinecap="round" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                    <span className="file-preview-name" style={{ color: 'var(--accent-start)' }}>Solving extracted question...</span>
+                  </div>
+                </div>
+              )}
+              {/* Preview: extracted text + solve */}
+              {extractPhase === 'preview' && !extracting && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div className="file-preview-bar" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      <span className="file-preview-name" style={{ color: '#22c55e' }}>Text extracted from {uploadedFile?.name || 'file'} — edit if needed, then solve</span>
+                    </div>
+                  </div>
+                  {/* Multi-question picker */}
+                  {extractedQuestions && extractedQuestions.length > 1 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '8px 12px', background: 'var(--bg-secondary)', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>{extractedQuestions.length} questions found — click to select:</div>
+                      {extractedQuestions.map((q, i) => (
+                        <button key={i} onClick={() => pickQuestion(q)} style={{ textAlign: 'left', padding: '8px 10px', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-primary)', fontSize: '0.85rem', lineHeight: 1.4, transition: 'border-color 0.2s' }} onMouseOver={e => (e.currentTarget.style.borderColor = 'var(--accent-start)')} onMouseOut={e => (e.currentTarget.style.borderColor = 'var(--border)')}>
+                          <span style={{ color: 'var(--accent-start)', fontWeight: 700, marginRight: '8px' }}>Q{i + 1}.</span>{q.length > 120 ? q.slice(0, 120) + '...' : q}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <button className="btn-solve" onClick={solveExtracted} disabled={!problem.trim()} style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}>
+                    <span className="btn-text">Solve Extracted Question</span>
+                    <span className="btn-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                  </button>
+                </div>
+              )}
+              {uploadedFile && !extracting && extractPhase !== 'preview' && (
                 <div className="file-preview-bar">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                   <span className="file-preview-name">{uploadedFile.name} ({formatFileSize(uploadedFile.size)})</span>
@@ -1752,7 +1847,7 @@ export default function Home() {
 
               {/* Feature 4: Keyboard hints */}
               <div className="input-hint">
-                <kbd>Enter</kbd> to solve &middot; <kbd>Upload</kbd> PDF/Image
+                <kbd>Enter</kbd> to solve &middot; <kbd>Upload</kbd> PDF/Image &middot; <kbd>Camera</kbd> to snap
               </div>
 
               {/* Feature 11: Sample problems */}
