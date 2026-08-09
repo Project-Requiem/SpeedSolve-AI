@@ -282,6 +282,55 @@ body {
   display: flex;
   align-items: center;
   flex-shrink: 0;
+  gap: 8px;
+}
+.nav-ig-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(168,85,247,0.12));
+  color: #c4b5fd;
+  text-decoration: none;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  animation: requiemGlow 3s ease-in-out infinite alternate;
+}
+.nav-ig-badge svg {
+  width: 15px; height: 15px;
+}
+.nav-ig-badge::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(99,102,241,0.4), rgba(168,85,247,0.4), rgba(236,72,153,0.2));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+.nav-ig-badge:hover {
+  background: linear-gradient(135deg, rgba(99,102,241,0.22), rgba(168,85,247,0.22));
+  color: #ddd6fe;
+  box-shadow: 0 0 18px rgba(99,102,241,0.18), 0 0 36px rgba(168,85,247,0.08);
+  transform: scale(1.08);
+}
+[data-theme="light"] .nav-ig-badge {
+  background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.08));
+  color: #6366f1;
+}
+[data-theme="light"] .nav-ig-badge::before {
+  background: linear-gradient(135deg, rgba(99,102,241,0.3), rgba(168,85,247,0.3));
+}
+[data-theme="light"] .nav-ig-badge:hover {
+  background: linear-gradient(135deg, rgba(99,102,241,0.14), rgba(168,85,247,0.14));
+  color: #4f46e5;
+  box-shadow: 0 0 12px rgba(99,102,241,0.12);
 }
 .nav-requiem-badge {
   display: inline-flex;
@@ -1410,7 +1459,7 @@ body {
 }
 @media (max-width: 480px) {
   .brand-text { font-size: 1.15rem; }
-  .nav-requiem-badge { display: none; }
+  .nav-requiem-badge, .nav-ig-badge { display: none; }
   .nav-center { display: none; }
   .nav-inner { gap: 6px; }
   .nav-actions { gap: 5px; margin-left: auto; }
