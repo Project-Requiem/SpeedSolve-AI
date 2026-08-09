@@ -293,14 +293,14 @@ function Background() {
       ))}
       {/* Grid overlay */}
       <div className="bg-grid"></div>
-      {/* Particles — reduced count */}
+      {/* Particles */}
       {[
-        {px:'8%',py:'12%',sz:'3px'},
-        {px:'92%',py:'20%',sz:'4px'},
-        {px:'15%',py:'85%',sz:'3px'},
-        {px:'75%',py:'80%',sz:'4px'},
+        {px:'8%',py:'12%',sz:'3px',sp:'22s',d:'0s'},
+        {px:'92%',py:'20%',sz:'4px',sp:'19s',d:'-3s'},
+        {px:'15%',py:'85%',sz:'3px',sp:'25s',d:'-7s'},
+        {px:'75%',py:'80%',sz:'4px',sp:'20s',d:'-11s'},
       ].map((p, i) => (
-        <div key={i} className="bg-particle" style={{ '--px':p.px,'--py':p.py,'--sz':p.sz } as React.CSSProperties} />
+        <div key={i} className="bg-particle" style={{ '--px':p.px,'--py':p.py,'--sz':p.sz,'--sp':p.sp,'--d':p.d } as React.CSSProperties} />
       ))}
     </div>
   )
@@ -476,6 +476,7 @@ export default function Home() {
   const solutionRef = useRef<HTMLDivElement>(null)
   const outputBodyRef = useRef<HTMLDivElement>(null)
   const feedbackOverlayRef = useRef<HTMLDivElement>(null)
+  const auraRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // ── Upload state ──
@@ -557,6 +558,30 @@ export default function Home() {
     )
     els.forEach(el => observer.observe(el))
     return () => observer.disconnect()
+  }, [])
+
+  // ── Cursor fire aura — throttled via rAF ──
+  useEffect(() => {
+    let rafId = 0
+    let x = 0, y = 0
+    const handleMove = (e: MouseEvent) => {
+      x = e.clientX
+      y = e.clientY
+      if (!rafId) {
+        rafId = requestAnimationFrame(() => {
+          if (auraRef.current) {
+            auraRef.current.style.left = x + 'px'
+            auraRef.current.style.top = y + 'px'
+          }
+          rafId = 0
+        })
+      }
+    }
+    window.addEventListener('mousemove', handleMove, { passive: true })
+    return () => {
+      window.removeEventListener('mousemove', handleMove)
+      if (rafId) cancelAnimationFrame(rafId)
+    }
   }, [])
 
   // ── Feature 6: Subject change with shift animation ──
@@ -1565,6 +1590,8 @@ export default function Home() {
 
   return (
     <div data-active-subject={subject}>
+      {/* Fire cursor aura */}
+      <div className="cursor-aura" ref={auraRef} />
       <Background />
 
       {/* Navbar */}

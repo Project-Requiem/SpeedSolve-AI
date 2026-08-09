@@ -117,19 +117,22 @@ body {
 
 .fade-up, .fade-in, .slide-left, .slide-right, .scale-in {
   opacity: 0;
-  transform: translateY(30px);
+  transform: translateY(24px) scale(0.98);
+  filter: blur(2px);
   transition:
-    opacity 0.5s var(--spring-smooth),
-    transform 0.5s var(--spring-bounce);
+    opacity 0.6s var(--spring-smooth),
+    transform 0.6s var(--spring-bounce),
+    filter 0.4s ease;
 }
-.fade-in { transform: translateY(0); }
-.slide-left { transform: translateX(-30px); }
-.slide-right { transform: translateX(30px); }
-.scale-in { transform: scale(0.92); }
+.fade-in { transform: translateY(0) scale(0.98); }
+.slide-left { transform: translateX(-24px) scale(0.98); }
+.slide-right { transform: translateX(24px) scale(0.98); }
+.scale-in { transform: scale(0.9); }
 
 .fade-up.visible, .fade-in.visible, .slide-left.visible, .slide-right.visible, .scale-in.visible {
   opacity: 1;
   transform: translateY(0) translateX(0) scale(1);
+  filter: blur(0px);
 }
 .stagger-1 { transition-delay: 0.06s; }
 .stagger-2 { transition-delay: 0.14s; }
@@ -140,24 +143,27 @@ body {
 
 /* ── Keyframes ── */
 @keyframes navSlideDown {
-  from { opacity: 0; transform: translateY(-100%); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(-100%) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes tickerSlideIn {
-  from { opacity: 0; transform: translateY(-12px); }
+  from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes cardPopIn {
-  0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+  0% { opacity: 0; transform: translateY(16px) scale(0.94); }
+  60% { transform: translateY(-2px) scale(1.01); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  70% { transform: translateY(-2px) scale(1.003); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes panelRise {
-  0% { opacity: 0; transform: translateY(30px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% { opacity: 0; transform: translateY(24px) scale(0.98); }
+  70% { transform: translateY(-2px) scale(1.003); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes floatY {
   0%, 100% { transform: translateY(0); }
@@ -179,9 +185,9 @@ body {
   100% { box-shadow: 0 0 30px rgba(99,102,241,0.1), inset 0 0 30px rgba(99,102,241,0.05); border-color: rgba(99,102,241,0.3); transform: scale(1); }
 }
 @keyframes stepFadeIn {
-  0% { opacity: 0; transform: translateX(-20px) scale(0.96); }
-  60% { transform: translateX(3px) scale(1.003); }
-  100% { opacity: 1; transform: translateY(0) translateX(0) scale(1); }
+  0% { opacity: 0; transform: translateX(-14px) scale(0.97); }
+  60% { transform: translateX(2px) scale(1.003); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
 }
 @keyframes slideDown {
   0% { opacity: 0; transform: translateY(-14px) scale(0.97); }
@@ -231,12 +237,12 @@ body {
    =========================== */
 .navbar {
   position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-  background: rgba(8,12,24,0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(8,12,24,0.75);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border-color);
   transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
-  animation: navSlideDown 0.5s ease both;
+  animation: navSlideDown 0.6s var(--spring-bounce) both;
 }
 [data-theme="light"] .navbar { background: rgba(240,244,255,0.6); }
 .navbar.scrolled { box-shadow: 0 4px 30px rgba(0,0,0,0.2); }
@@ -512,8 +518,8 @@ body {
 .subject-card[data-subject="physics"]::before { background: linear-gradient(135deg, rgba(234,88,12,0.08), rgba(220,38,38,0.08)); }
 .subject-card[data-subject="chemistry"]::before { background: linear-gradient(135deg, rgba(5,150,105,0.08), rgba(13,148,136,0.08)); }
 .subject-card:hover::before, .subject-card.active::before { opacity: 1; }
-.subject-card:hover { border-color: var(--text-muted); transform: translateY(-3px); box-shadow: var(--shadow-lg); }
-.subject-card.active { transform: translateY(-3px); }
+.subject-card:hover { border-color: var(--text-muted); transform: translateY(-3px) scale(1.01); box-shadow: var(--shadow-lg); transition: all 0.4s var(--spring-bounce); }
+.subject-card.active { transform: translateY(-3px) scale(1.01); transition: all 0.4s var(--spring-bounce); }
 .subject-card[data-subject="mathematics"].active { border-color: var(--math); box-shadow: 0 8px 30px rgba(99,102,241,0.2); }
 .subject-card[data-subject="physics"].active { border-color: var(--physics); box-shadow: 0 8px 30px rgba(234,88,12,0.2); }
 .subject-card[data-subject="chemistry"].active { border-color: var(--chemistry); box-shadow: 0 8px 30px rgba(5,150,105,0.2); }
@@ -715,7 +721,38 @@ body {
   .subject-cards { grid-template-columns: repeat(3, 1fr); }
 }
 
-/* Cursor aura removed for performance */
+
+/* ── Cursor Aura — Fire Effect ── */
+.cursor-aura {
+  position: fixed; width: 280px; height: 280px; border-radius: 50%;
+  pointer-events: none; z-index: 0;
+  transform: translate(-50%, -50%);
+  opacity: 0.65;
+  background:
+    radial-gradient(ellipse 55% 75% at 50% 65%, rgba(255,120,0,0.3) 0%, transparent 55%),
+    radial-gradient(ellipse 35% 45% at 50% 72%, rgba(255,50,0,0.2) 0%, transparent 45%),
+    radial-gradient(ellipse 75% 35% at 50% 48%, rgba(255,180,0,0.1) 0%, transparent 55%);
+  filter: blur(1.5px);
+  animation: fireFlicker 0.8s ease-in-out infinite alternate, firePulse 3s ease-in-out infinite;
+  mix-blend-mode: screen;
+}
+[data-theme="light"] .cursor-aura {
+  opacity: 0.25;
+  mix-blend-mode: multiply;
+}
+@media (hover: none) and (pointer: coarse) {
+  .cursor-aura { display: none; }
+}
+@keyframes fireFlicker {
+  0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); filter: blur(1.5px) brightness(1); }
+  33% { transform: translate(-50%, -50%) scale(1.05) rotate(1.5deg); filter: blur(2px) brightness(1.12); }
+  66% { transform: translate(-50%, -50%) scale(0.96) rotate(-1deg); filter: blur(1px) brightness(0.93); }
+  100% { transform: translate(-50%, -50%) scale(1.03) rotate(0.5deg); filter: blur(1.8px) brightness(1.06); }
+}
+@keyframes firePulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.75; }
+}
 
 /* ===========================
    OUTPUT
@@ -1065,9 +1102,11 @@ body {
   margin: calc(var(--s, 100px) / -2) 0 0 calc(var(--s, 100px) / -2);
   border: 1.5px solid var(--c, var(--accent-start));
   opacity: var(--so, 0.3);
+  animation: shapeFloat var(--dur, 20s) ease-in-out infinite;
+  animation-delay: var(--d, 0s);
 }
-.bg-shape.spin { }
-[data-theme="light"] .bg-shape { opacity: var(--so, 0.3); }
+.bg-shape.spin { animation-name: shapeDrift; animation-duration: var(--dur, 28s); animation-timing-function: ease-in-out; animation-iteration-count: infinite; animation-direction: alternate; }
+[data-theme="light"] .bg-shape { opacity: var(--so, 0.3); filter: drop-shadow(0 0 6px var(--c, var(--accent-start))); }
 .shape-hex {
   clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
   background: radial-gradient(circle at 40% 40%, var(--c, var(--accent-start)), transparent 70%);
@@ -1102,6 +1141,7 @@ body {
   position: absolute; inset: 0;
   background-image: radial-gradient(circle, var(--text-muted) 0.7px, transparent 0.7px);
   background-size: 48px 48px; opacity: 0.06;
+  animation: gridPulse 12s ease-in-out infinite alternate;
 }
 [data-theme="light"] .bg-grid { opacity: 0.15; }
 .bg-particle {
@@ -1109,9 +1149,12 @@ body {
   width: var(--sz, 3px); height: var(--sz, 3px);
   margin: calc(var(--sz, 3px) / -2) 0 0 calc(var(--sz, 3px) / -2);
   border-radius: 50%; background: var(--accent-start);
-  opacity: 0.4;
+  opacity: 0.5;
+  box-shadow: 0 0 4px var(--accent-start);
+  animation: particleOrbit var(--sp, 20s) ease-in-out infinite;
+  animation-delay: var(--d, 0s);
 }
-[data-theme="light"] .bg-particle { opacity: 0.5; }
+[data-theme="light"] .bg-particle { opacity: 0.6; box-shadow: 0 0 6px var(--accent-start); }
 
 /* ===========================
    RESPONSIVE
@@ -1524,8 +1567,9 @@ body {
   .nav-requiem-badge, .nav-ig-badge { animation: none !important; }
   .nav-requiem-badge:hover, .nav-ig-badge:hover { transform: none !important; }
   .bg-orb, .bg-shape, .bg-particle, .bg-grid { animation: none !important; }
+  .cursor-aura { animation: none !important; opacity: 0.4 !important; }
   .fade-up, .fade-in, .slide-left, .slide-right, .scale-in {
-    opacity: 1 !important; transform: none !important; transition: none !important;
+    opacity: 1 !important; transform: none !important; transition: none !important; filter: none !important;
   }
   .subject-card, .solution-section, .step-item, .similar-item, .mistakes-list li, .exam-tip-item {
     opacity: 1 !important; transform: none !important; animation: none !important;
