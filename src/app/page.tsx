@@ -570,12 +570,24 @@ export default function Home() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Trigger fade-up animations after mount
+  // Trigger fade-up animations via IntersectionObserver with stagger
   useEffect(() => {
-    const timer = setTimeout(() => {
-      document.querySelectorAll('.fade-up').forEach(el => el.classList.add('visible'))
-    }, 100)
-    return () => clearTimeout(timer)
+    const els = document.querySelectorAll('.fade-up:not(.visible)')
+    if (!els.length) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry, i) => {
+          if (entry.isIntersecting) {
+            const delay = (entry.target as HTMLElement).dataset.delay || '0'
+            setTimeout(() => entry.target.classList.add('visible'), Number(delay))
+            observer.unobserve(entry.target)
+          }
+        })
+      },
+      { threshold: 0.08, rootMargin: '0px 0px -30px 0px' }
+    )
+    els.forEach(el => observer.observe(el))
+    return () => observer.disconnect()
   }, [])
 
   // ── Feature 18: Cursor aura glow ──
@@ -1658,7 +1670,7 @@ export default function Home() {
 
 
       {/* Board Selector */}
-      <div className="board-row fade-up visible">
+      <div className="board-row fade-up" data-delay="300">
         <div className="selector-group">
           <label className="sel-label">Board</label>
           <div className="sel-btns">
@@ -1672,7 +1684,7 @@ export default function Home() {
       </div>
 
       {/* Subject Selector — with shift animation class */}
-      <div className="subject-selector fade-up visible">
+      <div className="subject-selector fade-up" data-delay="400">
         <div className="selector-inner">
           <p className="selector-label">Choose subject</p>
           <div className="subject-cards">
@@ -1704,7 +1716,7 @@ export default function Home() {
       <main className="app-container">
         <div className="app-layout">
           {/* Input Panel */}
-          <section className={`panel panel-input fade-up${dragOver ? ' drag-over' : ''}`} onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDragOver(true) }} onDragLeave={e => { e.preventDefault(); e.stopPropagation(); setDragOver(false) }} onDrop={e => { e.preventDefault(); e.stopPropagation(); setDragOver(false); const file = e.dataTransfer?.files?.[0]; if (file) handleFileUpload(file) }}>
+          <section className={`panel panel-input fade-up${dragOver ? ' drag-over' : ''}`} data-delay="500" onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDragOver(true) }} onDragLeave={e => { e.preventDefault(); e.stopPropagation(); setDragOver(false) }} onDrop={e => { e.preventDefault(); e.stopPropagation(); setDragOver(false); const file = e.dataTransfer?.files?.[0]; if (file) handleFileUpload(file) }}>
             <div className="panel-header">
               <h2>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -1883,7 +1895,7 @@ export default function Home() {
           </section>
 
           {/* Output Panel */}
-          <section className="panel panel-output fade-up stagger-2">
+          <section className="panel panel-output fade-up stagger-2" data-delay="600">
             <div className="panel-header">
               <h2>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
@@ -2215,7 +2227,7 @@ export default function Home() {
       </button>
 
       {/* Footer */}
-      <footer className="footer fade-up visible">
+      <footer className="footer fade-up" data-delay="100">
         <p className="footer-tagline">By the Students, For the Students</p>
         <div className="footer-socials">
           <a
