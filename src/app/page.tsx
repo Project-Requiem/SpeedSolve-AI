@@ -343,6 +343,9 @@ export default function Home() {
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [solutionInView, setSolutionInView] = useState(true)
 
+  // Scroll to top on mount to prevent browser scroll restoration offset
+  useEffect(() => { window.scrollTo(0, 0) }, [])
+
   // IntersectionObserver: detect if solution panel is in viewport (for floating button)
   useEffect(() => {
     if (!outputBodyRef.current) return
