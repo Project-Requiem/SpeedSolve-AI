@@ -724,15 +724,15 @@ body {
 
 /* ── Cursor Aura ── */
 .cursor-aura {
-  position: fixed; width: 280px; height: 280px; border-radius: 50%;
+  position: fixed; width: 420px; height: 420px; border-radius: 50%;
   background: radial-gradient(circle, var(--accent-glow) 0%, var(--glow-purple) 35%, transparent 70%);
   pointer-events: none; z-index: 0;
   transform: translate(-50%, -50%);
-  opacity: 0.5;
+  opacity: 0.7;
   transition: opacity 0.3s ease;
   filter: blur(2px);
 }
-[data-theme="light"] .cursor-aura { opacity: 0.4; filter: blur(2px); }
+[data-theme="light"] .cursor-aura { opacity: 0.65; filter: blur(3px); }
 @media (hover: none) and (pointer: coarse) {
   .cursor-aura { display: none; }
 }
