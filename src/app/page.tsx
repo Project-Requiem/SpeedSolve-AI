@@ -264,45 +264,23 @@ function renderFormulaToHtml(formula: string): React.ReactNode {
 
 // ─── Background Component ────────────────────────────────────────
 const BG_SHAPES = [
-  // Large hero shapes — big, prominent
-  { t:'hex',    x:'15%',y:'15%',s:'160px',c:'var(--accent-start)',d:'0s',  dur:'22s',so:'0.28' },
-  { t:'ring',   x:'80%',y:'25%',s:'180px',c:'var(--glow-purple)',  d:'-7s', dur:'30s',so:'0.22',spin:true },
-  { t:'diamond',x:'50%',y:'72%',s:'130px',c:'var(--accent-end)',   d:'-14s',dur:'26s',so:'0.22' },
-  // Medium scattered shapes
-  { t:'tri',    x:'8%',y:'42%',s:'100px',c:'var(--glow-cyan)',    d:'-3s', dur:'20s',so:'0.24' },
-  { t:'hex',    x:'90%',y:'60%',s:'110px',c:'var(--glow-pink)',    d:'-10s',dur:'24s',so:'0.2' },
-  { t:'penta',  x:'35%',y:'8%',s:'90px', c:'var(--accent-start)',d:'-5s', dur:'18s',so:'0.22' },
-  { t:'cross',  x:'68%',y:'90%',s:'80px', c:'var(--glow-purple)',  d:'-16s',dur:'22s',so:'0.18' },
-  { t:'ring',   x:'25%',y:'80%',s:'120px',c:'var(--glow-cyan)',    d:'-11s',dur:'28s',so:'0.2',spin:true },
-  { t:'diamond',x:'55%',y:'35%',s:'70px', c:'var(--accent-end)',   d:'-2s', dur:'16s',so:'0.2' },
-  { t:'tri',    x:'75%',y:'48%',s:'95px', c:'var(--accent-start)',d:'-8s', dur:'21s',so:'0.2' },
-  // Small accent shapes — subtle detail layer
-  { t:'hex',    x:'42%',y:'55%',s:'55px', c:'var(--glow-cyan)',    d:'-13s',dur:'19s',so:'0.2' },
-  { t:'dot-ring',x:'18%',y:'92%',s:'60px', c:'var(--accent-end)',  d:'-1s', dur:'25s',so:'0.22' },
-  { t:'diamond',x:'95%',y:'5%',s:'65px', c:'var(--glow-pink)',    d:'-17s',dur:'23s',so:'0.18' },
-  { t:'penta',  x:'5%',y:'22%',s:'50px', c:'var(--glow-purple)',  d:'-4s', dur:'17s',so:'0.2' },
-  { t:'cross',  x:'62%',y:'15%',s:'45px', c:'var(--glow-cyan)',    d:'-9s', dur:'20s',so:'0.18' },
-  { t:'tri',    x:'30%',y:'38%',s:'60px', c:'var(--glow-pink)',    d:'-15s',dur:'22s',so:'0.16' },
-  { t:'dot-ring',x:'82%',y:'82%',s:'75px', c:'var(--accent-start)',d:'-6s', dur:'26s',so:'0.18' },
-  { t:'hex',    x:'48%',y:'95%',s:'50px', c:'var(--accent-end)',   d:'-12s',dur:'18s',so:'0.2' },
-  // Tiny sparkle shapes — barely-there depth
-  { t:'diamond',x:'72%',y:'12%',s:'35px', c:'var(--glow-cyan)',   d:'-20s',dur:'15s',so:'0.16' },
-  { t:'penta',  x:'12%',y:'58%',s:'40px', c:'var(--accent-start)',d:'-7s', dur:'19s',so:'0.18' },
-  { t:'dot-ring',x:'88%',y:'42%',s:'50px', c:'var(--glow-purple)', d:'-14s',dur:'24s',so:'0.16' },
-  { t:'cross',  x:'38%',y:'18%',s:'38px', c:'var(--accent-end)',   d:'-18s',dur:'16s',so:'0.14' },
-  { t:'tri',    x:'58%',y:'58%',s:'42px', c:'var(--glow-cyan)',    d:'-3s', dur:'21s',so:'0.18' },
+  { t:'hex',    x:'15%',y:'15%',s:'140px',c:'var(--accent-start)',d:'0s',  dur:'22s',so:'0.22' },
+  { t:'ring',   x:'80%',y:'25%',s:'160px',c:'var(--glow-purple)',  d:'-7s', dur:'30s',so:'0.18',spin:true },
+  { t:'diamond',x:'50%',y:'72%',s:'120px',c:'var(--accent-end)',   d:'-14s',dur:'26s',so:'0.18' },
+  { t:'tri',    x:'8%',y:'42%',s:'90px', c:'var(--glow-cyan)',    d:'-3s', dur:'20s',so:'0.2' },
+  { t:'hex',    x:'90%',y:'60%',s:'100px',c:'var(--glow-pink)',    d:'-10s',dur:'24s',so:'0.16' },
+  { t:'penta',  x:'35%',y:'8%',s:'80px', c:'var(--accent-start)',d:'-5s', dur:'18s',so:'0.18' },
+  { t:'cross',  x:'68%',y:'90%',s:'70px', c:'var(--glow-purple)',  d:'-16s',dur:'22s',so:'0.14' },
+  { t:'ring',   x:'25%',y:'80%',s:'110px',c:'var(--glow-cyan)',    d:'-11s',dur:'28s',so:'0.16',spin:true },
 ]
 
 function Background() {
   return (
     <div className="bg-wrap">
-      {/* Ambient glow orbs */}
-      <div className="bg-orb bg-orb-1" style={{ '--d':'0s' } as React.CSSProperties} />
-      <div className="bg-orb bg-orb-2" style={{ '--d':'-6s' } as React.CSSProperties} />
-      <div className="bg-orb bg-orb-3" style={{ '--d':'-12s' } as React.CSSProperties} />
-      <div className="bg-orb bg-orb-4" style={{ '--d':'-18s' } as React.CSSProperties} />
-      <div className="bg-orb bg-orb-5" style={{ '--d':'-9s' } as React.CSSProperties} />
-      {/* Geometric shapes — data-driven, spread everywhere */}
+      {/* Ambient glow orbs — only 2 for performance */}
+      <div className="bg-orb bg-orb-1" />
+      <div className="bg-orb bg-orb-2" />
+      {/* Geometric shapes — reduced count */}
       {BG_SHAPES.map((sh, i) => (
         <div
           key={i}
@@ -315,22 +293,14 @@ function Background() {
       ))}
       {/* Grid overlay */}
       <div className="bg-grid"></div>
-      {/* Particles */}
+      {/* Particles — reduced count */}
       {[
-        {px:'8%',py:'12%',sz:'4px',sp:'22s',d:'-0s'},
-        {px:'92%',py:'20%',sz:'5px',sp:'19s',d:'-3s'},
-        {px:'15%',py:'85%',sz:'3px',sp:'25s',d:'-7s'},
-        {px:'75%',py:'80%',sz:'6px',sp:'20s',d:'-11s'},
-        {px:'45%',py:'5%',sz:'4px',sp:'28s',d:'-2s'},
-        {px:'60%',py:'45%',sz:'5px',sp:'18s',d:'-5s'},
-        {px:'30%',py:'55%',sz:'3px',sp:'24s',d:'-9s'},
-        {px:'88%',py:'92%',sz:'4px',sp:'21s',d:'-13s'},
-        {px:'5%',py:'40%',sz:'5px',sp:'26s',d:'-1s'},
-        {px:'50%',py:'50%',sz:'3px',sp:'30s',d:'-15s'},
-        {px:'25%',py:'30%',sz:'4px',sp:'23s',d:'-8s'},
-        {px:'70%',py:'15%',sz:'5px',sp:'27s',d:'-4s'},
+        {px:'8%',py:'12%',sz:'3px'},
+        {px:'92%',py:'20%',sz:'4px'},
+        {px:'15%',py:'85%',sz:'3px'},
+        {px:'75%',py:'80%',sz:'4px'},
       ].map((p, i) => (
-        <div key={i} className="bg-particle" style={{ '--px':p.px,'--py':p.py,'--sz':p.sz,'--sp':p.sp,'--d':p.d } as React.CSSProperties} />
+        <div key={i} className="bg-particle" style={{ '--px':p.px,'--py':p.py,'--sz':p.sz } as React.CSSProperties} />
       ))}
     </div>
   )
@@ -506,7 +476,6 @@ export default function Home() {
   const solutionRef = useRef<HTMLDivElement>(null)
   const outputBodyRef = useRef<HTMLDivElement>(null)
   const feedbackOverlayRef = useRef<HTMLDivElement>(null)
-  const auraRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // ── Upload state ──
@@ -588,18 +557,6 @@ export default function Home() {
     )
     els.forEach(el => observer.observe(el))
     return () => observer.disconnect()
-  }, [])
-
-  // ── Feature 18: Cursor aura glow ──
-  useEffect(() => {
-    const handleMove = (e: MouseEvent) => {
-      if (auraRef.current) {
-        auraRef.current.style.left = e.clientX + 'px'
-        auraRef.current.style.top = e.clientY + 'px'
-      }
-    }
-    window.addEventListener('mousemove', handleMove, { passive: true })
-    return () => window.removeEventListener('mousemove', handleMove)
   }, [])
 
   // ── Feature 6: Subject change with shift animation ──
@@ -1608,8 +1565,6 @@ export default function Home() {
 
   return (
     <div data-active-subject={subject}>
-      {/* Feature 18: Cursor aura glow */}
-      <div className="cursor-aura" ref={auraRef} />
       <Background />
 
       {/* Navbar */}
