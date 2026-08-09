@@ -22,6 +22,13 @@ interface Solution {
   diagram: any | null
 }
 
+interface BatchResult {
+  question: string
+  solution: Solution | null
+  error: string | null
+  source: string
+}
+
 type Subject = 'mathematics' | 'physics' | 'chemistry'
 type Board = 'icse' | 'cbse' | 'state'
 
@@ -501,7 +508,7 @@ export default function Home() {
   const [extractPhase, setExtractPhase] = useState<'extracting' | 'preview' | 'solving'>('extracting')
   const [dragOver, setDragOver] = useState(false)
   const [extractedQuestions, setExtractedQuestions] = useState<string[] | null>(null)
-  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
 
   // Close upload popover on outside click
   useEffect(() => {
@@ -1103,10 +1110,24 @@ export default function Home() {
     setShowAlt(false)
     setCopied(false)
     setUploadedFile(null)
+    setExtracting(false)
+    setExtractPhase('extracting')
+    setExtractedQuestions(null)
+    setShowUploadMenu(false)
+    setBatchResults(null)
+    setBatchProgress(0)
   }
 
   // ── File upload & extraction ──
   const handleFileUpload = useCallback(async (file: File) => {
+    // Validate file type
+    const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+    const isImage = file.type.startsWith('image/') || /\.(png|jpe?g|webp|bmp|gif|heic|heif)$/i.test(file.name)
+    if (!isPDF && !isImage) {
+      setError('Unsupported file type. Please upload a PDF or image.')
+      return
+    }
+
     const maxSize = 15 * 1024 * 1024 // 15MB
     if (file.size > maxSize) {
       setError('File too large. Maximum 15MB.')
@@ -1150,9 +1171,9 @@ export default function Home() {
     } catch {
       setError('Failed to process file. Please try again.')
     } finally {
-      if (extractPhase !== 'preview') setExtracting(false)
+      setExtracting(false)
     }
-  }, [subject, board, extractPhase])
+  }, [subject, board])
 
   // Solve from preview
   const solveExtracted = useCallback(async () => {
@@ -1204,13 +1225,69 @@ export default function Home() {
     setExtractedQuestions(null)
   }, [])
 
+  // ── Batch solve all extracted questions ──
+  const [batchResults, setBatchResults] = useState<BatchResult[] | null>(null)
+  const [batchProgress, setBatchProgress] = useState(0)
+
+  const solveAllQuestions = useCallback(async () => {
+    if (!extractedQuestions || extractedQuestions.length === 0) return
+    setExtractPhase('solving')
+    setExtracting(true)
+    setLoading(true)
+    setError('')
+    setSolution(null)
+    setBatchResults(null)
+    setBatchProgress(0)
+
+    const results: BatchResult[] = []
+    const total = extractedQuestions.length
+
+    for (let i = 0; i < total; i++) {
+      const q = extractedQuestions[i].trim()
+      if (!q) {
+        results.push({ question: extractedQuestions[i], solution: null, error: 'Empty question', source: 'error' })
+        setBatchProgress(Math.round(((i + 1) / total) * 100))
+        continue
+      }
+
+      try {
+        const res = await fetch('/api/solve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ problem: q, subject, board }),
+        })
+        const data = await res.json()
+        if (data.data && data.data.finalAnswer) {
+          results.push({ question: q, solution: data.data, error: null, source: data.source || 'local' })
+        } else {
+          results.push({ question: q, solution: null, error: data.error || 'Could not solve this question', source: 'error' })
+        }
+      } catch {
+        results.push({ question: q, solution: null, error: 'Network error', source: 'error' })
+      }
+      setBatchProgress(Math.round(((i + 1) / total) * 100))
+    }
+
+    setBatchResults(results)
+    setExtracting(false)
+    setLoading(false)
+    setExtractPhase('preview')
+    // Show the first solved question
+    const firstSolved = results.find(r => r.solution)
+    if (firstSolved) {
+      setProblem(firstSolved.question)
+      setSolution(firstSolved.solution)
+      setSolveSource(firstSolved.source === 'ai' ? 'ai' : 'local')
+    }
+  }, [extractedQuestions, subject, board])
+
   const onFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) handleFileUpload(file)
     e.target.value = '' // reset so same file can be re-uploaded
   }, [handleFileUpload])
 
-  const onCameraChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const onImageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) handleFileUpload(file)
     e.target.value = ''
@@ -1713,7 +1790,7 @@ export default function Home() {
       <main className="app-container">
         <div className="app-layout">
           {/* Input Panel */}
-          <section className={`panel panel-input fade-up${dragOver ? ' drag-over' : ''}`} data-delay="500" onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDragOver(true) }} onDragLeave={e => { e.preventDefault(); e.stopPropagation(); setDragOver(false) }} onDrop={e => { e.preventDefault(); e.stopPropagation(); setDragOver(false); const file = e.dataTransfer?.files?.[0]; if (file) handleFileUpload(file) }}>
+          <section className={`panel panel-input fade-up${dragOver ? ' drag-over' : ''}`} data-delay="500" onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDragOver(true) }} onDragLeave={e => { e.preventDefault(); e.stopPropagation(); setDragOver(false) }} onDrop={e => { e.preventDefault(); e.stopPropagation(); setDragOver(false); const file = e.dataTransfer?.files?.[0]; if (file && (file.type === 'application/pdf' || file.type.startsWith('image/'))) handleFileUpload(file) }}>
             <div className="panel-header">
               <h2>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -1759,33 +1836,25 @@ export default function Home() {
                           </button>
                           <button
                             className="upload-popover-item"
-                            onClick={() => fileInputRef.current?.click()}
+                            onClick={() => imageInputRef.current?.click()}
                           >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                             Upload Image
-                          </button>
-                          <button
-                            className="upload-popover-item"
-                            onClick={() => cameraInputRef.current?.click()}
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                            Take Photo
                           </button>
                         </div>
                       )}
                       <input
                         ref={fileInputRef}
                         type="file"
-                        accept=".pdf,.png,.jpg,.jpeg,.webp,.bmp,.heic,.heif"
+                        accept=".pdf"
                         onChange={onFileChange}
                         style={{ display: 'none' }}
                       />
                       <input
-                        ref={cameraInputRef}
+                        ref={imageInputRef}
                         type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={onCameraChange}
+                        accept=".png,.jpg,.jpeg,.webp,.bmp,.heic,.heif"
+                        onChange={onImageChange}
                         style={{ display: 'none' }}
                       />
                     </div>
@@ -1820,7 +1889,7 @@ export default function Home() {
                 <div className="file-preview-bar">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-start)" strokeWidth="2" strokeLinecap="round" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                    <span className="file-preview-name" style={{ color: 'var(--accent-start)' }}>Solving extracted question...</span>
+                    <span className="file-preview-name" style={{ color: 'var(--accent-start)' }}>{batchProgress > 0 ? `Solving questions... ${batchProgress}%` : 'Solving extracted question...'}</span>
                   </div>
                 </div>
               )}
@@ -1836,18 +1905,44 @@ export default function Home() {
                   {/* Multi-question picker */}
                   {extractedQuestions && extractedQuestions.length > 1 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '8px 12px', background: 'var(--bg-secondary)', borderRadius: '10px', border: '1px solid var(--border)' }}>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>{extractedQuestions.length} questions found — click to select:</div>
-                      {extractedQuestions.map((q, i) => (
-                        <button key={i} onClick={() => pickQuestion(q)} style={{ textAlign: 'left', padding: '8px 10px', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-primary)', fontSize: '0.85rem', lineHeight: 1.4, transition: 'border-color 0.2s' }} onMouseOver={e => (e.currentTarget.style.borderColor = 'var(--accent-start)')} onMouseOut={e => (e.currentTarget.style.borderColor = 'var(--border)')}>
-                          <span style={{ color: 'var(--accent-start)', fontWeight: 700, marginRight: '8px' }}>Q{i + 1}.</span>{q.length > 120 ? q.slice(0, 120) + '...' : q}
-                        </button>
-                      ))}
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>{extractedQuestions.length} questions found — click to select one, or solve all:</div>
+                      <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {extractedQuestions.map((q, i) => (
+                          <button key={i} onClick={() => pickQuestion(q)} style={{ textAlign: 'left', padding: '8px 10px', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-primary)', fontSize: '0.85rem', lineHeight: 1.4, transition: 'border-color 0.2s' }} onMouseOver={e => (e.currentTarget.style.borderColor = 'var(--accent-start)')} onMouseOut={e => (e.currentTarget.style.borderColor = 'var(--border)')}>
+                            <span style={{ color: 'var(--accent-start)', fontWeight: 700, marginRight: '8px' }}>Q{i + 1}.</span>{q.length > 120 ? q.slice(0, 120) + '...' : q}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
-                  <button className="btn-solve" onClick={solveExtracted} disabled={!problem.trim()} style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}>
-                    <span className="btn-text">Solve Extracted Question</span>
-                    <span className="btn-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="btn-solve" onClick={solveExtracted} disabled={!problem.trim()} style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', flex: 1 }}>
+                      <span className="btn-text">Solve Extracted Question</span>
+                      <span className="btn-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                    </button>
+                    {extractedQuestions && extractedQuestions.length > 1 && (
+                      <button className="btn-solve" onClick={solveAllQuestions} disabled={loading || extracting} style={{ background: 'linear-gradient(135deg, #2563eb, #3b82f6)', flex: 1 }}>
+                        <span className="btn-text">Solve All {extractedQuestions.length} Questions</span>
+                        <span className="btn-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                      </button>
+                    )}
+                  </div>
+                  {/* Batch results navigation */}
+                  {batchResults && batchResults.length > 1 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '8px 12px', background: 'var(--bg-secondary)', borderRadius: '10px', border: '1px solid var(--accent-start)', opacity: extracting ? 0.5 : 1 }}>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--accent-start)', fontWeight: 600 }}>Solved {batchResults.filter(r => r.solution).length}/{batchResults.length} questions — click to view:</div>
+                      <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {batchResults.map((r, i) => (
+                          <button key={i} onClick={() => { if (r.solution) { setProblem(r.question); setSolution(r.solution); setSolveSource(r.source === 'ai' ? 'ai' : 'local') } }} style={{ textAlign: 'left', padding: '6px 10px', background: r.solution ? 'var(--bg-primary)' : 'rgba(220,38,38,0.05)', border: `1px solid ${r.solution ? 'var(--border)' : 'rgba(220,38,38,0.2)'}`, borderRadius: '8px', cursor: r.solution ? 'pointer' : 'default', color: r.solution ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '0.82rem', lineHeight: 1.4, transition: 'border-color 0.2s' }} onMouseOver={e => { if (r.solution) e.currentTarget.style.borderColor = 'var(--accent-start)' }} onMouseOut={e => { e.currentTarget.style.borderColor = r.solution ? 'var(--border)' : 'rgba(220,38,38,0.2)' }}>
+                            <span style={{ color: r.solution ? '#22c55e' : '#ef4444', fontWeight: 700, marginRight: '8px' }}>Q{i + 1}.</span>
+                            {r.question.length > 100 ? r.question.slice(0, 100) + '...' : r.question}
+                            {r.error && <span style={{ display: 'block', fontSize: '0.75rem', color: '#ef4444', marginTop: '2px' }}>{r.error}</span>}
+                            {r.solution && <span style={{ display: 'block', fontSize: '0.75rem', color: '#22c55e', marginTop: '2px' }}>Ans: {r.solution.finalAnswer}</span>}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               {uploadedFile && !extracting && extractPhase !== 'preview' && (
@@ -1859,7 +1954,7 @@ export default function Home() {
 
               {/* Feature 4: Keyboard hints */}
               <div className="input-hint">
-                <kbd>Enter</kbd> to solve &middot; <kbd>Upload</kbd> PDF/Image &middot; <kbd>Camera</kbd> to snap
+                <kbd>Enter</kbd> to solve &middot; <kbd>Upload</kbd> PDF/Image
               </div>
 
               {/* Feature 11: Sample problems */}

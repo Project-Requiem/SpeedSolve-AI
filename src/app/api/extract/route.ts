@@ -30,10 +30,36 @@ const PDF_CLEAN_PROMPT = `You are given raw text extracted from a PDF of an exam
 function splitQuestions(text: string): { questions: string[]; primary: string } {
   // Try to split on question patterns
   const splits = text.split(/\n\s*(?:Q\d+\.?|\d+\.|\(\d+\)|Question\s*\d+)/i)
-  const questions = splits.map(s => s.trim()).filter(s => s.length > 10)
+  let questions = splits.map(s => s.trim()).filter(s => s.length > 10)
+
+  // If split didn't find multiple questions, try other patterns
+  if (questions.length <= 1) {
+    // Try splitting on numbered patterns like "1." "2." etc. at start of lines
+    const lines = text.split('\n')
+    const qParts: string[] = []
+    let current = ''
+    for (const line of lines) {
+      if (/^\s*\d+\s*[.)]\s/.test(line) && current.trim().length > 10) {
+        qParts.push(current.trim())
+        current = line
+      } else {
+        current += '\n' + line
+      }
+    }
+    if (current.trim().length > 10) qParts.push(current.trim())
+    if (qParts.length > 1) questions = qParts
+  }
+
+  // If still just one question, check if it contains multiple questions without numbering
+  if (questions.length <= 1 && text.length > 300) {
+    // Split on double newlines that might separate questions
+    const paragraphSplit = text.split(/\n\s*\n/).filter(s => s.trim().length > 15)
+    if (paragraphSplit.length > 1) {
+      questions = paragraphSplit.map(s => s.trim())
+    }
+  }
 
   if (questions.length > 1) {
-    // Return the first question as primary, rest as additional
     return { questions, primary: questions[0] }
   }
   return { questions: [text], primary: text }
@@ -198,7 +224,7 @@ export async function POST(request: NextRequest) {
 
         const doc = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise
         const allPagesText: string[] = []
-        const maxPages = Math.min(doc.numPages, 5) // Max 5 pages
+        const maxPages = Math.min(doc.numPages, 20) // Up to 20 pages for mass questions
 
         for (let p = 1; p <= maxPages; p++) {
           const page = await doc.getPage(p)
