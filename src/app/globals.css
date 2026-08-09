@@ -32,10 +32,10 @@
   --glow-cyan: rgba(6, 182, 212, 0.25);
   --glow-pink: rgba(236, 72, 153, 0.2);
   /* Shape colors — dark mode: vivid, high-contrast on #080c18 */
-  --shape-blue: rgba(59, 130, 246, 0.55);
-  --shape-purple: rgba(167, 139, 250, 0.45);
-  --shape-cyan: rgba(34, 211, 238, 0.4);
-  --shape-pink: rgba(244, 114, 182, 0.38);
+  --shape-blue: rgba(96, 165, 250, 0.8);
+  --shape-purple: rgba(192, 167, 251, 0.7);
+  --shape-cyan: rgba(103, 232, 249, 0.65);
+  --shape-pink: rgba(249, 168, 212, 0.6);
   --math: #6366f1;
   --physics: #ea580c;
   --chemistry: #059669;
