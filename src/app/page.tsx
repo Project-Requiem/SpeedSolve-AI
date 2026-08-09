@@ -1618,6 +1618,18 @@ export default function Home() {
             </a>
           </div>
           <div className="nav-actions">
+            {/* Instagram link */}
+            <a
+              className="nav-feedback-btn"
+              href="https://instagram.com/speedsolve.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ textDecoration: 'none', gap: '6px' }}
+              title="Follow us on Instagram"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="5.5"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg>
+              <span>Instagram</span>
+            </a>
             {/* Feature 5: Feedback button */}
             <button className="nav-feedback-btn" onClick={() => setShowFeedback(true)}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -2214,7 +2226,25 @@ export default function Home() {
       {/* Footer */}
       <footer className="footer fade-up visible">
         <p className="footer-tagline">By the Students, For the Students</p>
-        <p>SpeedSolve AI &copy; 2026 &mdash; Built for students in Grades 6&ndash;12</p>
+        <div className="footer-socials">
+          <a
+            className="footer-social-link"
+            href="https://instagram.com/speedsolve.ai"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className="ig-gradient-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                <circle cx="12" cy="12" r="5.5"/>
+                <circle cx="17.5" cy="6.5" r="1.2" fill="white" stroke="none"/>
+              </svg>
+            </span>
+            <span>Follow us on Instagram</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{opacity:0.5}}><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+        </div>
+        <p className="footer-copy">SpeedSolve AI &copy; 2026 &mdash; Built for students in Grades 6&ndash;12</p>
       </footer>
     </div>
   )
