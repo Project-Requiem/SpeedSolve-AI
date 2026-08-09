@@ -272,23 +272,23 @@ function renderFormulaToHtml(formula: string): React.ReactNode {
 // ─── Background Component ────────────────────────────────────────
 const BG_SHAPES = [
   // Large hero shapes
-  { t:'hex',    x:'15%',y:'15%',s:'150px',c:'var(--accent-start)',d:'0s',  dur:'22s',so:'0.25' },
-  { t:'ring',   x:'80%',y:'25%',s:'170px',c:'var(--glow-purple)',  d:'-7s', dur:'30s',so:'0.2',spin:true },
-  { t:'diamond',x:'50%',y:'72%',s:'125px',c:'var(--accent-end)',   d:'-14s',dur:'26s',so:'0.2' },
+  { t:'hex',    x:'15%',y:'15%',s:'150px',c:'var(--shape-blue)',   d:'0s',  dur:'22s',so:'0.25' },
+  { t:'ring',   x:'80%',y:'25%',s:'170px',c:'var(--shape-purple)', d:'-7s', dur:'30s',so:'0.2',spin:true },
+  { t:'diamond',x:'50%',y:'72%',s:'125px',c:'var(--shape-blue)',   d:'-14s',dur:'26s',so:'0.2' },
   // Medium scattered shapes
-  { t:'tri',    x:'8%',y:'42%',s:'95px', c:'var(--glow-cyan)',    d:'-3s', dur:'20s',so:'0.22' },
-  { t:'hex',    x:'90%',y:'60%',s:'105px',c:'var(--glow-pink)',    d:'-10s',dur:'24s',so:'0.18' },
-  { t:'penta',  x:'35%',y:'8%',s:'85px', c:'var(--accent-start)',d:'-5s', dur:'18s',so:'0.2' },
-  { t:'cross',  x:'68%',y:'90%',s:'75px', c:'var(--glow-purple)',  d:'-16s',dur:'22s',so:'0.16' },
-  { t:'ring',   x:'25%',y:'80%',s:'115px',c:'var(--glow-cyan)',    d:'-11s',dur:'28s',so:'0.18',spin:true },
-  { t:'diamond',x:'55%',y:'35%',s:'70px', c:'var(--accent-end)',   d:'-2s', dur:'16s',so:'0.18' },
-  { t:'tri',    x:'75%',y:'48%',s:'90px', c:'var(--accent-start)',d:'-8s', dur:'21s',so:'0.18' },
+  { t:'tri',    x:'8%',y:'42%',s:'95px', c:'var(--shape-cyan)',   d:'-3s', dur:'20s',so:'0.22' },
+  { t:'hex',    x:'90%',y:'60%',s:'105px',c:'var(--shape-pink)',   d:'-10s',dur:'24s',so:'0.18' },
+  { t:'penta',  x:'35%',y:'8%',s:'85px', c:'var(--shape-blue)',   d:'-5s', dur:'18s',so:'0.2' },
+  { t:'cross',  x:'68%',y:'90%',s:'75px', c:'var(--shape-purple)', d:'-16s',dur:'22s',so:'0.16' },
+  { t:'ring',   x:'25%',y:'80%',s:'115px',c:'var(--shape-cyan)',   d:'-11s',dur:'28s',so:'0.18',spin:true },
+  { t:'diamond',x:'55%',y:'35%',s:'70px', c:'var(--shape-blue)',   d:'-2s', dur:'16s',so:'0.18' },
+  { t:'tri',    x:'75%',y:'48%',s:'90px', c:'var(--shape-blue)',   d:'-8s', dur:'21s',so:'0.18' },
   // Small accent shapes
-  { t:'hex',    x:'42%',y:'55%',s:'55px', c:'var(--glow-cyan)',    d:'-13s',dur:'19s',so:'0.18' },
-  { t:'dot-ring',x:'18%',y:'92%',s:'60px', c:'var(--accent-end)',  d:'-1s', dur:'25s',so:'0.2' },
-  { t:'diamond',x:'95%',y:'5%',s:'65px', c:'var(--glow-pink)',    d:'-17s',dur:'23s',so:'0.16' },
-  { t:'penta',  x:'5%',y:'22%',s:'50px', c:'var(--glow-purple)',  d:'-4s', dur:'17s',so:'0.18' },
-  { t:'cross',  x:'62%',y:'15%',s:'45px', c:'var(--glow-cyan)',    d:'-9s', dur:'20s',so:'0.16' },
+  { t:'hex',    x:'42%',y:'55%',s:'55px', c:'var(--shape-cyan)',   d:'-13s',dur:'19s',so:'0.18' },
+  { t:'dot-ring',x:'18%',y:'92%',s:'60px', c:'var(--shape-blue)',   d:'-1s', dur:'25s',so:'0.2' },
+  { t:'diamond',x:'95%',y:'5%',s:'65px', c:'var(--shape-pink)',   d:'-17s',dur:'23s',so:'0.16' },
+  { t:'penta',  x:'5%',y:'22%',s:'50px', c:'var(--shape-purple)', d:'-4s', dur:'17s',so:'0.18' },
+  { t:'cross',  x:'62%',y:'15%',s:'45px', c:'var(--shape-cyan)',   d:'-9s', dur:'20s',so:'0.16' },
 ]
 
 function Background() {

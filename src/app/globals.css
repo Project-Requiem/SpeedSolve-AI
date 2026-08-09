@@ -31,6 +31,11 @@
   --glow-purple: rgba(139, 92, 247, 0.3);
   --glow-cyan: rgba(6, 182, 212, 0.25);
   --glow-pink: rgba(236, 72, 153, 0.2);
+  /* Shape colors — dark mode: vivid, high-contrast on #080c18 */
+  --shape-blue: rgba(59, 130, 246, 0.55);
+  --shape-purple: rgba(167, 139, 250, 0.45);
+  --shape-cyan: rgba(34, 211, 238, 0.4);
+  --shape-pink: rgba(244, 114, 182, 0.38);
   --math: #6366f1;
   --physics: #ea580c;
   --chemistry: #059669;
@@ -70,6 +75,11 @@
   --glow-purple: rgba(139, 92, 247, 0.45);
   --glow-cyan: rgba(6, 182, 212, 0.4);
   --glow-pink: rgba(236, 72, 153, 0.38);
+  /* Shape colors — light mode: deeper, saturated on #f0f4ff */
+  --shape-blue: rgba(37, 99, 235, 0.38);
+  --shape-purple: rgba(124, 58, 237, 0.32);
+  --shape-cyan: rgba(8, 145, 178, 0.28);
+  --shape-pink: rgba(219, 39, 119, 0.25);
   --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
   --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
   --shadow-lg: 0 8px 40px rgba(0,0,0,0.1);
@@ -1088,38 +1098,39 @@ body {
   position: absolute; top: var(--y, 50%); left: var(--x,50%);
   width: var(--s, 100px); height: var(--s, 100px);
   margin: calc(var(--s, 100px) / -2) 0 0 calc(var(--s, 100px) / -2);
-  border: 1.5px solid var(--c, var(--accent-start));
-  opacity: var(--so, 0.3);
+  border: 1.5px solid var(--c, var(--shape-blue));
+  opacity: var(--so, 0.35);
   animation: shapeFloat var(--dur, 20s) ease-in-out infinite;
   animation-delay: var(--d, 0s);
+  transition: border-color 0.6s ease, opacity 0.6s ease, filter 0.6s ease;
 }
 .bg-shape.spin { animation-name: shapeDrift; animation-duration: var(--dur, 28s); animation-timing-function: ease-in-out; animation-iteration-count: infinite; animation-direction: alternate; }
-[data-theme="light"] .bg-shape { opacity: var(--so, 0.3); filter: drop-shadow(0 0 6px var(--c, var(--accent-start))); }
+[data-theme="light"] .bg-shape { opacity: var(--so, 0.35); filter: drop-shadow(0 0 8px var(--c, var(--shape-blue))); }
 .shape-hex {
   clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-  background: radial-gradient(circle at 40% 40%, var(--c, var(--accent-start)), transparent 70%);
+  background: radial-gradient(circle at 40% 40%, var(--c, var(--shape-blue)), transparent 70%);
   background-blend-mode: overlay;
 }
 .shape-diamond { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); border-radius: 3px; }
 .shape-ring {
   border-radius: 50%; border-width: 2.5px;
-  background: radial-gradient(circle at 50% 50%, var(--c, var(--accent-start)), transparent 60%);
+  background: radial-gradient(circle at 50% 50%, var(--c, var(--shape-purple)), transparent 60%);
   --so: 0.18;
 }
-[data-theme="light"] .shape-ring { --so: 0.22; }
+[data-theme="light"] .shape-ring { --so: 0.28; }
 .shape-tri {
   clip-path: polygon(50% 0%, 0% 100%, 100% 100%); border: none;
-  background: linear-gradient(135deg, var(--c, var(--accent-start)), transparent);
+  background: linear-gradient(135deg, var(--c, var(--shape-cyan)), transparent);
   --so: 0.25;
 }
 .shape-penta {
   clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
-  background: radial-gradient(circle at 50% 50%, var(--c, var(--accent-start)), transparent 65%);
+  background: radial-gradient(circle at 50% 50%, var(--c, var(--shape-blue)), transparent 65%);
   background-blend-mode: overlay;
 }
 .shape-cross {
   clip-path: polygon(35% 0%, 65% 0%, 65% 35%, 100% 35%, 100% 65%, 65% 65%, 65% 100%, 35% 100%, 35% 65%, 0% 65%, 0% 35%, 35% 35%);
-  background: radial-gradient(circle at 50% 50%, var(--c, var(--accent-start)), transparent 60%);
+  background: radial-gradient(circle at 50% 50%, var(--c, var(--shape-purple)), transparent 60%);
 }
 .shape-dot-ring {
   border-radius: 50%; border-width: 1.5px; border-style: dashed;
