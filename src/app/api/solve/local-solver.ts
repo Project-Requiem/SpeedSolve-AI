@@ -200,10 +200,10 @@ function solvePolyDifferentiate(_m:RegExpMatchArray,text?:string):LocalSolution|
   const derivative=dTerms.join(' + ').replace(/\+ -/g,'- ');
   return{
     finalAnswer:`d/dx = ${derivative}${constTerm?` + 0`:""}`,
-    finalFormula:`\frac{d}{dx} = ${derivative}`,
+    finalFormula:`\\frac{d}{dx} = ${derivative}`,
     steps:[
-      {desc:'Apply power rule: d/dx(ax^n) = nax^(n-1)',formula:'\frac{d}{dx}(ax^n) = nax^{n-1}'},
-      {desc:`Differentiate each term:`,formula:terms.map(tm=>`\frac{d}{dx}(${tm.coef===1?'':tm.coef}${v}^${tm.exp}) = ${tm.exp}×${tm.coef}${v}^${tm.exp-1}`).join(', ')},
+      {desc:'Apply power rule: d/dx(ax^n) = nax^(n-1)',formula:'\\frac{d}{dx}(ax^n) = nax^{n-1}'},
+      {desc:`Differentiate each term:`,formula:terms.map(tm=>`\\frac{d}{dx}(${tm.coef===1?'':tm.coef}${v}^${tm.exp}) = ${tm.exp}×${tm.coef}${v}^${tm.exp-1}`).join(', ')},
       {desc:`Result: ${derivative}`,formula:`= ${derivative}`},
     ],
     altSteps:[{desc:'Each term differentiated independently',formula:`${dVals.join(', ')}`}],
@@ -233,10 +233,10 @@ function solvePolyIntegrate(_m:RegExpMatchArray,text?:string):LocalSolution|null
   const integral=iTerms.join(' + ').replace(/\+ -/g,'- ') + ' + C';
   return{
     finalAnswer:`∫ = ${integral}`,
-    finalFormula:`\int = ${integral}`,
+    finalFormula:`\\int = ${integral}`,
     steps:[
-      {desc:'Apply power rule: ∫ax^n dx = ax^(n+1)/(n+1) + C',formula:'\int ax^n dx = \frac{a}{n+1}x^{n+1} + C'},
-      {desc:`Integrate each term:`,formula:terms.map(tm=>{const ne=tm.exp+1;return`\int ${tm.coef}${v}^${tm.exp} = \frac{${tm.coef}}{${ne}}${v}^${ne}`}).join(', ')},
+      {desc:'Apply power rule: ∫ax^n dx = ax^(n+1)/(n+1) + C',formula:'\\int ax^n dx = \\frac{a}{n+1}x^{n+1} + C'},
+      {desc:`Integrate each term:`,formula:terms.map(tm=>{const ne=tm.exp+1;return`\\int ${tm.coef}${v}^${tm.exp} = \\frac{${tm.coef}}{${ne}}${v}^${ne}`}).join(', ')},
       {desc:`Result: ${integral}`,formula:`= ${integral}`},
     ],
     altSteps:[{desc:'Add constant of integration C',formula:'+ C'}],
@@ -277,16 +277,16 @@ function solveTrigRatios(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   const sinV=`${opp}/${hyp}`,cosV=`${adj}/${hyp}`,tanV=`${opp}/${adj}`;
   return{
     finalAnswer:`sin θ = ${sinV}, cos θ = ${cosV}, tan θ = ${tanV}`,
-    finalFormula:`\sin\theta = \frac{${opp}}{${hyp}}, \cos\theta = \frac{${adj}}{${hyp}}, \tan\theta = \frac{${opp}}{${adj}}`,
+    finalFormula:`\\sin\\theta = \\frac{${opp}}{${hyp}}, \\cos\\theta = \\frac{${adj}}{${hyp}}, \\tan\\theta = \\frac{${opp}}{${adj}}`,
     steps:[
-      {desc:`Given: ${given} θ = ${num}/${den}. Draw a right triangle.`,formula:`${given} θ = \frac{${num}}{${den}}`},
+      {desc:`Given: ${given} θ = ${num}/${den}. Draw a right triangle.`,formula:`${given} θ = \\frac{${num}}{${den}}`},
       {desc:`Identify sides: hypotenuse = ${hyp}`,formula:`Hypotenuse = ${hyp}`},
-      {desc:`By Pythagoras: other side = √(${hyp}² - ${num}²) = ${fmt(adj)}`,formula:`= \sqrt{${hyp}^2 - ${num}^2} = ${fmt(adj)}`},
-      {desc:`sin θ = opp/hyp = ${sinV}`,formula:`\sin\theta = ${sinV}`},
-      {desc:`cos θ = adj/hyp = ${cosV}`,formula:`\cos\theta = ${cosV}`},
-      {desc:`tan θ = opp/adj = ${tanV}`,formula:`\tan\theta = ${tanV}`},
+      {desc:`By Pythagoras: other side = √(${hyp}² - ${num}²) = ${fmt(adj)}`,formula:`= \\sqrt{${hyp}^2 - ${num}^2} = ${fmt(adj)}`},
+      {desc:`sin θ = opp/hyp = ${sinV}`,formula:`\\sin\\theta = ${sinV}`},
+      {desc:`cos θ = adj/hyp = ${cosV}`,formula:`\\cos\\theta = ${cosV}`},
+      {desc:`tan θ = opp/adj = ${tanV}`,formula:`\\tan\\theta = ${tanV}`},
     ],
-    altSteps:[{desc:`Using identity: sin²θ + cos²θ = 1`,formula:`\cos\theta = \sqrt{1 - (${num}/${den})^2} = ${adj}/${hyp}`}],
+    altSteps:[{desc:`Using identity: sin²θ + cos²θ = 1`,formula:`\\cos\\theta = \\sqrt{1 - (${num}/${den})^2} = ${adj}/${hyp}`}],
     similar:[`If sin θ = ${num+1}/${den}, find all ratios`,`If sec θ = ${den}/${adj}, find other ratios`],
     mistakes:['Wrong side identification','Not using Pythagoras correctly','Sign errors in quadrants other than first'],
   };
@@ -336,7 +336,7 @@ function solveGP(_m:RegExpMatchArray,text?:string):LocalSolution|null{
     finalFormula:`a_n = ar^{n-1} = ${fmt(term)}`,
     steps:[
       {desc:`a = ${a}, r = ${fmt(r)}, n = ${n}`,formula:`a=${a}, r=${fmt(r)}, n=${n}`},
-      {desc:`a_n = a × r^(n-1)`,formula:`a_{${n}} = ${a} \times ${fmt(r)}^{${n-1}}`},
+      {desc:`a_n = a × r^(n-1)`,formula:`a_{${n}} = ${a} \\times ${fmt(r)}^{${n-1}}`},
       {desc:`= ${fmt(term)}`,formula:`= ${fmt(term)}`},
     ],altSteps:[],similar:[`Sum of first ${n} terms of this GP`],
     mistakes:['Using n instead of n-1','Wrong common ratio','Off-by-one error']};
@@ -372,8 +372,8 @@ function solveAPSum(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   finalFormula:`S_n = \\frac{n}{2}(2a + (n-1)d) = ${fmt(sn)}`,
   steps:[
     {desc:`n = ${n}, a = ${a}, d = ${d}`,formula:`n=${n}, a=${a}, d=${d}`},
-    {desc:`S_n = n/2 × (2a + (n-1)d)`,formula:`S_{${n}} = \\frac{${n}}{2}(2 \times ${a} + (${n}-1) \times ${d})`},
-    {desc:`= ${n}/2 × (${2*a + (n-1)*d})`,formula:`= \\frac{${n}}{2} \times ${2*a+(n-1)*d}`},
+    {desc:`S_n = n/2 × (2a + (n-1)d)`,formula:`S_{${n}} = \\frac{${n}}{2}(2 \\times ${a} + (${n}-1) \\times ${d})`},
+    {desc:`= ${n}/2 × (${2*a + (n-1)*d})`,formula:`= \\frac{${n}}{2} \\times ${2*a+(n-1)*d}`},
     {desc:`= ${fmt(sn)}`,formula:`= ${fmt(sn)}`},
   ],altSteps:[{desc:`S_n = n/2(a + a_n) where a_n = ${a+(n-1)*d}`,formula:`= ${n}/2(${a} + ${a+(n-1)*d}) = ${fmt(sn)}`}],
   similar:[`${n+5}th term of this AP`,`Sum of first ${n} terms if d=${d+1}`],
@@ -407,7 +407,7 @@ function solveDeterminant(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   finalFormula:`\\begin{vmatrix} ${a} & ${b} \\ ${c} & ${d} \\end{vmatrix} = ${det}`,
   steps:[
     {desc:`Matrix: [${a}  ${b}; ${c}  ${d}]`,formula:`\\begin{vmatrix} ${a} & ${b} \\ ${c} & ${d} \\end{vmatrix}`},
-    {desc:`det = ad - bc`,formula:`= ${a} \times ${d} - ${b} \times ${c}`},
+    {desc:`det = ad - bc`,formula:`= ${a} \\times ${d} - ${b} \\times ${c}`},
     {desc:`= ${a*d} - ${b*c} = ${det}`,formula:`= ${det}`},
   ],altSteps:[{desc:`If det ≠ 0, matrix is invertible`,formula:det!==0?'Matrix is non-singular':'Matrix is singular'}],
   similar:[`Inverse of this matrix`,`Determinant of 3×3 matrix`],
@@ -420,10 +420,10 @@ function solveMidpoint(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   const x1=ns[0],y1=ns[1],x2=ns[2],y2=ns[3];
   const mx=(x1+x2)/2,my=(y1+y2)/2;
   return{finalAnswer:`Midpoint = (${fmt(mx)}, ${fmt(my)})`,
-  finalFormula:`M = (\frac{${x1}+${x2}}{2}, \frac{${y1}+${y2}}{2}) = (${fmt(mx)}, ${fmt(my)})`,
+  finalFormula:`M = (\\frac{${x1}+${x2}}{2}, \\frac{${y1}+${y2}}{2}) = (${fmt(mx)}, ${fmt(my)})`,
   steps:[
     {desc:`Points: (${x1}, ${y1}) and (${x2}, ${y2})`,formula:`A(${x1},${y1}), B(${x2},${y2})`},
-    {desc:`Midpoint formula: M = ((x1+x2)/2, (y1+y2)/2)`,formula:`M = (\frac{${x1}+${x2}}{2}, \frac{${y1}+${y2}}{2})`},
+    {desc:`Midpoint formula: M = ((x1+x2)/2, (y1+y2)/2)`,formula:`M = (\\frac{${x1}+${x2}}{2}, \\frac{${y1}+${y2}}{2})`},
     {desc:`= (${fmt(mx)}, ${fmt(my)})`,formula:`= (${fmt(mx)}, ${fmt(my)})`},
   ],altSteps:[],similar:[`Section formula dividing in ratio 2:1`],
   mistakes:['Wrong order of coordinates','Not dividing by 2','Sign errors']};
@@ -436,10 +436,10 @@ function solveSlopeFromPoints(_m:RegExpMatchArray,text?:string):LocalSolution|nu
   if(x2===x1)return{finalAnswer:'Slope is undefined (vertical line)',finalFormula:'m = undefined',
     steps:[{desc:`x-coordinates are equal: x1 = x2 = ${x1}`,formula:'Vertical line'}],altSteps:[],similar:[],mistakes:[]};
   const m=(y2-y1)/(x2-x1);
-  return{finalAnswer:`Slope = ${fmt(m)}`,finalFormula:`m = \frac{${y2}-${y1}}{${x2}-${x1}} = ${fmt(m)}`,
+  return{finalAnswer:`Slope = ${fmt(m)}`,finalFormula:`m = \\frac{${y2}-${y1}}{${x2}-${x1}} = ${fmt(m)}`,
   steps:[
     {desc:`Points: (${x1}, ${y1}) and (${x2}, ${y2})`,formula:`(${x1},${y1}), (${x2},${y2})`},
-    {desc:`m = (y2-y1)/(x2-x1)`,formula:`m = \frac{${y2}-${y1}}{${x2}-${x1}}`},
+    {desc:`m = (y2-y1)/(x2-x1)`,formula:`m = \\frac{${y2}-${y1}}{${x2}-${x1}}`},
     {desc:`= ${fmt(m)}`,formula:`= ${fmt(m)}`},
   ],altSteps:[],similar:[`Equation of line through these points`,`Distance between them`],
   mistakes:['Swapping x and y','Wrong subtraction order','Division by zero']};
@@ -464,10 +464,10 @@ function solveStatsData(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   const sd=Math.sqrt(variance);
   const range=sorted[sorted.length-1]-sorted[0];
   return{finalAnswer:`Mean = ${fmt(mean)}, Median = ${fmt(median)}, Mode = ${mode}`,
-  finalFormula:`\bar{x} = ${fmt(mean)}, Median = ${fmt(median)}, Mode = ${mode}`,
+  finalFormula:`\\bar{x} = ${fmt(mean)}, Median = ${fmt(median)}, Mode = ${mode}`,
   steps:[
     {desc:`Data (sorted): ${sorted.join(', ')}`,formula:`n = ${data.length}`},
-    {desc:`Mean = Sum/n = ${sum}/${data.length} = ${fmt(mean)}`,formula:`\bar{x} = \frac{\sum x_i}{n} = ${fmt(mean)}`},
+    {desc:`Mean = Sum/n = ${sum}/${data.length} = ${fmt(mean)}`,formula:`\\bar{x} = \\frac{\\sum x_i}{n} = ${fmt(mean)}`},
     {desc:`Median: n=${data.length} is ${data.length%2===0?'even':'odd'}, middle = ${fmt(median)}`,formula:`M = ${fmt(median)}`},
     {desc:`Mode = most frequent = ${mode} (occurs ${maxFreq} times)`,formula:`Mode = ${mode}`},
     {desc:`Range = ${sorted[sorted.length-1]} - ${sorted[0]} = ${range}`,formula:`Range = ${range}`},
@@ -482,11 +482,11 @@ function solveTimeWork(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   const a=ns[0],b=ns[1];
   const together=(a*b)/(a+b);
   return{finalAnswer:`Together they complete in ${fmt(together,2)} days`,
-  finalFormula:`\frac{ab}{a+b} = \frac{${a} \times ${b}}{${a}+${b}} = ${fmt(together,2)} days`,
+  finalFormula:`\\frac{ab}{a+b} = \\frac{${a} \\times ${b}}{${a}+${b}} = ${fmt(together,2)} days`,
   steps:[
     {desc:`A can do in ${a} days, B in ${b} days`,formula:`A: ${a} days, B: ${b} days`},
-    {desc:`A's 1 day work = 1/${a}, B's 1 day work = 1/${b}`,formula:`\frac{1}{${a}} + \frac{1}{${b}}`},
-    {desc:`Combined 1 day work = 1/${a} + 1/${b} = ${(a+b)}/${a*b}`,formula:`= \frac{${a+b}}{${a*b}}`},
+    {desc:`A's 1 day work = 1/${a}, B's 1 day work = 1/${b}`,formula:`\\frac{1}{${a}} + \\frac{1}{${b}}`},
+    {desc:`Combined 1 day work = 1/${a} + 1/${b} = ${(a+b)}/${a*b}`,formula:`= \\frac{${a+b}}{${a*b}}`},
     {desc:`Time together = ${a*b}/(${a+b}) = ${fmt(together,2)} days`,formula:`= ${fmt(together,2)} days`},
   ],altSteps:[{desc:`In ${a*b} days: A does ${b} units, B does ${a} units, total ${a+b}`,formula:`Efficiency ratio = ${b}:${a}`}],
   similar:[`If C joins and takes ${b+5} days alone`],
@@ -499,11 +499,11 @@ function solveBoatStream(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   const ds=ns[0],us=ns[1];
   const boat=(ds+us)/2,stream=(ds-us)/2;
   return{finalAnswer:`Boat speed = ${fmt(boat)} km/h, Stream speed = ${fmt(stream)} km/h`,
-  finalFormula:`b = \frac{${ds}+${us}}{2} = ${fmt(boat)}, s = \frac{${ds}-${us}}{2} = ${fmt(stream)}`,
+  finalFormula:`b = \\frac{${ds}+${us}}{2} = ${fmt(boat)}, s = \\frac{${ds}-${us}}{2} = ${fmt(stream)}`,
   steps:[
     {desc:`Downstream = ${ds} km/h, Upstream = ${us} km/h`,formula:`D = ${ds}, U = ${us}`},
-    {desc:`Boat in still water = (D+U)/2`,formula:`b = \frac{${ds}+${us}}{2} = ${fmt(boat)}`},
-    {desc:`Stream speed = (D-U)/2`,formula:`s = \frac{${ds}-${us}}{2} = ${fmt(stream)}`},
+    {desc:`Boat in still water = (D+U)/2`,formula:`b = \\frac{${ds}+${us}}{2} = ${fmt(boat)}`},
+    {desc:`Stream speed = (D-U)/2`,formula:`s = \\frac{${ds}-${us}}{2} = ${fmt(stream)}`},
   ],altSteps:[],similar:[`Time to go ${ds*10}km downstream and back`],
   mistakes:['Confusing downstream and upstream','Wrong formula','Not converting units']};
 }
@@ -511,12 +511,12 @@ function solveBoatStream(_m:RegExpMatchArray,text?:string):LocalSolution|null{
 function solvePercentage(_m:RegExpMatchArray):LocalSolution|null{
   const ns=N(_m[0]);if(ns.length<2)return null;
   const p=ns[0],v=ns[1],r=(p/100)*v;
-  return{finalAnswer:`${p}% of ${v} = ${fmt(r)}`,finalFormula:`${p}\% \times ${v} = ${fmt(r)}`,
+  return{finalAnswer:`${p}% of ${v} = ${fmt(r)}`,finalFormula:`${p}\% \\times ${v} = ${fmt(r)}`,
   steps:[
-    {desc:`Convert: ${p}% = ${p}/100`,formula:`${p}\% = \frac{${p}}{100}`},
-    {desc:`Multiply: (${p}/100) × ${v}`,formula:`\frac{${p}}{100} \times ${v}`},
+    {desc:`Convert: ${p}% = ${p}/100`,formula:`${p}\% = \\frac{${p}}{100}`},
+    {desc:`Multiply: (${p}/100) × ${v}`,formula:`\\frac{${p}}{100} \\times ${v}`},
     {desc:`= ${fmt(r)}`,formula:`= ${fmt(r)}`},
-  ],altSteps:[{desc:`${v} × 0.${p} = ${fmt(r)}`,formula:`${v} \times 0.${p} = ${fmt(r)}`}],
+  ],altSteps:[{desc:`${v} × 0.${p} = ${fmt(r)}`,formula:`${v} \\times 0.${p} = ${fmt(r)}`}],
   similar:[`${p+10}% of ${v}`,`What % is ${fmt(r)} of ${v}?`],
   mistakes:['Dividing by 1000','Wrong decimal place','Confusing percentage and decimal']};
 }
@@ -524,10 +524,10 @@ function solvePercentage(_m:RegExpMatchArray):LocalSolution|null{
 function solvePercentageReverse(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   const ns=N(text||_m[0]);if(ns.length<2)return null;
   const part=ns[0],whole=ns[1],pct=(part/whole)*100;
-  return{finalAnswer:`${part} is ${fmt(pct)}% of ${whole}`,finalFormula:`\frac{${part}}{${whole}} \times 100 = ${fmt(pct)}\%`,
+  return{finalAnswer:`${part} is ${fmt(pct)}% of ${whole}`,finalFormula:`\\frac{${part}}{${whole}} \\times 100 = ${fmt(pct)}\%`,
   steps:[
     {desc:`Part = ${part}, Whole = ${whole}`,formula:`${part}, ${whole}`},
-    {desc:`Percentage = (Part/Whole) × 100`,formula:`(${part}/${whole}) \times 100`},
+    {desc:`Percentage = (Part/Whole) × 100`,formula:`(${part}/${whole}) \\times 100`},
     {desc:`= ${fmt(pct)}%`,formula:`= ${fmt(pct)}%`},
   ],altSteps:[],similar:[`${part+20} is what % of ${whole}?`],
   mistakes:['Dividing whole by part','Forgetting × 100','Rounding too early']};
@@ -543,10 +543,10 @@ function solveSI(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   if(monthM)tVal=parseFloat(monthM[1])/12;
   if(dayM)tVal=parseFloat(dayM[1])/365;
   const si=(p*r*tVal)/100,amt=p+si;
-  return{finalAnswer:`SI = Rs ${fmt(si)}, Amount = Rs ${fmt(amt)}`,finalFormula:`SI = \frac{P \times R \times T}{100} = Rs ${fmt(si)}`,
+  return{finalAnswer:`SI = Rs ${fmt(si)}, Amount = Rs ${fmt(amt)}`,finalFormula:`SI = \\frac{P \\times R \\times T}{100} = Rs ${fmt(si)}`,
   steps:[
     {desc:`P = Rs ${p}, R = ${r}%, T = ${fmt(tVal,4)} years`,formula:`P=${p}, R=${r}\%, T=${fmt(tVal,4)}`},
-    {desc:`SI = PRT/100`,formula:`SI = \frac{${p} \times ${r} \times ${fmt(tVal,4)}}{100}`},
+    {desc:`SI = PRT/100`,formula:`SI = \\frac{${p} \\times ${r} \\times ${fmt(tVal,4)}}{100}`},
     {desc:`SI = Rs ${fmt(si)}, Amount = Rs ${fmt(amt)}`,formula:`A = P + SI = ${fmt(amt)}`},
   ],altSteps:[],similar:[`SI on Rs ${p+1000} at ${r}% for ${tVal} years`],
   mistakes:['Using CI formula','Wrong time unit (months vs years)','Not converting days to years']};
@@ -564,7 +564,7 @@ function solveCI(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   return{finalAnswer:`Amount = Rs ${fmt(amt,2)}, CI = Rs ${fmt(ci,2)}`,finalFormula:`A = P(1+R/${n*100})^{${n}T} = Rs ${fmt(amt,2)}`,
   steps:[
     {desc:`P = Rs ${p}, R = ${r}%, T = ${time} years (${freq})`,formula:`P=${p}, R=${r}\%, T=${time}, n=${n}`},
-    {desc:`A = P(1 + R/(n×100))^(nT)`,formula:`A = ${p}(1 + \frac{${r}}{${n*100}})^{${n*time}}`},
+    {desc:`A = P(1 + R/(n×100))^(nT)`,formula:`A = ${p}(1 + \\frac{${r}}{${n*100}})^{${n*time}}`},
     {desc:`= Rs ${fmt(amt,2)}`,formula:`= Rs ${fmt(amt,2)}`},
     {desc:`CI = A - P = Rs ${fmt(ci,2)}`,formula:`CI = ${fmt(ci,2)}`},
   ],altSteps:[{desc:`Using CI = P[(1+R/100)^T - 1]`,formula:`CI = ${p}[(1+${r}/100)^${time} - 1] = ${fmt(ci,2)}`}],
@@ -592,7 +592,7 @@ function solveDiscount(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   return{finalAnswer:`Discount = ${fmt(da,2)}, Final Price = ${fmt(fp,2)}`,finalFormula:`SP = MP(1-d/100) = ${fmt(fp,2)}`,
   steps:[
     {desc:`Marked Price = ${mp}, Discount = ${d}%`,formula:`MP=${mp}, d=${d}\%`},
-    {desc:`Discount Amount = ${mp} × ${d}/100 = ${fmt(da,2)}`,formula:`DA = MP \times d/100`},
+    {desc:`Discount Amount = ${mp} × ${d}/100 = ${fmt(da,2)}`,formula:`DA = MP \\times d/100`},
     {desc:`Final Price = ${mp} - ${fmt(da,2)} = ${fmt(fp,2)}`,formula:`SP = MP - DA = ${fmt(fp,2)}`},
   ],altSteps:[],similar:[`MP=${mp+500}, discount=${d+5}%`],
   mistakes:['Calculating discount on SP instead of MP','Forgetting to subtract']};
@@ -605,7 +605,7 @@ function solveSpeed(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   steps:[
     {desc:`Distance = ${d} km, Time = ${t} hours`,formula:`d=${d}km, t=${t}hr`},
     {desc:`Speed = Distance/Time`,formula:`v = ${d}/${t} = ${fmt(v)} km/h`},
-    {desc:`Convert: × 5/18 = ${fmt(vMs,2)} m/s`,formula:`${fmt(v)} \times 5/18 = ${fmt(vMs,2)} m/s`},
+    {desc:`Convert: × 5/18 = ${fmt(vMs,2)} m/s`,formula:`${fmt(v)} \\times 5/18 = ${fmt(vMs,2)} m/s`},
   ],altSteps:[],similar:[`Time for ${d+50}km at ${fmt(v)}km/h`],
   mistakes:['Wrong formula','Unit conversion errors','Mixed units']};
 }
@@ -613,7 +613,7 @@ function solveSpeed(_m:RegExpMatchArray,text?:string):LocalSolution|null{
 function solveAreaRect(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   const ns=pN(text||_m[0]);if(ns.length<2)return null;
   const l=ns[0],b=ns[1],area=l*b,peri=2*(l+b);
-  return{finalAnswer:`Area = ${area} sq. units, Perimeter = ${peri} units`,finalFormula:`A = l \times b = ${area}`,
+  return{finalAnswer:`Area = ${area} sq. units, Perimeter = ${peri} units`,finalFormula:`A = l \\times b = ${area}`,
   steps:[
     {desc:`Length = ${l}, Breadth = ${b}`,formula:`l=${l}, b=${b}`},
     {desc:`Area = l × b = ${l} × ${b} = ${area}`,formula:`A = ${area}`},
@@ -923,9 +923,9 @@ function solveGravitation(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   const G=6.67e-11,m1=ns[0],m2=ns[1],r=ns[2];
   const scale=ns[3]||1;// typically 1 or extra param
   const F=G*m1*m2/(r*r*scale*scale);
-  return{finalAnswer:`F = ${F.toExponential(4)} N`,finalFormula:`F = \frac{Gm_1 m_2}{r^2} = ${F.toExponential(4)} N`,
+  return{finalAnswer:`F = ${F.toExponential(4)} N`,finalFormula:`F = \\frac{Gm_1 m_2}{r^2} = ${F.toExponential(4)} N`,
   steps:[{desc:`m₁ = ${m1} kg, m₂ = ${m2} kg, r = ${r} m, G = 6.67×10⁻¹¹`,formula:`m_1=${m1}, m_2=${m2}, r=${r}`},
-    {desc:`F = Gm₁m₂/r²`,formula:`F = \frac{6.67 \times 10^{-11} \times ${m1} \times ${m2}}{${r}^2}`},
+    {desc:`F = Gm₁m₂/r²`,formula:`F = \\frac{6.67 \\times 10^{-11} \\times ${m1} \\times ${m2}}{${r}^2}`},
     {desc:`= ${F.toExponential(4)} N`,formula:`= ${F.toExponential(4)} N`}],
   altSteps:[],similar:[`What if distance is doubled? (F/4)`],
   mistakes:['Wrong units for r (km vs m)','Not using scientific notation']};
@@ -935,9 +935,9 @@ function solveEscapeVelocity(_m:RegExpMatchArray,text?:string):LocalSolution|nul
   const ns=pN(text||_m[0]);
   const g=9.8,R=ns.length>0?ns[0]*1000:6.4e6;// assume km input
   const ve=Math.sqrt(2*g*R);
-  return{finalAnswer:`Escape velocity = ${fmt(ve,2)} m/s = ${fmt(ve/1000,2)} km/s`,finalFormula:`v_e = \sqrt{2gR} = ${fmt(ve/1000,2)} km/s`,
+  return{finalAnswer:`Escape velocity = ${fmt(ve,2)} m/s = ${fmt(ve/1000,2)} km/s`,finalFormula:`v_e = \\sqrt{2gR} = ${fmt(ve/1000,2)} km/s`,
   steps:[{desc:`g = ${g} m/s², R = ${R} m`,formula:`g=${g}, R=${R}`},
-    {desc:`ve = √(2gR)`,formula:`v_e = \sqrt{2 \times ${g} \times ${R}}`},
+    {desc:`ve = √(2gR)`,formula:`v_e = \\sqrt{2 \\times ${g} \\times ${R}}`},
     {desc:`= ${fmt(ve,2)} m/s`,formula:`= ${fmt(ve/1000,2)} km/s`}],
   altSteps:[],similar:[`Orbital velocity for same R`],mistakes:['R in km not m','Confusing with orbital velocity']};
 }
@@ -946,9 +946,9 @@ function solveOrbitalVelocity(_m:RegExpMatchArray,text?:string):LocalSolution|nu
   const ns=pN(text||_m[0]);
   const g=9.8,R=ns.length>0?ns[0]*1000:6.4e6;
   const vo=Math.sqrt(g*R);
-  return{finalAnswer:`Orbital velocity = ${fmt(vo,2)} m/s = ${fmt(vo/1000,2)} km/s`,finalFormula:`v_o = \sqrt{gR} = ${fmt(vo/1000,2)} km/s`,
+  return{finalAnswer:`Orbital velocity = ${fmt(vo,2)} m/s = ${fmt(vo/1000,2)} km/s`,finalFormula:`v_o = \\sqrt{gR} = ${fmt(vo/1000,2)} km/s`,
   steps:[{desc:`g = ${g}, R = ${R} m`,formula:`g=${g}, R=${R}`},
-    {desc:`vo = √(gR)`,formula:`v_o = \sqrt{gR}`},
+    {desc:`vo = √(gR)`,formula:`v_o = \\sqrt{gR}`},
     {desc:`= ${fmt(vo,2)} m/s`,formula:`= ${fmt(vo/1000,2)} km/s`}],
   altSteps:[],similar:[`Escape velocity`],mistakes:['Confusing with escape velocity']};
 }
@@ -958,10 +958,10 @@ function solveLensFormula(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   const f=ns[0],u=ns[1];// f and u given, find v
   const v=1/(1/f+1/u);// 1/v = 1/f + 1/u → v = 1/(1/f + 1/u)
   const m=v/u;
-  return{finalAnswer:`Image distance v = ${fmt(v,2)} cm, Magnification m = ${fmt(m,2)}`,finalFormula:`\frac{1}{v} - \frac{1}{u} = \frac{1}{f}`,
+  return{finalAnswer:`Image distance v = ${fmt(v,2)} cm, Magnification m = ${fmt(m,2)}`,finalFormula:`\\frac{1}{v} - \\frac{1}{u} = \\frac{1}{f}`,
   steps:[{desc:`f = ${f} cm, u = ${u} cm (object distance)`,formula:`f=${f}, u=${u}`},
-    {desc:`Lens formula: 1/v - 1/u = 1/f`,formula:`\frac{1}{v} - \frac{1}{${u}} = \frac{1}{${f}}`},
-    {desc:`1/v = 1/f + 1/u = ${fmt(1/f,6)} + ${fmt(1/u,6)}`,formula:`\frac{1}{v} = ${fmt(1/f+1/u,6)}`},
+    {desc:`Lens formula: 1/v - 1/u = 1/f`,formula:`\\frac{1}{v} - \\frac{1}{${u}} = \\frac{1}{${f}}`},
+    {desc:`1/v = 1/f + 1/u = ${fmt(1/f,6)} + ${fmt(1/u,6)}`,formula:`\\frac{1}{v} = ${fmt(1/f+1/u,6)}`},
     {desc:`v = ${fmt(v,2)} cm`,formula:`v = ${fmt(v,2)} cm`},
     {desc:`Magnification m = v/u = ${fmt(m,2)} (${m>0?'erect':'inverted'}, ${Math.abs(m)>1?'magnified':'diminished'})`,formula:`m = ${fmt(m,2)}`}],
   altSteps:[],similar:[`Mirror formula for same values`],mistakes:['Wrong sign convention','Confusing lens and mirror formulas']};
@@ -972,10 +972,10 @@ function solveMirrorFormula(_m:RegExpMatchArray,text?:string):LocalSolution|null
   const f=ns[0],u=ns[1];
   const v=1/(1/f-1/u);// 1/v + 1/u = 1/f → v = 1/(1/f - 1/u)
   const m=-v/u;
-  return{finalAnswer:`v = ${fmt(v,2)} cm, m = ${fmt(m,2)}`,finalFormula:`\frac{1}{v} + \frac{1}{u} = \frac{1}{f}`,
+  return{finalAnswer:`v = ${fmt(v,2)} cm, m = ${fmt(m,2)}`,finalFormula:`\\frac{1}{v} + \\frac{1}{u} = \\frac{1}{f}`,
   steps:[{desc:`f = ${f} cm, u = ${u} cm`,formula:`f=${f}, u=${u}`},
-    {desc:`Mirror formula: 1/v + 1/u = 1/f`,formula:`\frac{1}{v} + \frac{1}{${u}} = \frac{1}{${f}}`},
-    {desc:`1/v = 1/f - 1/u = ${fmt(1/f-1/u,6)}`,formula:`\frac{1}{v} = ${fmt(1/f-1/u,6)}`},
+    {desc:`Mirror formula: 1/v + 1/u = 1/f`,formula:`\\frac{1}{v} + \\frac{1}{${u}} = \\frac{1}{${f}}`},
+    {desc:`1/v = 1/f - 1/u = ${fmt(1/f-1/u,6)}`,formula:`\\frac{1}{v} = ${fmt(1/f-1/u,6)}`},
     {desc:`v = ${fmt(v,2)} cm, m = -v/u = ${fmt(m,2)}`,formula:`m = ${fmt(m,2)}`}],
   altSteps:[],similar:[`Lens formula for same values`],mistakes:['Wrong sign convention','Missing negative in magnification']};
 }
@@ -984,20 +984,20 @@ function solveSnellsLaw(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   const ns=pN(text||_m[0]);if(ns.length<4)return null;
   const n1=ns[0],t1=ns[1],n2=ns[2],t2=n1*Math.sin(t1*Math.PI/180)/n2;
   const angle2=Math.asin(t2)*180/Math.PI;
-  return{finalAnswer:`sin θ₂ = ${fmt(t2,4)}, θ₂ = ${fmt(angle2,2)}°`,finalFormula:`n_1 \sin\theta_1 = n_2 \sin\theta_2`,
-  steps:[{desc:`n₁=${n1}, θ₁=${t1}°, n₂=${n2}`,formula:`n_1=${n1}, \theta_1=${t1}, n_2=${n2}`},
-    {desc:`n₁sinθ₁ = n₂sinθ₂`,formula:`${n1} \sin ${t1}° = ${n2} \sin \theta_2`},
-    {desc:`sinθ₂ = (${n1}×sin${t1}°)/${n2} = ${fmt(t2,4)}`,formula:`\sin\theta_2 = ${fmt(t2,4)}`},
-    {desc:`θ₂ = ${fmt(angle2,2)}°`,formula:`\theta_2 = ${fmt(angle2,2)}°`}],
+  return{finalAnswer:`sin θ₂ = ${fmt(t2,4)}, θ₂ = ${fmt(angle2,2)}°`,finalFormula:`n_1 \\sin\\theta_1 = n_2 \\sin\\theta_2`,
+  steps:[{desc:`n₁=${n1}, θ₁=${t1}°, n₂=${n2}`,formula:`n_1=${n1}, \\theta_1=${t1}, n_2=${n2}`},
+    {desc:`n₁sinθ₁ = n₂sinθ₂`,formula:`${n1} \\sin ${t1}° = ${n2} \\sin \\theta_2`},
+    {desc:`sinθ₂ = (${n1}×sin${t1}°)/${n2} = ${fmt(t2,4)}`,formula:`\\sin\\theta_2 = ${fmt(t2,4)}`},
+    {desc:`θ₂ = ${fmt(angle2,2)}°`,formula:`\\theta_2 = ${fmt(angle2,2)}°`}],
   altSteps:[],similar:[`If θ₁ > critical angle`],mistakes:['Not converting degrees to radians','Wrong ratio']};
 }
 
 function solveWaveSpeed(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   const ns=N(text||_m[0]);if(ns.length<2)return null;
   const f=ns[0],lam=ns[1],v=f*lam;
-  return{finalAnswer:`Wave speed = ${fmt(v,2)} m/s`,finalFormula:`v = f\lambda = ${fmt(v,2)} m/s`,
-  steps:[{desc:`Frequency = ${f} Hz, Wavelength = ${lam} m`,formula:`f=${f}, \lambda=${lam}`},
-    {desc:`v = fλ = ${f}×${lam}`,formula:`v = ${f} \times ${lam} = ${fmt(v,2)} m/s`}],
+  return{finalAnswer:`Wave speed = ${fmt(v,2)} m/s`,finalFormula:`v = f\\lambda = ${fmt(v,2)} m/s`,
+  steps:[{desc:`Frequency = ${f} Hz, Wavelength = ${lam} m`,formula:`f=${f}, \\lambda=${lam}`},
+    {desc:`v = fλ = ${f}×${lam}`,formula:`v = ${f} \\times ${lam} = ${fmt(v,2)} m/s`}],
   altSteps:[],similar:[`Find f if v=340m/s, λ=0.5m`],mistakes:['Unit mismatch (kHz vs Hz)']};
 }
 
@@ -1006,7 +1006,7 @@ function solveSpecificHeat(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   const m=ns[0],c=ns[1],dt=ns[2],Q=m*c*dt;
   return{finalAnswer:`Heat = ${fmt(Q,2)} J`,finalFormula:`Q = mc\Delta T = ${fmt(Q,2)} J`,
   steps:[{desc:`Mass = ${m} kg, Specific heat = ${c} J/kg·°C, ΔT = ${dt}°C`,formula:`m=${m}, c=${c}, \Delta T=${dt}`},
-    {desc:`Q = mcΔT = ${m}×${c}×${dt}`,formula:`Q = ${m} \times ${c} \times ${dt} = ${fmt(Q,2)} J`}],
+    {desc:`Q = mcΔT = ${m}×${c}×${dt}`,formula:`Q = ${m} \\times ${c} \\times ${dt} = ${fmt(Q,2)} J`}],
   altSteps:[],similar:[`Find ΔT if Q=${fmt(Q,0)}J`],mistakes:['Wrong units for specific heat','Not converting g to kg']};
 }
 
@@ -1032,9 +1032,9 @@ function solvePressure(_m:RegExpMatchArray,text?:string):LocalSolution|null{
 function solveSimplePendulum(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   const ns=pN(text||_m[0]);if(ns.length<1)return null;
   const l=ns[0],g=9.8,T=2*Math.PI*Math.sqrt(l/g);
-  return{finalAnswer:`Time period = ${fmt(T,4)} s`,finalFormula:`T = 2\pi\sqrt{l/g} = ${fmt(T,4)} s`,
+  return{finalAnswer:`Time period = ${fmt(T,4)} s`,finalFormula:`T = 2\\pi\\sqrt{l/g} = ${fmt(T,4)} s`,
   steps:[{desc:`Length l = ${l} m, g = ${g} m/s²`,formula:`l=${l}, g=${g}`},
-    {desc:`T = 2π√(l/g)`,formula:`T = 2\pi\sqrt{${l}/${g}}`},
+    {desc:`T = 2π√(l/g)`,formula:`T = 2\\pi\\sqrt{${l}/${g}}`},
     {desc:`T = ${fmt(T,4)} s`,formula:`= ${fmt(T,4)} s`}],
   altSteps:[{desc:`Frequency f = 1/T = ${fmt(1/T,4)} Hz`,formula:`f = 1/T = ${fmt(1/T,4)} Hz`}],
   similar:[`Find l for T=2s`],mistakes:['l in cm not m']};
@@ -1043,9 +1043,9 @@ function solveSimplePendulum(_m:RegExpMatchArray,text?:string):LocalSolution|nul
 function solveDeBroglie(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   const ns=N(text||_m[0]);if(ns.length<2)return null;
   const m=ns[0],v=ns[1],h=6.626e-34,lam=h/(m*v);
-  return{finalAnswer:`Wavelength = ${lam.toExponential(4)} m`,finalFormula:`\lambda = h/mv = ${lam.toExponential(4)} m`,
+  return{finalAnswer:`Wavelength = ${lam.toExponential(4)} m`,finalFormula:`\\lambda = h/mv = ${lam.toExponential(4)} m`,
   steps:[{desc:`m = ${m} kg, v = ${v} m/s, h = 6.626×10⁻³⁴ J·s`,formula:`m=${m}, v=${v}`},
-    {desc:`λ = h/(mv)`,formula:`\lambda = \frac{6.626 \times 10^{-34}}{${m} \times ${v}}`},
+    {desc:`λ = h/(mv)`,formula:`\\lambda = \\frac{6.626 \\times 10^{-34}}{${m} \\times ${v}}`},
     {desc:`= ${lam.toExponential(4)} m`,formula:`= ${lam.toExponential(4)} m`}],
   altSteps:[],similar:[`λ for electron with KE ${ns[0]}eV`],mistakes:['m in g not kg','v not in m/s']};
 }
@@ -1054,9 +1054,9 @@ function solveCoulombLaw(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   const ns=N(text||_m[0]);if(ns.length<3)return null;
   const k=9e9,q1=ns[0]*1e-6,q2=ns[1]*1e-6,r=ns[2];// assume μC
   const F=k*q1*q2/(r*r);
-  return{finalAnswer:`F = ${F.toExponential(4)} N`,finalFormula:`F = \frac{kq_1 q_2}{r^2}`,
+  return{finalAnswer:`F = ${F.toExponential(4)} N`,finalFormula:`F = \\frac{kq_1 q_2}{r^2}`,
   steps:[{desc:`q₁ = ${ns[0]} μC, q₂ = ${ns[1]} μC, r = ${r} m`,formula:`q_1=${ns[0]}\mu C, q_2=${ns[1]}\mu C, r=${r}`},
-    {desc:`F = kq₁q₂/r²`,formula:`F = \frac{9 \times 10^9 \times ${q1.toExponential(2)} \times ${q2.toExponential(2)}}{${r}^2}`},
+    {desc:`F = kq₁q₂/r²`,formula:`F = \\frac{9 \\times 10^9 \\times ${q1.toExponential(2)} \\times ${q2.toExponential(2)}}{${r}^2}`},
     {desc:`= ${F.toExponential(4)} N`,formula:`= ${F.toExponential(4)} N`}],
   altSteps:[],similar:[`F if r doubled (F/4)`],mistakes:['Wrong charge units','r in cm not m']};
 }
@@ -1119,7 +1119,7 @@ function solveDilution(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   const m1=ns[0],v1=ns[1],m2=ns[2],v2=(m1*v1)/m2;
   return{finalAnswer:`V₂ = ${fmt(v2,2)} mL`,finalFormula:`M_1V_1 = M_2V_2`,
   steps:[{desc:`M₁=${m1}, V₁=${v1}, M₂=${m2}`,formula:`M_1=${m1}, V_1=${v1}, M_2=${m2}`},
-    {desc:`M₁V₁ = M₂V₂`,formula:`${m1} \times ${v1} = ${m2} \times V_2`},
+    {desc:`M₁V₁ = M₂V₂`,formula:`${m1} \\times ${v1} = ${m2} \\times V_2`},
     {desc:`V₂ = ${m1*v1}/${m2} = ${fmt(v2,2)} mL`,formula:`V_2 = ${fmt(v2,2)} mL`}],
   altSteps:[],similar:[`Find M₂ if V₂ given`],mistakes:['Volume unit mismatch']};
 }
@@ -1130,7 +1130,7 @@ function solveIdealGas(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   const n=(P*V)/(R*T);
   return{finalAnswer:`n = ${fmt(n,4)} mol`,finalFormula:`n = PV/RT = ${fmt(n,4)} mol`,
   steps:[{desc:`P=${P}atm, V=${V}L, T=${T}K, R=0.0821 L·atm/(mol·K)`,formula:`P=${P}, V=${V}, T=${T}`},
-    {desc:`PV = nRT → n = PV/RT`,formula:`n = \frac{PV}{RT}`},
+    {desc:`PV = nRT → n = PV/RT`,formula:`n = \\frac{PV}{RT}`},
     {desc:`n = (${P}×${V})/(0.0821×${T}) = ${fmt(n,4)} mol`,formula:`= ${fmt(n,4)} mol`}],
   altSteps:[{desc:`Find V: V = nRT/P`,formula:`V = nRT/P`}],
   similar:[`Find P if n and V given`],mistakes:['T not in Kelvin','Wrong R value']};
@@ -1158,7 +1158,7 @@ function solveMassFromMoles(_m:RegExpMatchArray,text?:string):LocalSolution|null
   const mass=moles*mm;
   return{finalAnswer:`Mass = ${fmt(mass,2)} g`,finalFormula:`m = n × M = ${fmt(mass,2)} g`,
   steps:[{desc:`Moles = ${moles}, Molar mass of ${compound} = ${mm}`,formula:`n=${moles}, M=${mm}`},
-    {desc:`mass = n × M = ${moles} × ${mm}`,formula:`m = ${moles} \times ${mm} = ${fmt(mass,2)} g`}],
+    {desc:`mass = n × M = ${moles} × ${mm}`,formula:`m = ${moles} \\times ${mm} = ${fmt(mass,2)} g`}],
   altSteps:[],similar:[`Moles in ${mass+40}g`],mistakes:['Confusing mass and moles']};
 }
 
@@ -1203,7 +1203,7 @@ function solveReaction(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   const ns=N(text||_m[0]);if(ns.length<3)return null;
   const v1=ns[0],m1=ns[1],v2=ns[2];
   const m2=(v1*m1)/v2;
-  return{finalAnswer:`M₂ = ${fmt(m2,4)} M`,finalFormula:`M_2 = \frac{M_1 V_1}{V_2} = ${fmt(m2,4)} M`,
+  return{finalAnswer:`M₂ = ${fmt(m2,4)} M`,finalFormula:`M_2 = \\frac{M_1 V_1}{V_2} = ${fmt(m2,4)} M`,
   steps:[{desc:`M₁V₁ = M₂V₂ (titration)`,formula:`M_1=${m1}, V_1=${v1}, V_2=${v2}`},
     {desc:`M₂ = (M₁V₁)/V₂ = (${m1}×${v1})/${v2}`,formula:`M_2 = ${fmt(m2,4)} M`}],
   altSteps:[],similar:[`Find volume`],mistakes:['Volume unit mismatch','Wrong stoichiometric ratio']};

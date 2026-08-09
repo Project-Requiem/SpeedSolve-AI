@@ -1617,7 +1617,7 @@ export default function Home() {
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
             </a>
             <a href="https://www.instagram.com/prjrequiem/" target="_blank" rel="noopener noreferrer" className="nav-ig-badge" title="Follow us on Instagram">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="5.5"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="5.2"/><circle cx="17.8" cy="6.3" r="1.1" fill="currentColor" stroke="none"/></svg>
             </a>
           </div>
           <div className="nav-actions">
@@ -2225,14 +2225,10 @@ export default function Home() {
             rel="noopener noreferrer"
           >
             <span className="ig-gradient-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
-                <circle cx="12" cy="12" r="5.5"/>
-                <circle cx="17.5" cy="6.5" r="1.2" fill="white" stroke="none"/>
-              </svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="5.2"/><circle cx="17.8" cy="6.3" r="1.1" fill="white" stroke="none"/></svg>
             </span>
-            <span>Follow us on Instagram</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{opacity:0.5}}><polyline points="9 18 15 12 9 6"/></svg>
+            <span>@prjrequiem</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{opacity:0.4}}><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
           </a>
         </div>
         <p className="footer-copy">SpeedSolve AI &copy; 2026 &mdash; Built for students in Grades 6&ndash;12</p>
