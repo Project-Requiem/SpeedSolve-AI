@@ -560,7 +560,7 @@ export default function Home() {
     return () => observer.disconnect()
   }, [])
 
-  // ── Cursor fire aura — throttled via rAF ──
+  // ── Cursor aura — throttled via rAF ──
   useEffect(() => {
     let rafId = 0
     let x = 0, y = 0
@@ -1590,7 +1590,7 @@ export default function Home() {
 
   return (
     <div data-active-subject={subject}>
-      {/* Fire cursor aura */}
+      {/* Cursor aura */}
       <div className="cursor-aura" ref={auraRef} />
       <Background />
 
