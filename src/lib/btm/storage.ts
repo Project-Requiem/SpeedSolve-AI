@@ -1,6 +1,7 @@
 import { BTMStats, BTMHistoryEntry } from './types'
+import { getActiveUser, getStatsKey } from './user'
 
-const STORAGE_KEY = 'speedsolve-btm-stats'
+const LEGACY_KEY = 'speedsolve-btm-stats' // pre-user migration
 
 const DEFAULT_STATS: BTMStats = {
   xp: 0,
@@ -19,10 +20,15 @@ const DEFAULT_STATS: BTMStats = {
   history: [],
 }
 
+function getStorageKey(): string {
+  const user = getActiveUser()
+  return user ? getStatsKey(user.id) : LEGACY_KEY
+}
+
 export function loadStats(): BTMStats {
   if (typeof window === 'undefined') return DEFAULT_STATS
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(getStorageKey())
     if (!raw) return DEFAULT_STATS
     const parsed = JSON.parse(raw)
     return { ...DEFAULT_STATS, ...parsed }
@@ -34,12 +40,9 @@ export function loadStats(): BTMStats {
 export function saveStats(stats: BTMStats): void {
   if (typeof window === 'undefined') return
   try {
-    // Keep only last 100 history entries
     const trimmed = { ...stats, history: stats.history.slice(-100) }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed))
-  } catch {
-    // localStorage full or unavailable — silently fail
-  }
+    localStorage.setItem(getStorageKey(), JSON.stringify(trimmed))
+  } catch { /* silently fail */ }
 }
 
 export function addHistoryEntry(stats: BTMStats, entry: BTMHistoryEntry): BTMStats {

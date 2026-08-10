@@ -2348,24 +2348,8 @@ export default function Home() {
         </div>
         <p className="footer-copy">SpeedSolve AI &copy; 2026 &mdash; Built for students in Grades 6&ndash;12</p>
       </footer>
-      {/* ═══ BEAT THE MACHINE — Inline Section ═══ */}
-      <div
-        id="beat-the-machine"
-        ref={el => { btmSectionRef = el }}
-        className="btm-section fade-up"
-        data-delay="200"
-      >
-        <div className="btm-section-header">
-          <div className="btm-section-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg>
-          </div>
-          <div>
-            <h2 className="btm-section-title">Beat The Machine</h2>
-            <p className="btm-section-desc">Race against AI. Solve problems before the machine does.</p>
-          </div>
-        </div>
-        <BeatTheMachine />
-      </div>
+      {/* Beat The Machine — full overlay view */}
+      {typeof window !== 'undefined' && btmView ? <BeatTheMachine onExit={() => setBtmView(false)} /> : null}
     </div>
   )
 }
