@@ -8,6 +8,9 @@ const SolutionGraph = dynamic(() => import('@/components/SolutionGraph'), { ssr:
 const SolutionDiagram = dynamic(() => import('@/components/SolutionDiagram'), { ssr: false })
 const BeatTheMachine = dynamic(() => import('@/components/BeatTheMachine'), { ssr: false })
 
+// ─── BTM Section Ref ───────────────────────────────────────────
+let btmSectionRef: HTMLDivElement | null = null
+
 // ─── Types ───────────────────────────────────────────────────────
 interface SampleProblem { text: string; label: string }
 interface Step { desc: string; formula: string }
@@ -273,23 +276,23 @@ function renderFormulaToHtml(formula: string): React.ReactNode {
 // ─── Background Component ────────────────────────────────────────
 const BG_SHAPES = [
   // Large hero shapes
-  { t:'hex',    x:'15%', y:'15%', s:'150px', c:'var(--shape-blue)',   d:'0s',   dur:'22s', so:'0.3' },
-  { t:'ring',   x:'80%', y:'25%', s:'170px', c:'var(--shape-purple)', d:'-7s',  dur:'30s', so:'0.3',  spin:true },
-  { t:'diamond',x:'50%', y:'72%', s:'125px', c:'var(--shape-gold)',   d:'-14s', dur:'26s', so:'0.35' },
+  { t:'hex',    x:'15%',y:'15%',s:'150px',c:'var(--shape-blue)',   d:'0s',  dur:'22s',so:'0.25' },
+  { t:'ring',   x:'80%',y:'25%',s:'170px',c:'var(--shape-purple)', d:'-7s', dur:'30s',so:'0.2',spin:true },
+  { t:'diamond',x:'50%',y:'72%',s:'125px',c:'var(--shape-blue)',   d:'-14s',dur:'26s',so:'0.2' },
   // Medium scattered shapes
-  { t:'tri',    x:'8%',  y:'42%', s:'95px',  c:'var(--shape-cyan)',   d:'-3s',  dur:'18s', so:'0.35' },
-  { t:'hex',    x:'90%', y:'60%', s:'105px', c:'var(--shape-pink)',   d:'-10s', dur:'24s', so:'0.3' },
-  { t:'penta',  x:'35%', y:'8%',  s:'85px',  c:'var(--shape-gold)',   d:'-5s',  dur:'16s', so:'0.3' },
-  { t:'cross',  x:'68%', y:'90%', s:'75px',  c:'var(--shape-purple)', d:'-16s', dur:'20s', so:'0.35' },
-  { t:'ring',   x:'25%', y:'80%', s:'115px', c:'var(--shape-cyan)',   d:'-11s', dur:'28s', so:'0.3',  spin:true },
-  { t:'diamond',x:'55%', y:'35%', s:'70px',  c:'var(--shape-pink)',   d:'-2s',  dur:'14s', so:'0.35' },
-  { t:'tri',    x:'75%', y:'48%', s:'90px',  c:'var(--shape-blue)',   d:'-8s',  dur:'19s', so:'0.35' },
+  { t:'tri',    x:'8%',y:'42%',s:'95px', c:'var(--shape-cyan)',   d:'-3s', dur:'20s',so:'0.22' },
+  { t:'hex',    x:'90%',y:'60%',s:'105px',c:'var(--shape-pink)',   d:'-10s',dur:'24s',so:'0.18' },
+  { t:'penta',  x:'35%',y:'8%',s:'85px', c:'var(--shape-blue)',   d:'-5s', dur:'18s',so:'0.2' },
+  { t:'cross',  x:'68%',y:'90%',s:'75px', c:'var(--shape-purple)', d:'-16s',dur:'22s',so:'0.16' },
+  { t:'ring',   x:'25%',y:'80%',s:'115px',c:'var(--shape-cyan)',   d:'-11s',dur:'28s',so:'0.18',spin:true },
+  { t:'diamond',x:'55%',y:'35%',s:'70px', c:'var(--shape-blue)',   d:'-2s', dur:'16s',so:'0.18' },
+  { t:'tri',    x:'75%',y:'48%',s:'90px', c:'var(--shape-blue)',   d:'-8s', dur:'21s',so:'0.18' },
   // Small accent shapes
-  { t:'hex',    x:'42%', y:'55%', s:'55px',  c:'var(--shape-gold)',   d:'-13s', dur:'17s', so:'0.35' },
-  { t:'dot-ring',x:'18%',y:'92%', s:'60px',  c:'var(--shape-cyan)',   d:'-1s',  dur:'23s', so:'0.4' },
-  { t:'diamond',x:'95%', y:'5%',  s:'65px',  c:'var(--shape-pink)', d:'-17s', dur:'21s', so:'0.3' },
-  { t:'penta',  x:'5%',  y:'22%', s:'50px',  c:'var(--shape-purple)', d:'-4s',  dur:'15s', so:'0.35' },
-  { t:'cross',  x:'62%', y:'15%', s:'45px',  c:'var(--shape-blue)',   d:'-9s',  dur:'18s', so:'0.4' },
+  { t:'hex',    x:'42%',y:'55%',s:'55px', c:'var(--shape-cyan)',   d:'-13s',dur:'19s',so:'0.18' },
+  { t:'dot-ring',x:'18%',y:'92%',s:'60px', c:'var(--shape-blue)',   d:'-1s', dur:'25s',so:'0.2' },
+  { t:'diamond',x:'95%',y:'5%',s:'65px', c:'var(--shape-pink)',   d:'-17s',dur:'23s',so:'0.16' },
+  { t:'penta',  x:'5%',y:'22%',s:'50px', c:'var(--shape-purple)', d:'-4s', dur:'17s',so:'0.18' },
+  { t:'cross',  x:'62%',y:'15%',s:'45px', c:'var(--shape-cyan)',   d:'-9s', dur:'20s',so:'0.16' },
 ]
 
 function Background() {
@@ -361,7 +364,6 @@ export default function Home() {
   const [flashAnswer, setFlashAnswer] = useState(false)
   const [solveSource, setSolveSource] = useState<'local' | 'ai' | 'error'>('local')
   const [autoSwitched, setAutoSwitched] = useState<string | null>(null)
-  const [btmMode, setBtmMode] = useState(false)
 
   // ── Feature 1: Voice Typing ──
   const [voiceSupported, setVoiceSupported] = useState(false)
@@ -1717,6 +1719,10 @@ export default function Home() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               <span>Feedback</span>
             </button>
+            <a href="#beat-the-machine" onClick={e => { e.preventDefault(); btmSectionRef?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }} className="nav-btm-link">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span>Beat The Machine</span>
+            </a>
             <button className="theme-toggle" onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">
               <span className="icon-sun"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></span>
               <span className="icon-moon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
@@ -2342,30 +2348,24 @@ export default function Home() {
         </div>
         <p className="footer-copy">SpeedSolve AI &copy; 2026 &mdash; Built for students in Grades 6&ndash;12</p>
       </footer>
-      {/* Beat The Machine Card */}
-      <div className="fade-up" data-delay="350" style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
-        <button onClick={() => setBtmMode(true)} style={{
-          width: '100%', maxWidth: '540px', padding: '20px 28px', borderRadius: '16px',
-          border: '1.5px solid var(--border-color)', background: 'var(--bg-card)',
-          cursor: 'pointer', textAlign: 'left', transition: 'all 0.3s ease',
-          display: 'flex', alignItems: 'center', gap: '16px',
-        }} onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--accent-start)'; e.currentTarget.style.background = 'var(--bg-card-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-glow)' }}
-          onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}>
-          <div style={{ fontSize: '2.2rem', lineHeight: 1, flexShrink: 0 }}>🤖</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '2px' }}>BEAT THE MACHINE</div>
-            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Think you can solve faster than AI? Challenge SpeedSolve.</div>
+      {/* ═══ BEAT THE MACHINE — Inline Section ═══ */}
+      <div
+        id="beat-the-machine"
+        ref={el => { btmSectionRef = el }}
+        className="btm-section fade-up"
+        data-delay="200"
+      >
+        <div className="btm-section-header">
+          <div className="btm-section-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg>
           </div>
-          <div style={{
-            padding: '8px 18px', borderRadius: '10px', flexShrink: 0,
-            background: 'var(--accent-start)', color: 'white', fontWeight: 700,
-            fontSize: '0.82rem', letterSpacing: '0.5px',
-            boxShadow: '0 2px 12px var(--accent-glow)',
-          }}>PLAY NOW</div>
-        </button>
+          <div>
+            <h2 className="btm-section-title">Beat The Machine</h2>
+            <p className="btm-section-desc">Race against AI. Solve problems before the machine does.</p>
+          </div>
+        </div>
+        <BeatTheMachine />
       </div>
-      {/* BTM Overlay */}
-      {btmMode && <BeatTheMachine onExit={() => setBtmMode(false)} />}
     </div>
   )
 }

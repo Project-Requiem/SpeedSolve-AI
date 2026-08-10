@@ -60,7 +60,7 @@ function Confetti() {
 }
 
 // ─── Main Component ─────────────────────────────────────────
-export default function BeatTheMachine({ onExit }: { onExit: () => void }) {
+export default function BeatTheMachine({ onExit }: { onExit?: () => void }) {
   // Screen state
   const [screen, setScreen] = useState<Screen>('home')
   const [challengeType, setChallengeType] = useState<ChallengeType>('normal')
@@ -279,17 +279,18 @@ export default function BeatTheMachine({ onExit }: { onExit: () => void }) {
   const xpInfo = getXPForNextLevel(s.xp)
 
   return (
-    <div className="btm-container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div className="btm-container" style={{ minHeight: '500px', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       {/* XP Bar - always visible */}
       <div style={{
-        position: 'sticky', top: 0, zIndex: 50, padding: '10px 16px',
-        background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-color)',
+        position: 'relative', zIndex: 50, padding: '10px 16px',
+        background: 'var(--bg-card)', borderBottom: '1px solid var(--border-color)',
+        borderRadius: 'var(--radius-md)', marginBottom: '16px',
         display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.85rem',
       }}>
-        <button onClick={onExit} style={{
+        {onExit && <button onClick={onExit} style={{
           background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
           fontSize: '1.1rem', padding: '4px', lineHeight: 1,
-        }} aria-label="Exit Beat The Machine">✕</button>
+        }} aria-label="Exit Beat The Machine">✕</button>}
         <div style={{
           color: 'var(--accent-start)', fontWeight: 700, fontVariantNumeric: 'tabular-nums',
         }}>LVL {lvl}</div>
@@ -317,20 +318,13 @@ export default function BeatTheMachine({ onExit }: { onExit: () => void }) {
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
         {/* ── HOME SCREEN ── */}
         {screen === 'home' && (
-          <div style={{ textAlign: 'center', maxWidth: '480px' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '12px' }}>🤖</div>
-            <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 8px' }}>
-              BEAT THE MACHINE
-            </h2>
-            <p style={{ color: 'var(--text-muted)', margin: '0 0 32px', fontSize: '0.95rem' }}>
-              Think you can solve faster than AI?
-            </p>
+          <div style={{ textAlign: 'center', maxWidth: '420px', width: '100%' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <button onClick={() => setScreen('difficulty')} className="btm-btn-primary">
-                ⚡ CHALLENGE THE MACHINE
+                ⚡ Challenge the Machine
               </button>
               <button onClick={() => { setChallengeType('daily'); generateChallenge('scholar', 'mathematics', 'daily') }} className="btm-btn-secondary">
-                🌎 DAILY MACHINE
+                🌎 Daily Machine
               </button>
               {s.streak >= 5 && (
                 <div style={{ marginTop: '8px', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
