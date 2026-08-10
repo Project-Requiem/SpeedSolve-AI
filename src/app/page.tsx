@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic'
 
 const SolutionGraph = dynamic(() => import('@/components/SolutionGraph'), { ssr: false })
 const SolutionDiagram = dynamic(() => import('@/components/SolutionDiagram'), { ssr: false })
+const BeatTheMachine = dynamic(() => import('@/components/BeatTheMachine'), { ssr: false })
 
 // ─── Types ───────────────────────────────────────────────────────
 interface SampleProblem { text: string; label: string }
@@ -360,6 +361,7 @@ export default function Home() {
   const [flashAnswer, setFlashAnswer] = useState(false)
   const [solveSource, setSolveSource] = useState<'local' | 'ai' | 'error'>('local')
   const [autoSwitched, setAutoSwitched] = useState<string | null>(null)
+  const [btmMode, setBtmMode] = useState(false)
 
   // ── Feature 1: Voice Typing ──
   const [voiceSupported, setVoiceSupported] = useState(false)
@@ -2340,6 +2342,30 @@ export default function Home() {
         </div>
         <p className="footer-copy">SpeedSolve AI &copy; 2026 &mdash; Built for students in Grades 6&ndash;12</p>
       </footer>
+      {/* Beat The Machine Card */}
+      <div className="fade-up" data-delay="350" style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
+        <button onClick={() => setBtmMode(true)} style={{
+          width: '100%', maxWidth: '540px', padding: '20px 28px', borderRadius: '16px',
+          border: '1.5px solid var(--border-color)', background: 'var(--bg-card)',
+          cursor: 'pointer', textAlign: 'left', transition: 'all 0.3s ease',
+          display: 'flex', alignItems: 'center', gap: '16px',
+        }} onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--accent-start)'; e.currentTarget.style.background = 'var(--bg-card-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-glow)' }}
+          onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}>
+          <div style={{ fontSize: '2.2rem', lineHeight: 1, flexShrink: 0 }}>🤖</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '2px' }}>BEAT THE MACHINE</div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Think you can solve faster than AI? Challenge SpeedSolve.</div>
+          </div>
+          <div style={{
+            padding: '8px 18px', borderRadius: '10px', flexShrink: 0,
+            background: 'var(--accent-start)', color: 'white', fontWeight: 700,
+            fontSize: '0.82rem', letterSpacing: '0.5px',
+            boxShadow: '0 2px 12px var(--accent-glow)',
+          }}>PLAY NOW</div>
+        </button>
+      </div>
+      {/* BTM Overlay */}
+      {btmMode && <BeatTheMachine onExit={() => setBtmMode(false)} />}
     </div>
   )
 }
