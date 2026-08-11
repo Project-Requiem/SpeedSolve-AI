@@ -90,20 +90,47 @@ async function createBenchmark(
       }
     }
 
-    // Benchmark: scale based on complexity and steps
-    const diffScale: Record<string, number> = {
-      rookie: 1.3, scholar: 1.1, expert: 1.0, nightmare: 0.9, requiem: 0.85,
-    }
-    const mult = diffScale[difficulty || 'scholar'] || 1.0
-    const aiTimeMs = Math.min(12000, Math.max(2000,
-      problem.complexity * 7000 + problem.steps * 500 + 1500
-    ) * mult)
+    // ── Human-realistic AI benchmark ──
+    // Simulates: reading the question + solving mentally + typing the answer
+    // so average students feel they CAN beat it with practice.
 
-    return { aiTimeMs: parseFloat(aiTimeMs.toFixed(0)), aiAnswer, aiCorrect, solution }
+    const questionLen = problem.question.length
+    const answerStr = String(Math.abs(problem.correctAnswer))
+    const answerDigits = answerStr.replace(/[^0-9]/g, '').length
+    const hasDecimal = answerStr.includes('.')
+
+    // Reading time: longer questions take more time to parse
+    const readTime = 2000 + questionLen * 18 + problem.steps * 400
+
+    // Solving time: based on complexity, number of steps, and difficulty
+    const solveBase: Record<string, [number, number]> = {
+      rookie:     [3000, 5000],   // 3-5s mental math
+      scholar:    [7000, 13000],  // 7-13s multi-step
+      expert:     [14000, 24000], // 14-24s complex reasoning
+      nightmare:  [22000, 38000], // 22-38s olympiad-style
+      requiem:    [30000, 50000], // 30-50s very hard but doable
+    }
+    const [solveMin, solveMax] = solveBase[difficulty || 'scholar'] || solveBase.scholar
+    // Scale solve time by complexity within the range
+    const solveTime = solveMin + problem.complexity * (solveMax - solveMin) + problem.steps * 800
+
+    // Typing time: based on answer length
+    const typeTime = 1200 + answerDigits * 250 + (hasDecimal ? 400 : 0)
+
+    // Total with small random variance (±8%) so it's not identical each time
+    const variance = 0.92 + Math.random() * 0.16
+    const aiTimeMs = (readTime + solveTime + typeTime) * variance
+
+    // Hard caps: min 6s (rookie), max 75s (requiem)
+    const capped = Math.min(75000, Math.max(6000, aiTimeMs))
+
+    return { aiTimeMs: parseFloat(capped.toFixed(0)), aiAnswer, aiCorrect, solution }
   } catch {
-    const aiTimeMs = Math.min(12000, Math.max(2000,
-      problem.complexity * 7000 + problem.steps * 500 + 2000
-    ))
+    // Fallback: use human-realistic estimate
+    const readTime = 2000 + problem.question.length * 18 + problem.steps * 400
+    const solveTime = 7000 + problem.complexity * 10000 + problem.steps * 800
+    const typeTime = 1200 + 600
+    const aiTimeMs = Math.min(75000, Math.max(6000, (readTime + solveTime + typeTime) * (0.92 + Math.random() * 0.16)))
     return { aiTimeMs: parseFloat(aiTimeMs.toFixed(0)), aiAnswer: String(problem.correctAnswer), aiCorrect: true, solution }
   }
 }

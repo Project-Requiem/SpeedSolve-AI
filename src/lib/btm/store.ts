@@ -307,7 +307,8 @@ export const useBTMStore = create<BTMStore>((set, get) => ({
 // ─── Derived helpers ────────────────────────────────────────
 export function fmtTime(ms: number): string {
   if (ms < 1000) return ms.toFixed(0) + 'ms'
-  return (ms / 1000).toFixed(2) + 's'
+  if (ms < 10000) return (ms / 1000).toFixed(2) + 's'
+  return (ms / 1000).toFixed(1) + 's'
 }
 
 export function getAIResponse(streak: number): string {

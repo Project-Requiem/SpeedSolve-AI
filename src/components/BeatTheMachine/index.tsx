@@ -22,6 +22,8 @@ export default function BeatTheMachine({ onExit }: { onExit?: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [localElapsed, setLocalElapsed] = useState(0)
   const [skyMode, setSkyMode] = useState<'night' | 'day'>('night')
+  const [screenKey, setScreenKey] = useState(0) // forces re-mount for transition animation
+  const prevScreen = useRef(store.screen)
 
   // Init: check for existing user on mount
   useEffect(() => {
@@ -33,6 +35,14 @@ export default function BeatTheMachine({ onExit }: { onExit?: () => void }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Screen transition: bump key when screen changes → triggers CSS entrance animation
+  useEffect(() => {
+    if (prevScreen.current !== store.screen) {
+      prevScreen.current = store.screen
+      setScreenKey(k => k + 1)
+    }
+  }, [store.screen])
 
   // Timer loop
   useEffect(() => {
@@ -46,12 +56,12 @@ export default function BeatTheMachine({ onExit }: { onExit?: () => void }) {
     return () => cancelAnimationFrame(raf)
   }, [store.timerRunning, store.timerStartedAt])
 
-  // Auto-focus input on challenge screen
+  // Auto-focus input after question reveals (delayed to let animation play)
   useEffect(() => {
-    if (store.screen === 'challenge' && !store.submitted && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 50)
+    if (store.screen === 'challenge' && store.timerRunning && inputRef.current) {
+      setTimeout(() => inputRef.current?.focus(), 350)
     }
-  }, [store.screen, store.submitted])
+  }, [store.screen, store.timerRunning])
 
   // Enter to submit
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -107,7 +117,7 @@ export default function BeatTheMachine({ onExit }: { onExit?: () => void }) {
       )}
 
       {/* ── Screens ── */}
-      <div className="btm-content">
+      <div className="btm-content" key={screenKey}>
         {store.screen === 'setup' && <SetupScreen />}
         {store.screen === 'home' && <HomeScreen />}
         {store.screen === 'difficulty' && <DifficultyScreen />}
@@ -310,6 +320,7 @@ function ChallengeScreen({ elapsed, inputRef }: { elapsed: number; inputRef: Rea
   const displayTime = timerRunning ? elapsed : store.elapsedMs
   const isOvertime = timerRunning && displayTime > benchmark.aiTimeMs
   const timerColor = !timerRunning && submitted ? 'var(--text-primary)' : isOvertime ? '#dc2626' : 'var(--text-primary)'
+  const revealed = timerRunning || submitted
 
   return (
     <div className="btm-screen">
@@ -321,8 +332,8 @@ function ChallengeScreen({ elapsed, inputRef }: { elapsed: number; inputRef: Rea
           <div className="btm-ai-sub">Can you beat me?</div>
         </div>
 
-        {/* Problem */}
-        <div className="btm-problem-card">
+        {/* Problem — hidden until START, then revealed with animation */}
+        <div className={`btm-problem-card${revealed ? ' btm-problem-revealed' : ' btm-problem-hidden'}`}>
           <div className="btm-problem-meta">
             <span className="btm-problem-badge" style={{ color: DIFFICULTIES.find(d => d.key === problem.difficulty)?.color }}>{DIFFICULTIES.find(d => d.key === problem.difficulty)?.label}</span>
             <span className="btm-problem-concept">{problem.concept}</span>
@@ -334,7 +345,7 @@ function ChallengeScreen({ elapsed, inputRef }: { elapsed: number; inputRef: Rea
         <div className="btm-timer-wrap">
           <div className="btm-timer" style={{ color: timerColor }}>
             {timerRunning || submitted
-              ? (displayTime < 1000 ? displayTime.toFixed(0) + 'ms' : (displayTime / 1000).toFixed(2))
+              ? (displayTime < 1000 ? displayTime.toFixed(0) + 'ms' : displayTime < 10000 ? (displayTime / 1000).toFixed(2) + 's' : (displayTime / 1000).toFixed(1) + 's')
               : '0.00'}
           </div>
           {!timerRunning && !submitted && (
@@ -342,9 +353,9 @@ function ChallengeScreen({ elapsed, inputRef }: { elapsed: number; inputRef: Rea
           )}
         </div>
 
-        {/* Input */}
+        {/* Input — slides in after question reveals */}
         {timerRunning && !submitted && (
-          <div className="btm-input-wrap">
+          <div className="btm-input-wrap btm-slide-up">
             <input
               ref={inputRef}
               className="btm-input btm-input-large"
@@ -352,7 +363,6 @@ function ChallengeScreen({ elapsed, inputRef }: { elapsed: number; inputRef: Rea
               onChange={e => store.setUserInput(e.target.value)}
               placeholder="Your answer"
               autoComplete="off"
-              autoFocus
             />
             <button
               className="btm-btn-submit"
