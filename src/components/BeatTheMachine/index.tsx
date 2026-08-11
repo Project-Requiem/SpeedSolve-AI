@@ -6,6 +6,34 @@ import { useBTMStore, fmtTime, getAIResponse, DIFFICULTIES } from '@/lib/btm/sto
 import { BTMDifficulty, BTMSubject, getXPForNextLevel } from '@/lib/btm/types'
 import { getActiveUser } from '@/lib/btm/user'
 
+// ─── Star field data (memoized once) ─────────────────────────
+const GLOWING_STARS: { x: string; y: string; size: 'sm' | 'md' | 'lg'; color: 'white' | 'blue' | 'warm'; delay: string }[] = [
+  { x: '8%',  y: '12%', size: 'lg', color: 'white', delay: '0s' },
+  { x: '22%', y: '6%',  size: 'md', color: 'blue',  delay: '1.2s' },
+  { x: '37%', y: '18%', size: 'sm', color: 'white', delay: '0.5s' },
+  { x: '55%', y: '8%',  size: 'lg', color: 'blue',  delay: '2.1s' },
+  { x: '72%', y: '14%', size: 'md', color: 'warm',  delay: '0.8s' },
+  { x: '90%', y: '22%', size: 'sm', color: 'white', delay: '3.2s' },
+  { x: '15%', y: '35%', size: 'md', color: 'blue',  delay: '1.8s' },
+  { x: '45%', y: '30%', size: 'lg', color: 'white', delay: '0.3s' },
+  { x: '65%', y: '38%', size: 'sm', color: 'warm',  delay: '2.6s' },
+  { x: '85%', y: '42%', size: 'md', color: 'white', delay: '1.5s' },
+  { x: '5%',  y: '55%', size: 'sm', color: 'blue',  delay: '0.9s' },
+  { x: '30%', y: '50%', size: 'lg', color: 'warm',  delay: '2.3s' },
+  { x: '50%', y: '60%', size: 'md', color: 'white', delay: '0.1s' },
+  { x: '75%', y: '65%', size: 'sm', color: 'blue',  delay: '1.7s' },
+  { x: '92%', y: '58%', size: 'md', color: 'white', delay: '2.9s' },
+  { x: '18%', y: '75%', size: 'lg', color: 'blue',  delay: '0.6s' },
+  { x: '42%', y: '80%', size: 'sm', color: 'white', delay: '3.0s' },
+  { x: '60%', y: '72%', size: 'md', color: 'warm',  delay: '1.1s' },
+  { x: '82%', y: '85%', size: 'lg', color: 'white', delay: '2.4s' },
+  { x: '95%', y: '78%', size: 'sm', color: 'blue',  delay: '0.4s' },
+  { x: '10%', y: '92%', size: 'md', color: 'warm',  delay: '1.9s' },
+  { x: '35%', y: '95%', size: 'sm', color: 'white', delay: '2.7s' },
+  { x: '58%', y: '88%', size: 'lg', color: 'blue',  delay: '0.7s' },
+  { x: '78%', y: '95%', size: 'md', color: 'white',  delay: '3.4s' },
+]
+
 // ─── Types ──────────────────────────────────────────────────
 const SUBJECTS: { key: BTMSubject; label: string }[] = [
   { key: 'mathematics', label: 'Mathematics' },
@@ -60,7 +88,16 @@ export default function BeatTheMachine({ onExit }: { onExit?: () => void }) {
 
   return (
     <div className="btm-root" onKeyDown={handleKeyDown}>
-      {/* ── Moon ── */}
+      {/* ── Night sky layers ── */}
+      <div className="btm-sky" />
+      <div className="btm-stars-tiny" />
+      {GLOWING_STARS.map((s, i) => (
+        <div
+          key={i}
+          className={`btm-star btm-star-${s.size} btm-star-${s.color}`}
+          style={{ left: s.x, top: s.y, animationDelay: s.delay }}
+        ><div className="btm-star-core" /></div>
+      ))}
       <div className="btm-moon" />
 
       {/* ── Top bar (all screens except setup) ── */}

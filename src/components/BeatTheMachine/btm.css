@@ -7,10 +7,7 @@
   inset: 0;
   z-index: 10000;
   background:
-    radial-gradient(ellipse 80% 50% at 20% 80%, rgba(15,23,60,0.6) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 80% 20%, rgba(30,20,60,0.4) 0%, transparent 50%),
-    radial-gradient(ellipse 100% 60% at 50% 100%, rgba(10,15,40,0.5) 0%, transparent 40%),
-    var(--bg-primary, #080c18);
+    linear-gradient(180deg, #0a1628 0%, #0d1f3c 25%, #0f2847 50%, #0b1e3d 75%, #081430 100%);
   color: var(--text-primary, #f0f4ff);
   font-family: 'Inter', system-ui, sans-serif;
   display: flex;
@@ -23,132 +20,148 @@
   to { opacity: 1; }
 }
 
-/* ── Starry Night Sky — Layer 1: far stars, slow drift ── */
-.btm-root::before {
-  content: '';
+/* ── Night sky ambient gradients ── */
+.btm-sky {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 50% at 15% 85%, rgba(30,58,138,0.25) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 85% 15%, rgba(59,130,246,0.1) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 50% at 50% 50%, rgba(15,23,60,0.3) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 70% 70%, rgba(30,64,175,0.12) 0%, transparent 50%);
+}
+
+/* ── Star field (tiny background stars, CSS only) ── */
+.btm-stars-tiny {
   position: fixed;
   inset: -20%;
   z-index: -2;
   width: 140%;
   height: 140%;
-  background:
-    radial-gradient(1.2px 1.2px at 15% 12%, rgba(255,255,255,0.8) 50%, transparent 100%),
-    radial-gradient(1px 1px at 28% 35%, rgba(255,255,255,0.6) 50%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 42% 8%, rgba(200,210,255,0.9) 50%, transparent 100%),
-    radial-gradient(0.8px 0.8px at 55% 22%, rgba(255,255,255,0.5) 50%, transparent 100%),
-    radial-gradient(1px 1px at 68% 45%, rgba(255,255,255,0.7) 50%, transparent 100%),
-    radial-gradient(1.3px 1.3px at 78% 15%, rgba(200,200,255,0.8) 50%, transparent 100%),
-    radial-gradient(0.9px 0.9px at 88% 32%, rgba(255,255,255,0.6) 50%, transparent 100%),
-    radial-gradient(1.1px 1.1px at 8% 55%, rgba(255,255,255,0.7) 50%, transparent 100%),
-    radial-gradient(1px 1px at 22% 68%, rgba(255,255,255,0.5) 50%, transparent 100%),
-    radial-gradient(1.4px 1.4px at 35% 78%, rgba(200,210,255,0.8) 50%, transparent 100%),
-    radial-gradient(0.7px 0.7px at 48% 58%, rgba(255,255,255,0.4) 50%, transparent 100%),
-    radial-gradient(1.2px 1.2px at 62% 72%, rgba(255,255,255,0.7) 50%, transparent 100%),
-    radial-gradient(1px 1px at 75% 88%, rgba(255,255,255,0.6) 50%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 92% 65%, rgba(200,200,255,0.9) 50%, transparent 100%),
-    radial-gradient(0.8px 0.8px at 5% 85%, rgba(255,255,255,0.5) 50%, transparent 100%),
-    radial-gradient(1.1px 1.1px at 18% 92%, rgba(255,255,255,0.6) 50%, transparent 100%),
-    radial-gradient(1px 1px at 33% 42%, rgba(255,255,255,0.5) 50%, transparent 100%),
-    radial-gradient(1.3px 1.3px at 50% 90%, rgba(255,255,255,0.7) 50%, transparent 100%),
-    radial-gradient(0.9px 0.9px at 65% 5%, rgba(255,255,255,0.5) 50%, transparent 100%),
-    radial-gradient(1px 1px at 82% 52%, rgba(200,210,255,0.6) 50%, transparent 100%),
-    radial-gradient(1.2px 1.2px at 95% 82%, rgba(255,255,255,0.7) 50%, transparent 100%),
-    radial-gradient(0.8px 0.8px at 12% 28%, rgba(255,255,255,0.4) 50%, transparent 100%),
-    radial-gradient(1px 1px at 38% 18%, rgba(255,255,255,0.6) 50%, transparent 100%),
-    radial-gradient(1.4px 1.4px at 58% 38%, rgba(200,200,255,0.8) 50%, transparent 100%),
-    radial-gradient(0.7px 0.7px at 72% 25%, rgba(255,255,255,0.4) 50%, transparent 100%),
-    radial-gradient(1.1px 1.1px at 85% 75%, rgba(255,255,255,0.6) 50%, transparent 100%),
-    radial-gradient(1px 1px at 45% 62%, rgba(255,255,255,0.5) 50%, transparent 100%),
-    radial-gradient(1.3px 1.3px at 2% 42%, rgba(255,255,255,0.7) 50%, transparent 100%),
-    radial-gradient(0.9px 0.9px at 97% 18%, rgba(255,255,255,0.5) 50%, transparent 100%),
-    radial-gradient(1px 1px at 25% 5%, rgba(200,210,255,0.6) 50%, transparent 100%),
-    radial-gradient(1.2px 1.2px at 52% 15%, rgba(255,255,255,0.7) 50%, transparent 100%),
-    radial-gradient(0.8px 0.8px at 70% 58%, rgba(255,255,255,0.4) 50%, transparent 100%),
-    radial-gradient(1.1px 1.1px at 40% 95%, rgba(255,255,255,0.6) 50%, transparent 100%),
-    radial-gradient(1px 1px at 90% 42%, rgba(255,255,255,0.5) 50%, transparent 100%),
-    radial-gradient(1.4px 1.4px at 15% 75%, rgba(200,200,255,0.8) 50%, transparent 100%),
-    radial-gradient(0.7px 0.7px at 60% 82%, rgba(255,255,255,0.4) 50%, transparent 100%),
-    radial-gradient(1px 1px at 80% 8%, rgba(255,255,255,0.6) 50%, transparent 100%);
   pointer-events: none;
-  animation: btmStarDrift1 120s linear infinite;
+  background:
+    radial-gradient(1.5px 1.5px at 12% 8%, rgba(255,255,255,0.7) 50%, transparent 100%),
+    radial-gradient(1px 1px at 25% 32%, rgba(255,255,255,0.5) 50%, transparent 100%),
+    radial-gradient(1px 1px at 40% 55%, rgba(255,255,255,0.4) 50%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 58% 18%, rgba(255,255,255,0.6) 50%, transparent 100%),
+    radial-gradient(1px 1px at 73% 42%, rgba(255,255,255,0.5) 50%, transparent 100%),
+    radial-gradient(1px 1px at 88% 65%, rgba(255,255,255,0.4) 50%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 5% 72%, rgba(255,255,255,0.5) 50%, transparent 100%),
+    radial-gradient(1px 1px at 20% 88%, rgba(255,255,255,0.4) 50%, transparent 100%),
+    radial-gradient(1px 1px at 35% 15%, rgba(255,255,255,0.5) 50%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 50% 78%, rgba(255,255,255,0.6) 50%, transparent 100%),
+    radial-gradient(1px 1px at 65% 92%, rgba(255,255,255,0.4) 50%, transparent 100%),
+    radial-gradient(1px 1px at 80% 28%, rgba(255,255,255,0.5) 50%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 95% 50%, rgba(255,255,255,0.5) 50%, transparent 100%),
+    radial-gradient(1px 1px at 17% 48%, rgba(255,255,255,0.4) 50%, transparent 100%),
+    radial-gradient(1px 1px at 45% 35%, rgba(255,255,255,0.5) 50%, transparent 100%);
+  animation: btmStarDriftSlow 150s linear infinite;
 }
-@keyframes btmStarDrift1 {
+@keyframes btmStarDriftSlow {
   0%   { transform: translate(0, 0); }
-  25%  { transform: translate(-3%, 2%); }
+  25%  { transform: translate(-2%, 1.5%); }
   50%  { transform: translate(-1%, -2%); }
-  75%  { transform: translate(3%, 1%); }
+  75%  { transform: translate(2.5%, 0.5%); }
   100% { transform: translate(0, 0); }
 }
 
-/* ── Starry Night Sky — Layer 2: near stars, faster drift + twinkle ── */
-.btm-root::after {
-  content: '';
+/* ── Glowing stars (DOM elements) ── */
+.btm-star {
   position: fixed;
-  inset: -10%;
-  z-index: -1;
-  width: 120%;
-  height: 120%;
-  background:
-    radial-gradient(1.5px 1.5px at 10% 20%, rgba(255,255,255,0.9) 50%, transparent 100%),
-    radial-gradient(1px 1px at 30% 50%, rgba(200,220,255,0.7) 50%, transparent 100%),
-    radial-gradient(1.8px 1.8px at 50% 30%, rgba(255,255,255,0.8) 50%, transparent 100%),
-    radial-gradient(1px 1px at 70% 60%, rgba(255,255,255,0.6) 50%, transparent 100%),
-    radial-gradient(1.4px 1.4px at 90% 10%, rgba(200,210,255,0.8) 50%, transparent 100%),
-    radial-gradient(1.2px 1.2px at 20% 80%, rgba(255,255,255,0.7) 50%, transparent 100%),
-    radial-gradient(1.6px 1.6px at 45% 70%, rgba(255,255,255,0.9) 50%, transparent 100%),
-    radial-gradient(1px 1px at 80% 40%, rgba(255,255,255,0.5) 50%, transparent 100%),
-    radial-gradient(1.3px 1.3px at 55% 85%, rgba(200,220,255,0.6) 50%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 35% 10%, rgba(255,255,255,0.7) 50%, transparent 100%);
+  border-radius: 50%;
   pointer-events: none;
-  animation: btmStarDrift2 80s linear infinite, btmTwinkle 4s ease-in-out infinite alternate;
+  z-index: -1;
 }
-@keyframes btmStarDrift2 {
-  0%   { transform: translate(0, 0); }
-  25%  { transform: translate(4%, -3%); }
-  50%  { transform: translate(2%, 4%); }
-  75%  { transform: translate(-4%, -1%); }
-  100% { transform: translate(0, 0); }
+.btm-star-sm {
+  width: 3px; height: 3px;
+  box-shadow: 0 0 4px 1px rgba(255,255,255,0.5), 0 0 10px 2px rgba(147,197,253,0.2);
+  animation: btmStarPulse 3s ease-in-out infinite alternate, btmStarDriftA 90s linear infinite;
 }
-@keyframes btmTwinkle {
-  0% { opacity: 0.3; }
-  50% { opacity: 0.95; }
-  100% { opacity: 0.4; }
+.btm-star-md {
+  width: 4px; height: 4px;
+  box-shadow: 0 0 6px 2px rgba(255,255,255,0.6), 0 0 16px 4px rgba(147,197,253,0.25), 0 0 30px 6px rgba(96,165,250,0.1);
+  animation: btmStarPulse 4s ease-in-out infinite alternate, btmStarDriftB 110s linear infinite;
+}
+.btm-star-lg {
+  width: 6px; height: 6px;
+  box-shadow: 0 0 8px 3px rgba(255,255,255,0.7), 0 0 22px 6px rgba(191,219,254,0.35), 0 0 44px 10px rgba(96,165,250,0.15);
+  animation: btmStarPulse 5s ease-in-out infinite alternate, btmStarDriftC 130s linear infinite;
+}
+.btm-star-blue .btm-star-core { background: #bfdbfe; }
+.btm-star-white .btm-star-core { background: #ffffff; }
+.btm-star-warm .btm-star-core { background: #fef3c7; }
+.btm-star-core {
+  width: 100%; height: 100%; border-radius: 50%; }
+@keyframes btmStarPulse {
+  0%   { opacity: 0.4; transform: scale(0.8); }
+  50%  { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 0.6; transform: scale(0.9); }
+}
+@keyframes btmStarDriftA {
+  0%   { transform: translate(0,0); }
+  25%  { transform: translate(8px,-6px); }
+  50%  { transform: translate(-4px,10px); }
+  75%  { transform: translate(-10px,-4px); }
+  100% { transform: translate(0,0); }
+}
+@keyframes btmStarDriftB {
+  0%   { transform: translate(0,0); }
+  25%  { transform: translate(-12px,8px); }
+  50%  { transform: translate(6px,-12px); }
+  75%  { transform: translate(10px,6px); }
+  100% { transform: translate(0,0); }
+}
+@keyframes btmStarDriftC {
+  0%   { transform: translate(0,0); }
+  25%  { transform: translate(6px,14px); }
+  50%  { transform: translate(-14px,-6px); }
+  75%  { transform: translate(8px,-10px); }
+  100% { transform: translate(0,0); }
 }
 
-/* ── Moon with slow orbital drift ── */
+/* ── Moon with multi-colour surface and glow ── */
 .btm-moon {
   position: fixed;
   z-index: -1;
-  width: 80px;
-  height: 80px;
-  top: 8%;
-  right: 10%;
+  width: 90px;
+  height: 90px;
+  top: 7%;
+  right: 9%;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #f5f3ce 0%, #e8e4a8 40%, #d4cfa0 100%);
-  box-shadow:
-    0 0 20px rgba(245,243,206,0.15),
-    0 0 60px rgba(245,243,206,0.08),
-    0 0 120px rgba(245,243,206,0.04);
   pointer-events: none;
   animation: btmMoonFloat 60s ease-in-out infinite;
+  background:
+    radial-gradient(circle at 30% 30%, #fef9e7 0%, transparent 25%),
+    radial-gradient(circle at 60% 20%, #e0d4f5 0%, transparent 20%),
+    radial-gradient(circle at 45% 65%, #c7d8f5 0%, transparent 22%),
+    radial-gradient(circle at 75% 55%, #f5e6d0 0%, transparent 18%),
+    radial-gradient(circle at 20% 70%, #dbeafe 0%, transparent 15%),
+    radial-gradient(circle at 50% 40%, #f0e7ce 0%, #e8dcc0 30%, #d4cfc8 60%, #b8c4d8 100%);
+  box-shadow:
+    0 0 15px 3px rgba(254,249,231,0.2),
+    0 0 40px 8px rgba(191,219,254,0.15),
+    0 0 80px 16px rgba(147,197,253,0.08),
+    0 0 140px 30px rgba(96,165,250,0.04);
 }
 @keyframes btmMoonFloat {
   0%   { transform: translate(0, 0) rotate(0deg); }
-  25%  { transform: translate(-15px, 10px) rotate(1deg); }
-  50%  { transform: translate(-25px, 20px) rotate(-0.5deg); }
-  75%  { transform: translate(-10px, 8px) rotate(0.5deg); }
+  25%  { transform: translate(-18px, 12px) rotate(1.5deg); }
+  50%  { transform: translate(-30px, 24px) rotate(-1deg); }
+  75%  { transform: translate(-12px, 10px) rotate(0.8deg); }
   100% { transform: translate(0, 0) rotate(0deg); }
 }
-/* Moon crescent shadow */
+/* Moon crescent shadow — uses sky colour to blend */
 .btm-moon::after {
   content: '';
   position: absolute;
-  width: 65px;
-  height: 65px;
-  top: -6px;
-  right: -10px;
+  width: 72px;
+  height: 72px;
+  top: -7px;
+  right: -12px;
   border-radius: 50%;
-  background: radial-gradient(circle at 50% 50%, var(--bg-primary, #080c18) 55%, transparent 70%);
+  background: radial-gradient(circle at 50% 50%, #0d1f3c 55%, transparent 70%);
 }
 
 /* ── Top bar ── */
@@ -667,9 +680,8 @@
   .btm-xp-fill { transition: none; }
   .btm-loading-bar::after { animation: none; }
   .btm-diff-card, .btm-subject-btn, .btm-btn-primary, .btm-btn-secondary, .btm-back-home { transition: none; }
-  .btm-root::before { animation: none; }
-  .btm-root::after { animation: none; opacity: 0.6; }
-  .btm-moon { animation: none; }
+  .btm-stars-tiny, .btm-star, .btm-moon { animation: none; }
+  .btm-star { opacity: 0.7; }
 }
 
 /* ── Light theme ── */
@@ -707,7 +719,9 @@
 [data-theme='light'] .btm-mistake .btm-mistake-label { color: #991b1b; }
 [data-theme='light'] .btm-loading-bar { background: rgba(0,0,0,0.06); }
 [data-theme='light'] .btm-divider::before, [data-theme='light'] .btm-divider::after { background: rgba(0,0,0,0.06); }
-[data-theme='light'] .btm-moon { display: none; }
-[data-theme='light'] .btm-root::before, [data-theme='light'] .btm-root::after { display: none; }
+[data-theme='light'] .btm-moon, [data-theme='light'] .btm-sky, [data-theme='light'] .btm-stars-tiny, [data-theme='light'] .btm-star { display: none; }
+[data-theme='light'] .btm-root {
+  background: #f8fafc;
+}
 [data-theme='light'] .btm-back-home { border-color: rgba(0,0,0,0.08); color: #64748b; background: rgba(0,0,0,0.02); }
 [data-theme='light'] .btm-back-home:hover { border-color: rgba(0,0,0,0.15); color: #0f172a; background: rgba(0,0,0,0.04); }
