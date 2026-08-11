@@ -1211,12 +1211,13 @@ function solveReaction(_m:RegExpMatchArray,text?:string):LocalSolution|null{
 
 function solveEvaluateExpr(_m:RegExpMatchArray,text?:string):LocalSolution|null{
   const t=(text||_m[0]).trim();
-  const exprM=t.match(/(?:calculate|evaluate|compute|what is|find the value of|solve)s+(.+)/i);
-  let expr=exprM?exprM[1].trim():t.replace(/^(calculate|evaluate|compute|what is|find the value of|solve)s*/i,'').trim();
-  expr=expr.replace(/[?!.,]+$/,'').replace(/×/g,'*').replace(/÷/g,'/').replace(/\^/g,'**').replace(/pi/g,'Math.PI');
-  if(!/^[d\s+\-*/().%eEPIsincotalgqrtbMC]+$/i.test(expr))return null;
+  const exprM=t.match(/(?:calculate|evaluate|compute|what is|find the value of|solve)\s+(.+)/i);
+  let expr=exprM?exprM[1].trim():t.replace(/^(calculate|evaluate|compute|what is|find the value of|solve)\s*/i,'').trim();
+  expr=expr.replace(/[?!.,]+$/,'').replace(/×/g,'*').replace(/÷/g,'/').replace(/\^/g,'**').replace(/\bpi\b/gi,'Math.PI').replace(/²/g,'**2').replace(/³/g,'**3');
+  // Allow digits, operators, parens, dots, math function names, Math.*
+  if(!/^[\d\s+\-*/().%eEPIsincotalgqrtbMC,.]+$/i.test(expr))return null;
   try{
-    const reps=[['sqrt(','Math.sqrt('],['sin(','Math.sin('],['cos(','Math.cos('],['tan(','Math.tan('],['log(','Math.log10('],['ln(','Math.log('],['abs(','Math.abs(']];
+    const reps=[['sqrt(','Math.sqrt('],['cbrt(','Math.cbrt('],['sin(','Math.sin('],['cos(','Math.cos('],['tan(','Math.tan('],['log(','Math.log10('],['ln(','Math.log('],['abs(','Math.abs(']];
     let ev=expr;for(const[from,to]of reps){ev=ev.split(from).join(to)}
     const result=new Function('"use strict";return('+ev+')')();
     if(typeof result!=='number'||!isFinite(result))return null;
@@ -1338,7 +1339,26 @@ const PATTERNS:PatternRule[]=[
 // ── JEE Advanced/Mains/KCET Extension: tried first above ──────────────
 
 export async function tryLocalSolve(problem:string,subject:string):Promise<LocalSolution|null>{
-  const norm=problem.toLowerCase().trim();
+  let norm=problem.toLowerCase().trim();
+
+  // ── Universal arithmetic fallback: handles bare expressions like "2+2", "15*3", "144/12", etc. ──
+  const arithOnly=norm.replace(/[?!.,;:"'\s=]+$/,'').replace(/^\s*(calculate|evaluate|compute|what is|find the value of|solve|\?)\s*/i,'').trim();
+  const arithTest=arithOnly.replace(/×/g,'*').replace(/÷/g,'/').replace(/\^/g,'**').replace(/²/g,'**2').replace(/³/g,'**3').replace(/\bpi\b/gi,'3.14159265358979');
+  if(/^[\d+\-*/().%eEPIsincotalgqrtbMC ,.]+$/i.test(arithTest)&&/\d/.test(arithTest)&&(arithTest.includes('+')||arithTest.includes('-')||arithTest.includes('*')||arithTest.includes('/'))){
+    try{
+      const reps=[['sqrt(','Math.sqrt('],['cbrt(','Math.cbrt('],['sin(','Math.sin('],['cos(','Math.cos('],['tan(','Math.tan('],['log(','Math.log10('],['ln(','Math.log('],['abs(','Math.abs(']];
+      let ev=arithTest;for(const[from,to]of reps){ev=ev.split(from).join(to)}
+      const result=new Function('"use strict";return('+ev+')')();
+      if(typeof result==='number'&&isFinite(result)){
+        const rounded=Math.round(result*10000)/10000;
+        const display=Number.isInteger(rounded)?String(rounded):rounded.toString();
+        console.log(`[Local-Arith] Solved: "${norm.slice(0,60)}" = ${display}`);
+        return{finalAnswer:'= '+display,finalFormula:'= '+display,
+          steps:[{desc:'Expression: '+arithOnly,formula:arithOnly},{desc:'Compute using BODMAS/PEMDAS',formula:'= '+display}],
+          altSteps:[],similar:[],mistakes:['BODMAS order error','Sign mistake','Carry/borrow error']};
+      }
+    }catch{}
+  }
 
   // Try JEE-level solvers FIRST (they handle harder problems)
   const jeeSol=tryJEESolve(norm,subject);
