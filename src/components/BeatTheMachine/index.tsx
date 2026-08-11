@@ -60,6 +60,9 @@ export default function BeatTheMachine({ onExit }: { onExit?: () => void }) {
 
   return (
     <div className="btm-root" onKeyDown={handleKeyDown}>
+      {/* ── Moon ── */}
+      <div className="btm-moon" />
+
       {/* ── Top bar (all screens except setup) ── */}
       {store.screen !== 'setup' && (
         <div className="btm-topbar">
@@ -143,6 +146,10 @@ function SetupScreen() {
         <button className="btm-btn-primary" onClick={handleCreate} disabled={name.trim().length < 2}>
           CREATE ACCOUNT
         </button>
+        <a href="/" className="btm-back-home">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Back to SpeedSolve AI
+        </a>
         {store.allUsers.length > 0 && (
           <div className="btm-existing-users">
             <div className="btm-divider"><span>or continue as</span></div>
@@ -180,6 +187,10 @@ function HomeScreen() {
           <button className="btm-btn-primary" onClick={() => store.setScreen('difficulty')}>CHALLENGE</button>
           <button className="btm-btn-secondary" onClick={() => store.generateChallenge('scholar', 'mathematics', true)}>DAILY MACHINE</button>
         </div>
+        <a href="/" className="btm-back-home">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Back to SpeedSolve AI
+        </a>
 
         <div className="btm-home-stats">
           <div className="btm-stat-chip">
@@ -258,6 +269,10 @@ function DifficultyScreen() {
         </div>
 
         <button className="btm-ghost" onClick={() => store.setScreen('home')}>Back</button>
+        <a href="/" className="btm-back-home">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Back to SpeedSolve AI
+        </a>
       </div>
     </div>
   )
@@ -477,6 +492,10 @@ function StatsScreen() {
         )}
 
         <button className="btm-ghost" onClick={() => store.setScreen('home')}>Back</button>
+        <a href="/" className="btm-back-home">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Back to SpeedSolve AI
+        </a>
       </div>
     </div>
   )
