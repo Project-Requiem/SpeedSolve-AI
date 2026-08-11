@@ -6,10 +6,6 @@ import dynamic from 'next/dynamic'
 
 const SolutionGraph = dynamic(() => import('@/components/SolutionGraph'), { ssr: false })
 const SolutionDiagram = dynamic(() => import('@/components/SolutionDiagram'), { ssr: false })
-const BeatTheMachine = dynamic(() => import('@/components/BeatTheMachine'), { ssr: false })
-
-// ─── BTM Section Ref ───────────────────────────────────────────
-let btmSectionRef: HTMLDivElement | null = null
 
 // ─── Types ───────────────────────────────────────────────────────
 interface SampleProblem { text: string; label: string }
@@ -1719,7 +1715,7 @@ export default function Home() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               <span>Feedback</span>
             </button>
-            <a href="#beat-the-machine" onClick={e => { e.preventDefault(); btmSectionRef?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }} className="nav-btm-link">
+            <a href="/beat-the-machine" className="nav-btm-link">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
               <span>Beat The Machine</span>
             </a>
@@ -2348,8 +2344,6 @@ export default function Home() {
         </div>
         <p className="footer-copy">SpeedSolve AI &copy; 2026 &mdash; Built for students in Grades 6&ndash;12</p>
       </footer>
-      {/* Beat The Machine — full overlay view */}
-      {typeof window !== 'undefined' && btmView ? <BeatTheMachine onExit={() => setBtmView(false)} /> : null}
     </div>
   )
 }
