@@ -1744,34 +1744,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Beat The Machine — Special Glowing CTA */}
-      <div className="btm-cta-wrap fade-up" data-delay="200">
-        <a href="/beat-the-machine" className="btm-cta-glow">
-          <div className="btm-cta-glow-ring" />
-          <div className="btm-cta-glow-ring btm-cta-glow-ring-2" />
-          <div className="btm-cta-glow-ring btm-cta-glow-ring-3" />
-          <div className="btm-cta-sparks">
-            <span /><span /><span /><span /><span /><span /><span /><span />
-          </div>
-          <div className="btm-cta-inner">
-            <div className="btm-cta-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-            </div>
-            <div className="btm-cta-text">
-              <span className="btm-cta-title">BEAT THE MACHINE</span>
-              <span className="btm-cta-sub">Race against SpeedSolve AI</span>
-            </div>
-            <div className="btm-cta-arrow">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </div>
-          </div>
-          <div className="btm-cta-badge">
-            <span className="btm-cta-badge-dot" />
-            UNIQUE FEATURE
-          </div>
-        </a>
-      </div>
-
       {/* Board Selector */}
       <div className="board-row fade-up" data-delay="300">
         <div className="selector-group">
@@ -2346,6 +2318,23 @@ export default function Home() {
       <button className={`scroll-top-btn${showScrollTop ? ' visible' : ''}`} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Scroll to top">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="18 15 12 9 6 15"/></svg>
       </button>
+
+      {/* Beat The Machine — Compact Glowing CTA */}
+      <div className="btm-cta-wrap">
+        <a href="/beat-the-machine" className="btm-cta-glow">
+          <div className="btm-cta-glow-ring" />
+          <div className="btm-cta-glow-ring btm-cta-glow-ring-2" />
+          <div className="btm-cta-sparks">
+            <span /><span /><span /><span /><span /><span />
+          </div>
+          <span className="btm-cta-title">BEAT THE MACHINE</span>
+          <span className="btm-cta-badge">
+            <span className="btm-cta-badge-dot" />
+            UNIQUE
+          </span>
+          <svg className="btm-cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
 
       {/* Footer */}
       <footer className="footer fade-up" data-delay="100">

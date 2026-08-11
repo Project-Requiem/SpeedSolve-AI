@@ -51,19 +51,19 @@ interface MoonDetail {
   color: string; opacity: number; blur: number
 }
 const MOON_DETAILS: MoonDetail[] = [
-  // Major maria (dark patches)
-  { x: 35, y: 30, rx: 14, ry: 12, color: 'rgba(180,175,160,0.25)', opacity: 0.3, blur: 2 },
-  { x: 55, y: 55, rx: 18, ry: 15, color: 'rgba(170,168,155,0.2)', opacity: 0.25, blur: 3 },
-  { x: 28, y: 62, rx: 10, ry: 8, color: 'rgba(175,170,158,0.2)', opacity: 0.2, blur: 2 },
-  // Craters (small bright rings)
-  { x: 45, y: 22, rx: 4, ry: 4, color: 'rgba(255,252,240,0.15)', opacity: 0.3, blur: 0.5 },
-  { x: 62, y: 38, rx: 3, ry: 3, color: 'rgba(255,250,235,0.12)', opacity: 0.25, blur: 0.5 },
-  { x: 38, y: 48, rx: 5, ry: 4.5, color: 'rgba(255,252,238,0.1)', opacity: 0.2, blur: 1 },
-  { x: 70, y: 28, rx: 3.5, ry: 3, color: 'rgba(255,250,240,0.1)', opacity: 0.2, blur: 0.5 },
-  { x: 50, y: 68, rx: 6, ry: 5, color: 'rgba(255,252,240,0.08)', opacity: 0.15, blur: 1 },
-  { x: 25, y: 42, rx: 3, ry: 2.5, color: 'rgba(255,250,235,0.12)', opacity: 0.22, blur: 0.5 },
-  // Tycho-like bright ray crater
-  { x: 52, y: 72, rx: 2.5, ry: 2.5, color: 'rgba(255,255,245,0.2)', opacity: 0.35, blur: 0 },
+  // Major maria — very subtle dark patches
+  { x: 32, y: 28, rx: 16, ry: 13, color: 'rgba(140,138,125,0.12)', opacity: 0.25, blur: 3 },
+  { x: 52, y: 52, rx: 20, ry: 16, color: 'rgba(135,133,120,0.1)', opacity: 0.2, blur: 4 },
+  { x: 25, y: 60, rx: 11, ry: 9, color: 'rgba(138,136,124,0.1)', opacity: 0.18, blur: 3 },
+  // Small craters — extremely subtle
+  { x: 42, y: 20, rx: 5, ry: 5, color: 'rgba(255,252,245,0.06)', opacity: 0.2, blur: 1 },
+  { x: 60, y: 36, rx: 3.5, ry: 3.5, color: 'rgba(255,252,245,0.05)', opacity: 0.18, blur: 1 },
+  { x: 35, y: 46, rx: 6, ry: 5, color: 'rgba(255,252,245,0.04)', opacity: 0.15, blur: 1.5 },
+  { x: 68, y: 26, rx: 4, ry: 3.5, color: 'rgba(255,252,245,0.04)', opacity: 0.15, blur: 1 },
+  { x: 48, y: 66, rx: 7, ry: 6, color: 'rgba(255,252,245,0.03)', opacity: 0.12, blur: 2 },
+  { x: 22, y: 40, rx: 3.5, ry: 3, color: 'rgba(255,252,245,0.05)', opacity: 0.16, blur: 1 },
+  // Tycho-like bright spot
+  { x: 50, y: 70, rx: 3, ry: 3, color: 'rgba(255,255,248,0.08)', opacity: 0.2, blur: 0.5 },
 ]
 
 // ─── Cloud data for day mode ─────────
@@ -155,15 +155,15 @@ export default function SkyField({ mode }: SkyFieldProps) {
         translateY: [{ value: 8, duration: 15000 }, { value: 16, duration: 12000 }, { value: 5, duration: 18000 }, { value: 0, duration: 15000 }],
         easing: 'easeInOutSine', loop: true,
       }))
-      // Moon glow
+      // Moon glow pulse
       anims.current.push(anime({
         targets: moon,
         boxShadow: [
-          '0 0 20px 5px rgba(255,250,230,0.15), 0 0 60px 15px rgba(200,210,240,0.08), 0 0 120px 30px rgba(150,170,220,0.04)',
-          '0 0 25px 8px rgba(255,250,230,0.22), 0 0 70px 20px rgba(200,210,240,0.12), 0 0 140px 40px rgba(150,170,220,0.06)',
-          '0 0 18px 4px rgba(255,250,230,0.12), 0 0 50px 12px rgba(200,210,240,0.06), 0 0 100px 25px rgba(150,170,220,0.03)',
+          '0 0 2px 1px rgba(240,236,220,0.2), 0 0 15px 4px rgba(220,225,240,0.1), 0 0 50px 15px rgba(180,195,230,0.06), 0 0 100px 30px rgba(150,170,210,0.03)',
+          '0 0 3px 1px rgba(240,236,220,0.25), 0 0 20px 6px rgba(220,225,240,0.13), 0 0 60px 18px rgba(180,195,230,0.08), 0 0 110px 35px rgba(150,170,210,0.04)',
+          '0 0 2px 1px rgba(240,236,220,0.15), 0 0 12px 3px rgba(220,225,240,0.07), 0 0 40px 12px rgba(180,195,230,0.04), 0 0 90px 25px rgba(150,170,210,0.02)',
         ],
-        duration: 10000, easing: 'easeInOutSine', loop: true, direction: 'alternate',
+        duration: 12000, easing: 'easeInOutSine', loop: true, direction: 'alternate',
       }))
 
       return () => { anims.current.forEach(a => a.pause()); anims.current = []; starEls.forEach(el => el.remove()) }

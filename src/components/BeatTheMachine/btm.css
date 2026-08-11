@@ -45,41 +45,48 @@
 .btm-moon-anime {
   position: fixed;
   z-index: -1;
-  width: 80px;
-  height: 80px;
-  top: 8%;
-  right: 10%;
+  width: 90px;
+  height: 90px;
+  top: 7%;
+  right: 12%;
   border-radius: 50%;
   pointer-events: none;
   overflow: hidden;
   background:
-    radial-gradient(circle at 40% 35%, #f5f0e0 0%, #ede8d4 20%, #e2dcc8 40%, #d5d0bc 65%, #c8c3b2 100%);
+    radial-gradient(circle at 35% 30%, #f0ece0 0%, #e8e4d8 15%, #ddd8cc 30%, #d0cbc0 50%, #c5c0b5 70%, #bab5aa 100%);
   box-shadow:
-    0 0 20px 5px rgba(255,250,230,0.15),
-    0 0 60px 15px rgba(200,210,240,0.08),
-    0 0 120px 30px rgba(150,170,220,0.04);
+    0 0 2px 1px rgba(240,236,220,0.2),
+    0 0 15px 4px rgba(220,225,240,0.1),
+    0 0 50px 15px rgba(180,195,230,0.06),
+    0 0 100px 30px rgba(150,170,210,0.03);
 }
-/* Moon crescent shadow — dark, not sky-colored */
+/* Moon crescent shadow — soft feathered edge */
 .btm-moon-crescent {
   position: absolute;
-  width: 64px;
-  height: 64px;
-  top: -5px;
-  right: -10px;
+  width: 72px;
+  height: 72px;
+  top: -4px;
+  right: -12px;
   border-radius: 50%;
-  background: radial-gradient(circle at 40% 45%, #0b1a2e 50%, rgba(11,26,46,0.6) 65%, transparent 80%);
+  background: radial-gradient(circle at 45% 50%,
+    rgba(8,18,35,0.95) 30%,
+    rgba(8,18,35,0.85) 42%,
+    rgba(8,18,35,0.6) 54%,
+    rgba(8,18,35,0.3) 65%,
+    rgba(8,18,35,0.1) 76%,
+    transparent 88%);
   pointer-events: none;
 }
-/* Moon surface texture overlay */
+/* Moon surface — subtle light scattering */
 .btm-moon-anime::before {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: 50%;
   background:
-    radial-gradient(ellipse 40% 35% at 38% 32%, rgba(160,155,140,0.15) 0%, transparent 100%),
-    radial-gradient(ellipse 50% 40% at 58% 58%, rgba(150,148,135,0.12) 0%, transparent 100%),
-    radial-gradient(ellipse 25% 20% at 30% 65%, rgba(155,150,138,0.1) 0%, transparent 100%);
+    radial-gradient(ellipse 45% 40% at 30% 35%, rgba(255,255,248,0.06) 0%, transparent 100%),
+    radial-gradient(ellipse 30% 25% at 55% 60%, rgba(0,0,0,0.04) 0%, transparent 100%),
+    radial-gradient(ellipse 20% 18% at 40% 70%, rgba(0,0,0,0.03) 0%, transparent 100%);
   pointer-events: none;
 }
 
