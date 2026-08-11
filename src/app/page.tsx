@@ -1715,10 +1715,6 @@ export default function Home() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               <span>Feedback</span>
             </button>
-            <a href="/beat-the-machine" className="nav-btm-link">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              <span>Beat The Machine</span>
-            </a>
             <button className="theme-toggle" onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">
               <span className="icon-sun"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></span>
               <span className="icon-moon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
@@ -1748,7 +1744,33 @@ export default function Home() {
         </div>
       </div>
 
-
+      {/* Beat The Machine — Special Glowing CTA */}
+      <div className="btm-cta-wrap fade-up" data-delay="200">
+        <a href="/beat-the-machine" className="btm-cta-glow">
+          <div className="btm-cta-glow-ring" />
+          <div className="btm-cta-glow-ring btm-cta-glow-ring-2" />
+          <div className="btm-cta-glow-ring btm-cta-glow-ring-3" />
+          <div className="btm-cta-sparks">
+            <span /><span /><span /><span /><span /><span /><span /><span />
+          </div>
+          <div className="btm-cta-inner">
+            <div className="btm-cta-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
+            <div className="btm-cta-text">
+              <span className="btm-cta-title">BEAT THE MACHINE</span>
+              <span className="btm-cta-sub">Race against SpeedSolve AI</span>
+            </div>
+            <div className="btm-cta-arrow">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </div>
+          <div className="btm-cta-badge">
+            <span className="btm-cta-badge-dot" />
+            UNIQUE FEATURE
+          </div>
+        </a>
+      </div>
 
       {/* Board Selector */}
       <div className="board-row fade-up" data-delay="300">
