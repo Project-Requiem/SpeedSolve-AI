@@ -522,7 +522,7 @@ body {
   max-width: 1280px; margin: 0 auto; position: relative; z-index: 1;
 }
 .selector-inner { display: flex; flex-direction: column; gap: 14px; }
-.selector-label { font-size: clamp(0.65rem, 0.7vw, 0.72rem); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; text-align: center; opacity: 0.35; }
+.selector-label { font-size: clamp(0.65rem, 0.7vw, 0.72rem); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; text-align: center; }
 .subject-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(10px, 1.2vw, 14px); }
 
 .auto-switch-toast { display:flex;align-items:center;gap:8px;justify-content:center;margin-top:10px;padding:8px 18px;border-radius:100px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;font-size:0.78rem;font-weight:500;font-family:var(--font);animation:toastIn 0.35s ease,toastOut 0.35s ease 2s forwards; }
@@ -1793,36 +1793,13 @@ body {
 /* ===========================
    BTM — GLOWING CTA BUTTON
    =========================== */
-/* ── Hero overlay: sits on top of "Choose subject" label ── */
-.btm-cta-hero {
-  position: absolute;
-  z-index: 5;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 9px 20px 9px 22px;
-  gap: 10px;
-  animation: btmCtaHeroIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both;
-}
-.btm-cta-hero .btm-cta-title {
-  font-size: 0.72rem;
-  letter-spacing: 1.2px;
-}
-.btm-cta-hero .btm-cta-badge {
-  font-size: 0.45rem;
-  padding: 2px 7px;
-}
-.btm-cta-hero .btm-cta-arrow { width: 16px; height: 16px; }
-@keyframes btmCtaHeroIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(-6px) scale(0.93); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
-}
-.btm-cta-hero:hover {
-  transform: translateX(-50%) scale(1.06);
-  box-shadow: 0 0 20px rgba(124,58,237,0.25), 0 0 40px rgba(236,72,153,0.1), 0 4px 20px rgba(0,0,0,0.15);
-}
-.btm-cta-hero:active {
-  transform: translateX(-50%) scale(0.97);
+/* ── CTA row: centered between ticker and board selector ── */
+.btm-cta-row {
+  display: flex;
+  justify-content: center;
+  padding: 6px clamp(16px, 3vw, 28px) 4px;
+  max-width: 1280px;
+  margin: 0 auto;
 }
 
 .btm-cta-glow {

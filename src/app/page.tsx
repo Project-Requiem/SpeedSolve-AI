@@ -1744,6 +1744,23 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Beat The Machine — clean centered row */}
+      <div className="btm-cta-row fade-up" data-delay="350">
+        <a href="/beat-the-machine" className="btm-cta-glow">
+          <div className="btm-cta-glow-ring" />
+          <div className="btm-cta-glow-ring btm-cta-glow-ring-2" />
+          <div className="btm-cta-sparks">
+            <span /><span /><span /><span /><span /><span />
+          </div>
+          <span className="btm-cta-title">BEAT THE MACHINE</span>
+          <span className="btm-cta-badge">
+            <span className="btm-cta-badge-dot" />
+            UNIQUE
+          </span>
+          <svg className="btm-cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+
       {/* Board Selector */}
       <div className="board-row fade-up" data-delay="300">
         <div className="selector-group">
@@ -1760,22 +1777,8 @@ export default function Home() {
 
       {/* Subject Selector — with shift animation class */}
       <div className="subject-selector fade-up" data-delay="400">
-        <div className="selector-inner" style={{ position: 'relative' }}>
+        <div className="selector-inner">
           <p className="selector-label">Choose subject</p>
-          {/* Beat The Machine — hero overlay on Choose Subject */}
-          <a href="/beat-the-machine" className="btm-cta-glow btm-cta-hero">
-            <div className="btm-cta-glow-ring" />
-            <div className="btm-cta-glow-ring btm-cta-glow-ring-2" />
-            <div className="btm-cta-sparks">
-              <span /><span /><span /><span /><span /><span />
-            </div>
-            <span className="btm-cta-title">BEAT THE MACHINE</span>
-            <span className="btm-cta-badge">
-              <span className="btm-cta-badge-dot" />
-              UNIQUE
-            </span>
-            <svg className="btm-cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          </a>
           <div className="subject-cards">
             {([
               { key: 'mathematics' as Subject, icon: <>&sum;</>, desc: 'Algebra · Calculus · Geometry · Trig · Stats · Probability' },
