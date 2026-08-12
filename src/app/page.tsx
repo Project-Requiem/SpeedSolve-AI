@@ -1760,9 +1760,23 @@ export default function Home() {
 
       {/* Subject Selector — with shift animation class */}
       <div className="subject-selector fade-up" data-delay="400">
-        <div className="selector-inner">
+        <div className="selector-inner" style={{ position: 'relative' }}>
           <p className="selector-label">Choose subject</p>
-          <div className="subject-cards" style={{ position: 'relative' }}>
+          {/* Beat The Machine — hero overlay on Choose Subject */}
+          <a href="/beat-the-machine" className="btm-cta-glow btm-cta-hero">
+            <div className="btm-cta-glow-ring" />
+            <div className="btm-cta-glow-ring btm-cta-glow-ring-2" />
+            <div className="btm-cta-sparks">
+              <span /><span /><span /><span /><span /><span />
+            </div>
+            <span className="btm-cta-title">BEAT THE MACHINE</span>
+            <span className="btm-cta-badge">
+              <span className="btm-cta-badge-dot" />
+              UNIQUE
+            </span>
+            <svg className="btm-cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+          <div className="subject-cards">
             {([
               { key: 'mathematics' as Subject, icon: <>&sum;</>, desc: 'Algebra · Calculus · Geometry · Trig · Stats · Probability' },
               { key: 'physics' as Subject, icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>, desc: 'Kinematics · Forces · Energy · Waves · Electricity · Optics' },
@@ -1777,20 +1791,6 @@ export default function Home() {
                 <div className="subj-check"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
               </button>
             ))}
-            {/* Beat The Machine — overlaid on top of chemistry card */}
-            <a href="/beat-the-machine" className="btm-cta-glow btm-cta-overlay">
-              <div className="btm-cta-glow-ring" />
-              <div className="btm-cta-glow-ring btm-cta-glow-ring-2" />
-              <div className="btm-cta-sparks">
-                <span /><span /><span /><span /><span /><span />
-              </div>
-              <span className="btm-cta-title">BEAT THE MACHINE</span>
-              <span className="btm-cta-badge">
-                <span className="btm-cta-badge-dot" />
-                UNIQUE
-              </span>
-              <svg className="btm-cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </a>
           </div>
           {autoSwitched && (
             <div className="auto-switch-toast">
