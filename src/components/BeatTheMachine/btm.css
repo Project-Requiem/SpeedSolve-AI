@@ -6,17 +6,17 @@
   position: fixed;
   inset: 0;
   z-index: 10000;
-  background: linear-gradient(180deg, #0b1a2e 0%, #0d1f3c 30%, #0a1628 60%, #071020 100%);
+  background: transparent;
   color: var(--text-primary, #f0f4ff);
   font-family: 'Inter', system-ui, sans-serif;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   animation: btmFadeIn 0.3s ease;
-  transition: background 0.8s ease, color 0.8s ease;
+  transition: color 0.8s ease;
 }
 .btm-root.btm-day {
-  background: linear-gradient(180deg, #4a90d9 0%, #6aaee6 25%, #87ceeb 50%, #a8ddf0 75%, #c8e8f8 100%);
+  background: transparent;
   color: #0f1b2d;
 }
 
@@ -179,67 +179,112 @@
   to { opacity: 1; }
 }
 
-/* ── Anime.js star field container ── */
+/* ── Sky gradient layers ── */
+.btm-sky-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  pointer-events: none;
+  opacity: 0;
+  will-change: opacity;
+}
+.btm-sky-night {
+  background: linear-gradient(180deg, #0b1a2e 0%, #0d1f3c 30%, #0a1628 60%, #071020 100%);
+  opacity: 1;
+}
+.btm-sky-day {
+  background: linear-gradient(180deg, #4a90d9 0%, #6aaee6 25%, #87ceeb 50%, #a8ddf0 75%, #c8e8f8 100%);
+}
+.btm-sky-transition {
+  opacity: 0;
+}
+
+/* ── Stars container (night) ── */
 .btm-skyfield {
   position: fixed;
   inset: 0;
   z-index: -2;
   pointer-events: none;
   overflow: hidden;
+  will-change: opacity;
 }
 
-/* ── Anime.js day container ── */
+/* ── Clouds container (day) ── */
 .btm-dayfield {
   position: fixed;
   inset: 0;
   z-index: -2;
   pointer-events: none;
   overflow: hidden;
+  will-change: opacity;
 }
 
-/* ── Moon — uses real image ── */
-.btm-moon-anime {
+/* ── Celestial wrapper — same position for moon & sun ── */
+.btm-celestial-wrap {
   position: fixed;
   z-index: -1;
   width: 100px;
   height: 100px;
-  top: 6%;
+  top: 7%;
   right: 10%;
-  border-radius: 50%;
   pointer-events: none;
-  overflow: hidden;
+  will-change: transform, opacity;
+}
+
+/* ── Moon (inner) — ambient CSS animations ── */
+.btm-moon-anime {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
   background: url('https://static.typingclub.com/m/tpmedia/img/moon.png') center/contain no-repeat;
   box-shadow:
     0 0 4px 1px rgba(240,236,220,0.15),
     0 0 20px 6px rgba(200,210,240,0.08),
     0 0 60px 20px rgba(180,195,230,0.05),
     0 0 120px 40px rgba(150,170,210,0.025);
+  animation:
+    btmMoonFloat 20s ease-in-out infinite,
+    btmMoonGlow 12s ease-in-out infinite alternate;
 }
-/* Hide CSS crescent & surface — image handles it */
+@keyframes btmMoonFloat {
+  0%, 100% { transform: translate(0, 0); }
+  25%  { transform: translate(-8px, 6px); }
+  50%  { transform: translate(-14px, 12px); }
+  75%  { transform: translate(-5px, 4px); }
+}
+@keyframes btmMoonGlow {
+  0%   { box-shadow: 0 0 4px 1px rgba(240,236,220,0.15), 0 0 20px 6px rgba(200,210,240,0.08), 0 0 60px 20px rgba(180,195,230,0.05), 0 0 120px 40px rgba(150,170,210,0.025); }
+  100% { box-shadow: 0 0 6px 2px rgba(240,236,220,0.25), 0 0 30px 10px rgba(200,210,240,0.13), 0 0 80px 28px rgba(180,195,230,0.08), 0 0 140px 50px rgba(150,170,210,0.04); }
+}
+/* Hide CSS crescent & surface — real image handles it */
 .btm-moon-crescent,
 .btm-moon-anime::before { display: none; }
 .btm-moon-detail { display: none; }
 
-/* ── Sun (day mode) ── */
+/* ── Sun (inner) — ambient CSS animations ── */
 .btm-sun-anime {
-  position: fixed;
-  z-index: -1;
-  width: 70px;
-  height: 70px;
-  top: 8%;
-  right: 10%;
-  border-radius: 50%;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.btm-sun-core {
   width: 100%;
   height: 100%;
   border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: btmSunPulse 8s ease-in-out infinite;
+}
+@keyframes btmSunPulse {
+  0%, 100% { transform: scale(1); }
+  50%  { transform: scale(1.03); }
+}
+.btm-sun-core {
+  width: 70%;
+  height: 70%;
+  border-radius: 50%;
   background: radial-gradient(circle at 40% 40%, #fff8dc 0%, #ffe066 30%, #ffcc33 60%, #f0a830 100%);
-  box-shadow: 0 0 30px 10px rgba(255,200,50,0.3), 0 0 80px 30px rgba(255,180,50,0.15), 0 0 140px 50px rgba(255,160,50,0.06);
+  animation: btmSunGlow 8s ease-in-out infinite alternate;
+}
+@keyframes btmSunGlow {
+  0%   { box-shadow: 0 0 30px 10px rgba(255,200,50,0.3), 0 0 80px 30px rgba(255,180,50,0.15), 0 0 140px 50px rgba(255,160,50,0.06); }
+  100% { box-shadow: 0 0 40px 15px rgba(255,200,50,0.4), 0 0 100px 40px rgba(255,180,50,0.2), 0 0 160px 60px rgba(255,160,50,0.08); }
 }
 .btm-sun-rays {
   position: absolute;
@@ -270,17 +315,11 @@
   opacity: 1;
 }
 
-/* ── Light theme: hide sky elements ── */
-[data-theme='light'] .btm-skyfield,
-[data-theme='light'] .btm-moon-anime,
-[data-theme='light'] .btm-dayfield,
-[data-theme='light'] .btm-sun-anime {
-  display: none;
-}
+/* ── Light theme: BTM manages its own sky, keep it visible ── */
 
 /* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
-  .btm-moon-anime, .btm-sun-rays { animation: none !important; }
+  .btm-moon-anime, .btm-sun-anime, .btm-sun-rays, .btm-sun-core { animation: none !important; }
 }
 
 /* ── Top bar ── */
@@ -894,6 +933,6 @@
 
 /* ── Light theme ── */
 [data-theme='light'] .btm-root {
-  background: linear-gradient(180deg, #b8d8f0 0%, #d0e8f8 30%, #e0f0fa 60%, #eef6fc 100%);
+  background: transparent;
   color: #0f172a;
 }
