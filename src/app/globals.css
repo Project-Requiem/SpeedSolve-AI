@@ -1470,6 +1470,22 @@ body {
 @media (max-width: 768px) {
   .board-row { padding: 88px 16px 0; }
   .subject-cards { grid-template-columns: repeat(2, 1fr); }
+  /* BTM overlay: on 2-col grid, chemistry is row 2 col 1 → center of grid */
+  .btm-cta-overlay {
+    left: 25%;
+    top: auto;
+    bottom: -40px;
+    transform: translateX(-50%);
+    width: auto;
+    min-width: unset;
+    animation: btmCtaOverlayInMobile 0.6s ease 0.5s both;
+  }
+  @keyframes btmCtaOverlayInMobile {
+    from { opacity: 0; transform: translateX(-50%) scale(0.92); }
+    to   { opacity: 1; transform: translateX(-50%) scale(1); }
+  }
+  .btm-cta-overlay:hover { transform: translateX(-50%) scale(1.05); }
+  .btm-cta-overlay:active { transform: translateX(-50%) scale(0.97); }
   .panel-body { padding: 14px; }
   .app-container { padding: 0 16px 40px; }
   .subject-selector { padding: 12px 16px 14px; }
@@ -1793,11 +1809,29 @@ body {
 /* ===========================
    BTM — GLOWING CTA BUTTON
    =========================== */
-.btm-cta-wrap {
-  display: flex;
+/* ── Overlay mode: sits on top of chemistry card (3rd grid column) ── */
+.btm-cta-overlay {
+  position: absolute;
+  z-index: 5;
+  top: 50%;
+  left: calc(100% / 3 * 2 + 100% / 6);
+  transform: translate(-50%, -50%);
+  width: calc(100% / 3 - 8px);
+  min-width: 180px;
   justify-content: center;
-  padding: 28px 16px 8px;
+  animation: btmCtaOverlayIn 0.6s ease 0.5s both;
 }
+@keyframes btmCtaOverlayIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+.btm-cta-overlay:hover {
+  transform: translate(-50%, -50%) scale(1.05);
+}
+.btm-cta-overlay:active {
+  transform: translate(-50%, -50%) scale(0.97);
+}
+
 .btm-cta-glow {
   position: relative;
   display: inline-flex;
