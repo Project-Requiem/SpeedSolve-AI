@@ -1810,21 +1810,22 @@ body {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 9px;
-  padding: 8px 18px 8px 20px;
+  gap: 10px;
+  padding: 10px 22px 10px 24px;
   border-radius: 100px;
   text-decoration: none;
   color: #fff;
   cursor: pointer;
   overflow: visible;
-  background: linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(236,72,153,0.08) 100%);
-  border: 1px solid rgba(124,58,237,0.22);
+  background: linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(236,72,153,0.1) 50%, rgba(59,130,246,0.08) 100%);
+  border: 1.5px solid rgba(124,58,237,0.3);
+  box-shadow: 0 0 12px rgba(124,58,237,0.1), 0 2px 8px rgba(0,0,0,0.2);
   transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .btm-cta-glow:hover {
-  transform: scale(1.05);
-  border-color: rgba(124,58,237,0.5);
-  box-shadow: 0 0 16px rgba(124,58,237,0.2), 0 0 32px rgba(236,72,153,0.08);
+  transform: scale(1.06);
+  border-color: rgba(124,58,237,0.55);
+  box-shadow: 0 0 20px rgba(124,58,237,0.25), 0 0 40px rgba(236,72,153,0.1), 0 4px 16px rgba(0,0,0,0.25);
 }
 .btm-cta-glow:active {
   transform: scale(0.97);
@@ -1929,22 +1930,22 @@ body {
 
 .btm-cta-title {
   font-family: 'Outfit', system-ui, sans-serif;
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 1px;
-  background: linear-gradient(90deg, #c084fc, #f472b6);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  background: linear-gradient(90deg, #c084fc 0%, #f472b6 40%, #818cf8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 .btm-cta-arrow {
-  color: rgba(124,58,237,0.4);
+  color: rgba(124,58,237,0.5);
   transition: transform 0.3s ease, color 0.3s ease;
   flex-shrink: 0;
 }
 .btm-cta-glow:hover .btm-cta-arrow {
-  transform: translateX(3px);
-  color: rgba(124,58,237,0.8);
+  transform: translateX(4px);
+  color: rgba(124,58,237,0.9);
 }
 
 /* ── UNIQUE badge ── */
@@ -1952,26 +1953,26 @@ body {
   position: static;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 1px 6px;
+  gap: 4px;
+  padding: 2px 8px;
   border-radius: 100px;
   background: linear-gradient(135deg, #7c3aed, #ec4899);
   color: #fff;
   font-family: 'Outfit', system-ui, sans-serif;
-  font-size: 0.42rem;
-  font-weight: 700;
-  letter-spacing: 0.8px;
+  font-size: 0.48rem;
+  font-weight: 800;
+  letter-spacing: 1px;
   white-space: nowrap;
-  box-shadow: 0 0 6px rgba(124,58,237,0.3);
+  box-shadow: 0 0 8px rgba(124,58,237,0.35);
   z-index: 3;
   animation: btmCtaBadgePulse 2.5s ease-in-out infinite;
 }
 .btm-cta-badge-dot {
-  width: 3px;
-  height: 3px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
   background: #4ade80;
-  box-shadow: 0 0 3px #4ade80;
+  box-shadow: 0 0 4px #4ade80;
   animation: btmCtaDotBlink 1.2s ease-in-out infinite;
 }
 @keyframes btmCtaDotBlink {
@@ -1983,16 +1984,22 @@ body {
   50%      { box-shadow: 0 0 10px rgba(124,58,237,0.45); }
 }
 
-/* ── Light theme ── */
+/* ── Light theme — deeper gradient + stronger border to pop on white ── */
 [data-theme="light"] .btm-cta-glow {
-  background: linear-gradient(135deg, rgba(124,58,237,0.06) 0%, rgba(236,72,153,0.04) 100%);
-  border-color: rgba(124,58,237,0.15);
+  background: linear-gradient(135deg, rgba(124,58,237,0.1) 0%, rgba(236,72,153,0.07) 50%, rgba(59,130,246,0.05) 100%);
+  border-color: rgba(124,58,237,0.25);
+  box-shadow: 0 0 12px rgba(124,58,237,0.08), 0 2px 8px rgba(124,58,237,0.06);
+}
+[data-theme="light"] .btm-cta-glow:hover {
+  border-color: rgba(124,58,237,0.5);
+  box-shadow: 0 0 20px rgba(124,58,237,0.15), 0 0 40px rgba(236,72,153,0.06), 0 4px 16px rgba(124,58,237,0.08);
 }
 
 /* ── Mobile ── */
 @media (max-width: 640px) {
-  .btm-cta-title { font-size: 0.58rem; letter-spacing: 0.8px; }
-  .btm-cta-badge { font-size: 0.38rem; padding: 1px 5px; }
+  .btm-cta-title { font-size: 0.7rem; letter-spacing: 1.2px; }
+  .btm-cta-badge { font-size: 0.42rem; padding: 2px 6px; }
+  .btm-cta-glow { padding: 8px 16px 8px 18px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
