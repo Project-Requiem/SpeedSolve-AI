@@ -68,17 +68,12 @@ function cloudSVG(scale: number, opacity: number): string {
   </svg>`
 }
 
-// ─── Sunrise / Sunset gradient palettes ─────────
-const SUNRISE_GRADIENT = 'linear-gradient(180deg, #0b1a2e 0%, #1a1040 12%, #3d2060 22%, #8e3a59 34%, #c0504d 44%, #e8834a 54%, #f5b041 66%, #f7dc6f 78%, #aed6f1 100%)'
-const SUNSET_GRADIENT = 'linear-gradient(180deg, #0b1a2e 0%, #1a1040 10%, #3d2060 20%, #8e3a59 30%, #c0504d 42%, #e8834a 52%, #f5b041 62%, #f7dc6f 72%, #e8834a 82%, #c0392b 92%, #0b1a2e 100%)'
-
 interface SkyFieldProps {
   mode: 'night' | 'day'
 }
 
 export default function SkyField({ mode }: SkyFieldProps) {
   const nightSkyRef = useRef<HTMLDivElement>(null)
-  const transitionSkyRef = useRef<HTMLDivElement>(null)
   const daySkyRef = useRef<HTMLDivElement>(null)
   const moonWrapRef = useRef<HTMLDivElement>(null)
   const sunWrapRef = useRef<HTMLDivElement>(null)
@@ -145,15 +140,8 @@ export default function SkyField({ mode }: SkyFieldProps) {
     const isDay = mode === 'day'
     if (nightSkyRef.current) nightSkyRef.current.style.opacity = isDay ? '0' : '1'
     if (daySkyRef.current) daySkyRef.current.style.opacity = isDay ? '1' : '0'
-    if (transitionSkyRef.current) transitionSkyRef.current.style.opacity = '0'
-    if (moonWrapRef.current) {
-      moonWrapRef.current.style.opacity = isDay ? '0' : '1'
-      moonWrapRef.current.style.transform = isDay ? 'translateY(40px) scale(0.5)' : 'translateY(0) scale(1)'
-    }
-    if (sunWrapRef.current) {
-      sunWrapRef.current.style.opacity = isDay ? '1' : '0'
-      sunWrapRef.current.style.transform = isDay ? 'translateY(0) scale(1)' : 'translateY(40px) scale(0.5)'
-    }
+    if (moonWrapRef.current) moonWrapRef.current.style.opacity = isDay ? '0' : '1'
+    if (sunWrapRef.current) sunWrapRef.current.style.opacity = isDay ? '1' : '0'
     if (starsContainerRef.current) starsContainerRef.current.style.opacity = isDay ? '0' : '1'
     if (cloudsContainerRef.current) cloudsContainerRef.current.style.opacity = isDay ? '0.8' : '0'
 
@@ -168,109 +156,27 @@ export default function SkyField({ mode }: SkyFieldProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ─── Mode change: cinematic sunrise / sunset transition ───
+  // ─── Mode change: simple fade transition ───
   useEffect(() => {
-    // Skip on first mount (handled in init above)
-    if (prevMode.current === null) {
-      prevMode.current = mode
-      return
-    }
+    if (prevMode.current === null) { prevMode.current = mode; return }
     if (prevMode.current === mode) return
 
     const goingToDay = mode === 'day'
     prevMode.current = mode
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const dur = reduced ? 0 : 2200
+    const dur = 800
 
-    // Pick the right transition gradient
-    if (transitionSkyRef.current) {
-      transitionSkyRef.current.style.background = goingToDay ? SUNRISE_GRADIENT : SUNSET_GRADIENT
-    }
-
-    // ── Celestial bodies: moon sets / sun rises (or vice-versa) ──
-    if (moonWrapRef.current) {
-      anime({
-        targets: moonWrapRef.current,
-        opacity: goingToDay ? [1, 0] : [0, 1],
-        translateY: goingToDay ? [0, 40] : [40, 0],
-        scale: goingToDay ? [1, 0.5] : [0.5, 1],
-        duration: dur,
-        easing: 'easeInOutSine',
-      })
-    }
-
-    if (sunWrapRef.current) {
-      anime({
-        targets: sunWrapRef.current,
-        opacity: goingToDay ? [0, 1] : [1, 0],
-        translateY: goingToDay ? [40, 0] : [0, 40],
-        scale: goingToDay ? [0.5, 1] : [1, 0.5],
-        duration: dur,
-        easing: 'easeInOutSine',
-      })
-    }
-
-    // ── Sky gradient layers ──
-    if (nightSkyRef.current) {
-      anime({
-        targets: nightSkyRef.current,
-        opacity: goingToDay ? [1, 0] : [0, 1],
-        duration: dur,
-        easing: 'easeInOutSine',
-      })
-    }
-
-    if (daySkyRef.current) {
-      anime({
-        targets: daySkyRef.current,
-        opacity: goingToDay ? [0, 1] : [1, 0],
-        duration: dur,
-        easing: 'easeInOutSine',
-      })
-    }
-
-    // Transition sky — peaks in the middle of the animation
-    if (transitionSkyRef.current) {
-      anime({
-        targets: transitionSkyRef.current,
-        opacity: [
-          { value: 0, duration: 0 },
-          { value: 1, duration: dur * 0.35 },
-          { value: 1, duration: dur * 0.30 },
-          { value: 0, duration: dur * 0.35 },
-        ],
-        easing: 'easeInOutSine',
-      })
-    }
-
-    // ── Stars: fade out during sunrise, fade in during sunset ──
-    if (starsContainerRef.current) {
-      anime({
-        targets: starsContainerRef.current,
-        opacity: goingToDay ? [1, 0] : [0, 1],
-        duration: dur * 0.6,
-        easing: 'easeInSine',
-        delay: goingToDay ? 0 : dur * 0.4,
-      })
-    }
-
-    // ── Clouds: fade in during sunrise, fade out during sunset ──
-    if (cloudsContainerRef.current) {
-      anime({
-        targets: cloudsContainerRef.current,
-        opacity: goingToDay ? [0, 0.8] : [0.8, 0],
-        duration: dur * 0.6,
-        easing: 'easeOutSine',
-        delay: goingToDay ? dur * 0.4 : 0,
-      })
-    }
+    if (nightSkyRef.current) anime({ targets: nightSkyRef.current, opacity: goingToDay ? 0 : 1, duration: dur, easing: 'easeInOutQuad' })
+    if (daySkyRef.current) anime({ targets: daySkyRef.current, opacity: goingToDay ? 1 : 0, duration: dur, easing: 'easeInOutQuad' })
+    if (moonWrapRef.current) anime({ targets: moonWrapRef.current, opacity: goingToDay ? 0 : 1, duration: dur, easing: 'easeInOutQuad' })
+    if (sunWrapRef.current) anime({ targets: sunWrapRef.current, opacity: goingToDay ? 1 : 0, duration: dur, easing: 'easeInOutQuad' })
+    if (starsContainerRef.current) anime({ targets: starsContainerRef.current, opacity: goingToDay ? 0 : 1, duration: dur, easing: 'easeInOutQuad' })
+    if (cloudsContainerRef.current) anime({ targets: cloudsContainerRef.current, opacity: goingToDay ? 0.8 : 0, duration: dur, easing: 'easeInOutQuad' })
   }, [mode])
 
   return (
     <>
       {/* Sky gradient layers */}
       <div ref={nightSkyRef} className="btm-sky-layer btm-sky-night" />
-      <div ref={transitionSkyRef} className="btm-sky-layer btm-sky-transition" />
       <div ref={daySkyRef} className="btm-sky-layer btm-sky-day" />
 
       {/* Stars container (night) */}
@@ -279,12 +185,12 @@ export default function SkyField({ mode }: SkyFieldProps) {
       {/* Clouds container (day) */}
       <div ref={cloudsContainerRef} className="btm-dayfield" />
 
-      {/* Moon — wrapper for transition anim, inner for ambient CSS anim */}
+      {/* Moon */}
       <div ref={moonWrapRef} className="btm-celestial-wrap">
         <div className="btm-moon-anime" />
       </div>
 
-      {/* Sun — wrapper for transition anim, inner for ambient CSS anim */}
+      {/* Sun */}
       <div ref={sunWrapRef} className="btm-celestial-wrap">
         <div className="btm-sun-anime">
           <div className="btm-sun-core" />

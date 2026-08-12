@@ -195,9 +195,6 @@
 .btm-sky-day {
   background: linear-gradient(180deg, #4a90d9 0%, #6aaee6 25%, #87ceeb 50%, #a8ddf0 75%, #c8e8f8 100%);
 }
-.btm-sky-transition {
-  opacity: 0;
-}
 
 /* ── Stars container (night) ── */
 .btm-skyfield {
