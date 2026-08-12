@@ -1744,24 +1744,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Beat The Machine — clean centered row */}
-      <div className="btm-cta-row fade-up" data-delay="350">
-        <a href="/beat-the-machine" className="btm-cta-glow">
-          <div className="btm-cta-glow-ring" />
-          <div className="btm-cta-glow-ring btm-cta-glow-ring-2" />
-          <div className="btm-cta-sparks">
-            <span /><span /><span /><span /><span /><span />
-          </div>
-          <span className="btm-cta-title">BEAT THE MACHINE</span>
-          <span className="btm-cta-badge">
-            <span className="btm-cta-badge-dot" />
-            UNIQUE
-          </span>
-          <svg className="btm-cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-        </a>
-      </div>
-
-      {/* Board Selector */}
+      {/* Board Selector + BTM CTA inline */}
       <div className="board-row fade-up" data-delay="300">
         <div className="selector-group">
           <label className="sel-label">Board</label>
@@ -1772,6 +1755,21 @@ export default function Home() {
               </button>
             ))}
           </div>
+        </div>
+        <div className="btm-cta-inline">
+          <a href="/beat-the-machine" className="btm-cta-glow">
+            <div className="btm-cta-glow-ring" />
+            <div className="btm-cta-glow-ring btm-cta-glow-ring-2" />
+            <div className="btm-cta-sparks">
+              <span /><span /><span /><span /><span /><span />
+            </div>
+            <span className="btm-cta-title">BEAT THE MACHINE</span>
+            <span className="btm-cta-badge">
+              <span className="btm-cta-badge-dot" />
+              UNIQUE
+            </span>
+            <svg className="btm-cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
         </div>
       </div>
 

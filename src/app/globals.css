@@ -481,6 +481,8 @@ body {
    =========================== */
 .board-row {
   display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
   padding: 106px clamp(16px, 3vw, 28px) 0;
   max-width: 1280px; margin: 0 auto;
   position: relative; z-index: 1;
@@ -1468,7 +1470,8 @@ body {
 .tip-icon { display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:8px; }
 
 @media (max-width: 768px) {
-  .board-row { padding: 88px 16px 0; }
+  .board-row { padding: 88px 16px 0; flex-direction: column; align-items: flex-start; gap: 10px; }
+  .btm-cta-inline { align-self: center; }
   .subject-cards { grid-template-columns: repeat(2, 1fr); }
   .panel-body { padding: 14px; }
   .app-container { padding: 0 16px 40px; }
@@ -1793,28 +1796,29 @@ body {
 /* ===========================
    BTM — GLOWING CTA BUTTON
    =========================== */
-/* ── CTA row: centered between ticker and board selector ── */
-.btm-cta-row {
-  display: flex;
-  justify-content: center;
-  padding: 6px clamp(16px, 3vw, 28px) 4px;
-  max-width: 1280px;
-  margin: 0 auto;
+/* ── Inline: right side of board row ── */
+.btm-cta-inline {
+  flex-shrink: 0;
+  animation: btmCtaFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+}
+@keyframes btmCtaFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .btm-cta-glow {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 14px 7px 16px;
+  gap: 9px;
+  padding: 8px 18px 8px 20px;
   border-radius: 100px;
   text-decoration: none;
   color: #fff;
   cursor: pointer;
   overflow: visible;
-  background: linear-gradient(135deg, rgba(124,58,237,0.1) 0%, rgba(236,72,153,0.07) 100%);
-  border: 1px solid rgba(124,58,237,0.18);
+  background: linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(236,72,153,0.08) 100%);
+  border: 1px solid rgba(124,58,237,0.22);
   transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .btm-cta-glow:hover {
