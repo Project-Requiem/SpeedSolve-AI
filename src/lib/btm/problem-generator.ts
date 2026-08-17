@@ -17,36 +17,20 @@ interface Template {
 
 const TEMPLATES: Template[] = [
   // ═══════════════════════════════════════════════════════
-  // MATHEMATICS
+  // MATHEMATICS — ROOKIE (very easy, build confidence)
   // ═══════════════════════════════════════════════════════
   {
     subject: 'mathematics',
-    difficulties: ['rookie', 'scholar'],
+    difficulties: ['rookie'],
     generate: () => {
-      const a = rand(2, 20), b = rand(2, 15), c = rand(10, 100)
-      const ans = a * b + c
+      const a = rand(2, 20), b = rand(2, 20)
+      const ans = a + b
       return {
         subject: 'mathematics', difficulty: 'rookie',
-        question: `Find the value of ${a} × ${b} + ${c}.`,
+        question: `What is ${a} + ${b}?`,
         correctAnswer: ans, unit: '',
-        solution: `Step 1: Multiply ${a} × ${b} = ${a * b}\nStep 2: Add ${c}: ${a * b} + ${c} = ${ans}`,
-        concept: 'Arithmetic Operations', trapType: null, steps: 2, complexity: 0.15,
-        generatedValues: { a, b, c },
-      }
-    },
-  },
-  {
-    subject: 'mathematics',
-    difficulties: ['rookie', 'scholar'],
-    generate: () => {
-      const a = rand(5, 30), b = rand(5, 30)
-      const ans = Math.sqrt(a * a + b * b)
-      return {
-        subject: 'mathematics', difficulty: 'rookie',
-        question: `A right triangle has legs of length ${a} cm and ${b} cm. Find the length of the hypotenuse in cm (round to 2 decimal places).`,
-        correctAnswer: parseFloat(ans.toFixed(2)), unit: 'cm',
-        solution: `By Pythagoras theorem: c = √(a² + b²) = √(${a}² + ${b}²) = √(${a*a} + ${b*b}) = √${a*a+b*b} ≈ ${ans.toFixed(2)}`,
-        concept: 'Pythagoras Theorem', trapType: null, steps: 3, complexity: 0.25,
+        solution: `${a} + ${b} = ${ans}`,
+        concept: 'Addition', trapType: null, steps: 1, complexity: 0.05,
         generatedValues: { a, b },
       }
     },
@@ -55,18 +39,101 @@ const TEMPLATES: Template[] = [
     subject: 'mathematics',
     difficulties: ['rookie'],
     generate: () => {
-      const pct = rand(5, 40), total = rand(200, 1000, -2)
+      const a = rand(10, 50), b = rand(2, a - 1)
+      const ans = a - b
+      return {
+        subject: 'mathematics', difficulty: 'rookie',
+        question: `What is ${a} − ${b}?`,
+        correctAnswer: ans, unit: '',
+        solution: `${a} − ${b} = ${ans}`,
+        concept: 'Subtraction', trapType: null, steps: 1, complexity: 0.05,
+        generatedValues: { a, b },
+      }
+    },
+  },
+  {
+    subject: 'mathematics',
+    difficulties: ['rookie'],
+    generate: () => {
+      const a = rand(2, 12), b = rand(2, 12)
+      const ans = a * b
+      return {
+        subject: 'mathematics', difficulty: 'rookie',
+        question: `What is ${a} × ${b}?`,
+        correctAnswer: ans, unit: '',
+        solution: `${a} × ${b} = ${ans}`,
+        concept: 'Multiplication', trapType: null, steps: 1, complexity: 0.08,
+        generatedValues: { a, b },
+      }
+    },
+  },
+  {
+    subject: 'mathematics',
+    difficulties: ['rookie'],
+    generate: () => {
+      const b = rand(2, 12), ans = rand(2, 15)
+      const a = b * ans
+      return {
+        subject: 'mathematics', difficulty: 'rookie',
+        question: `What is ${a} ÷ ${b}?`,
+        correctAnswer: ans, unit: '',
+        solution: `${a} ÷ ${b} = ${ans}`,
+        concept: 'Division', trapType: null, steps: 1, complexity: 0.08,
+        generatedValues: { a, b },
+      }
+    },
+  },
+  {
+    subject: 'mathematics',
+    difficulties: ['rookie', 'scholar'],
+    generate: () => {
+      const a = rand(2, 15), b = rand(2, 10), c = rand(1, 20)
+      const ans = a * b + c
+      return {
+        subject: 'mathematics', difficulty: 'rookie',
+        question: `Find the value of ${a} × ${b} + ${c}.`,
+        correctAnswer: ans, unit: '',
+        solution: `Step 1: Multiply ${a} × ${b} = ${a * b}\nStep 2: Add ${c}: ${a * b} + ${c} = ${ans}`,
+        concept: 'Arithmetic Operations', trapType: null, steps: 2, complexity: 0.12,
+        generatedValues: { a, b, c },
+      }
+    },
+  },
+  {
+    subject: 'mathematics',
+    difficulties: ['rookie'],
+    generate: () => {
+      const pct = pick([10, 20, 25, 50]), total = pick([100, 200, 300, 400, 500])
       const ans = (pct / 100) * total
       return {
         subject: 'mathematics', difficulty: 'rookie',
         question: `What is ${pct}% of ${total}?`,
-        correctAnswer: parseFloat(ans.toFixed(2)), unit: '',
-        solution: `${pct}% of ${total} = (${pct}/100) × ${total} = ${ans.toFixed(2)}`,
-        concept: 'Percentage', trapType: null, steps: 2, complexity: 0.12,
+        correctAnswer: ans, unit: '',
+        solution: `${pct}% of ${total} = (${pct}/100) × ${total} = ${ans}`,
+        concept: 'Percentage', trapType: null, steps: 2, complexity: 0.1,
         generatedValues: { pct, total },
       }
     },
   },
+  {
+    subject: 'mathematics',
+    difficulties: ['scholar'],
+    generate: () => {
+      const a = rand(5, 25), b = rand(5, 25)
+      const ans = Math.sqrt(a * a + b * b)
+      return {
+        subject: 'mathematics', difficulty: 'scholar',
+        question: `A right triangle has legs of length ${a} cm and ${b} cm. Find the length of the hypotenuse in cm (round to 2 decimal places).`,
+        correctAnswer: parseFloat(ans.toFixed(2)), unit: 'cm',
+        solution: `By Pythagoras theorem: c = √(a² + b²) = √(${a}² + ${b}²) = √(${a*a} + ${b*b}) = √${a*a+b*b} ≈ ${ans.toFixed(2)}`,
+        concept: 'Pythagoras Theorem', trapType: null, steps: 3, complexity: 0.25,
+        generatedValues: { a, b },
+      }
+    },
+  },
+  // ═══════════════════════════════════════════════════════
+  // MATHEMATICS — SCHOLAR & ABOVE
+  // ═══════════════════════════════════════════════════════
   {
     subject: 'mathematics',
     difficulties: ['scholar', 'expert'],
@@ -189,20 +256,49 @@ const TEMPLATES: Template[] = [
     },
   },
   // ═══════════════════════════════════════════════════════
-  // PHYSICS
+  // PHYSICS — ROOKIE (very easy)
   // ═══════════════════════════════════════════════════════
+  {
+    subject: 'physics',
+    difficulties: ['rookie'],
+    generate: () => {
+      const v = rand(2, 15), t = rand(2, 10)
+      return {
+        subject: 'physics', difficulty: 'rookie',
+        question: `A car travels at ${v} m/s for ${t} seconds. Find the distance in metres.`,
+        correctAnswer: v * t, unit: 'm',
+        solution: `Distance = speed \u00d7 time = ${v} \u00d7 ${t} = ${v * t} m`,
+        concept: 'Speed = Distance/Time', trapType: null, steps: 1, complexity: 0.08,
+        generatedValues: { v, t },
+      }
+    },
+  },
+  {
+    subject: 'physics',
+    difficulties: ['rookie'],
+    generate: () => {
+      const m = rand(2, 10), v = rand(2, 10)
+      return {
+        subject: 'physics', difficulty: 'rookie',
+        question: `An object has mass ${m} kg and velocity ${v} m/s. Find its momentum in kg\u00b7m/s.`,
+        correctAnswer: m * v, unit: 'kg\u00b7m/s',
+        solution: `p = mv = ${m} \u00d7 ${v} = ${m * v} kg\u00b7m/s`,
+        concept: 'Momentum', trapType: null, steps: 1, complexity: 0.08,
+        generatedValues: { m, v },
+      }
+    },
+  },
   {
     subject: 'physics',
     difficulties: ['rookie', 'scholar'],
     generate: () => {
-      const m = rand(2, 20, 1), a = rand(2, 15, 1)
-      const f = m * a
+      const m = rand(2, 12, 1), a = rand(2, 10, 1)
       return {
         subject: 'physics', difficulty: 'rookie',
-        question: `A body of mass ${m} kg accelerates at ${a} m/s². Find the force acting on it in Newtons.`,
-        correctAnswer: parseFloat(f.toFixed(1)), unit: 'N',
-        solution: `Using F = ma\nF = ${m} × ${a} = ${f.toFixed(1)} N`,
-        concept: 'Newton’s Second Law', trapType: null, steps: 2, complexity: 0.15,
+        question: `A body of mass ${m} kg accelerates at ${a} m/s\u00b2. Find the force in Newtons.`,
+        correctAnswer: parseFloat((m * a).toFixed(1)), unit: 'N',
+        solution: `F = ma = ${m} \u00d7 ${a} = ${(m * a).toFixed(1)} N`,
+        concept: 'Newton\u2019s Second Law', trapType: null, steps: 2, complexity: 0.12,
         generatedValues: { m, a },
       }
     },
@@ -211,14 +307,32 @@ const TEMPLATES: Template[] = [
     subject: 'physics',
     difficulties: ['rookie', 'scholar'],
     generate: () => {
-      const m = rand(2, 15, 1), v = rand(5, 30, 1)
-      const ke = 0.5 * m * v * v
+      const m = rand(2, 10, 1), g = 10, h = rand(2, 20)
       return {
         subject: 'physics', difficulty: 'rookie',
+        question: `A ${m} kg object is at height ${h} m. Take g = 10 m/s\u00b2. Find its potential energy in Joules.`,
+        correctAnswer: m * g * h, unit: 'J',
+        solution: `PE = mgh = ${m} \u00d7 10 \u00d7 ${h} = ${m * g * h} J`,
+        concept: 'Potential Energy', trapType: null, steps: 2, complexity: 0.12,
+        generatedValues: { m, g, h },
+      }
+    },
+  },
+  // ═══════════════════════════════════════════════════════
+  // PHYSICS — SCHOLAR & ABOVE (kinematics, KE)
+  // ═══════════════════════════════════════════════════════
+  {
+    subject: 'physics',
+    difficulties: ['scholar'],
+    generate: () => {
+      const m = rand(2, 10, 1), v = rand(5, 20, 1)
+      const ke = 0.5 * m * v * v
+      return {
+        subject: 'physics', difficulty: 'scholar',
         question: `A ${m} kg object moves at ${v} m/s. Find its kinetic energy in Joules.`,
         correctAnswer: parseFloat(ke.toFixed(1)), unit: 'J',
         solution: `KE = ½mv² = 0.5 × ${m} × ${v}² = 0.5 × ${m} × ${v*v} = ${ke.toFixed(1)} J`,
-        concept: 'Kinetic Energy', trapType: null, steps: 3, complexity: 0.2,
+        concept: 'Kinetic Energy', trapType: null, steps: 3, complexity: 0.25,
         generatedValues: { m, v },
       }
     },
@@ -241,22 +355,6 @@ const TEMPLATES: Template[] = [
           : `s = ut + ½at² = ${u}×${t} + 0.5×${a}×${t}² = ${u*t} + ${0.5*a*t*t} = ${s.toFixed(2)} m`,
         concept: 'Kinematic Equations', trapType: null, steps: 3, complexity: 0.4,
         generatedValues: { u, a, t, v, s },
-      }
-    },
-  },
-  {
-    subject: 'physics',
-    difficulties: ['scholar', 'expert'],
-    generate: () => {
-      const m = rand(2, 10, 1), g = 10, h = rand(5, 50)
-      const pe = m * g * h
-      return {
-        subject: 'physics', difficulty: 'scholar',
-        question: `A ${m} kg object is at a height of ${h} m. Take g = 10 m/s². Find its potential energy in Joules.`,
-        correctAnswer: pe, unit: 'J',
-        solution: `PE = mgh = ${m} × 10 × ${h} = ${pe} J`,
-        concept: 'Potential Energy', trapType: null, steps: 2, complexity: 0.3,
-        generatedValues: { m, g, h },
       }
     },
   },
@@ -340,27 +438,60 @@ const TEMPLATES: Template[] = [
     },
   },
   // ═══════════════════════════════════════════════════════
-  // CHEMISTRY
+  // CHEMISTRY — ROOKIE (very easy)
   // ═══════════════════════════════════════════════════════
   {
     subject: 'chemistry',
-    difficulties: ['rookie', 'scholar'],
+    difficulties: ['rookie'],
     generate: () => {
-      const moles = rand(1, 10, 1), molarMass = rand(18, 100, 1)
-      const mass = moles * molarMass
+      const moles = rand(1, 5), molarMass = rand(2, 10) * 10
       return {
         subject: 'chemistry', difficulty: 'rookie',
-        question: `Calculate the mass of ${moles} moles of a substance with molar mass ${molarMass} g/mol in grams.`,
-        correctAnswer: mass, unit: 'g',
-        solution: `mass = moles × molar mass = ${moles} × ${molarMass} = ${mass} g`,
-        concept: 'Moles and Mass', trapType: null, steps: 2, complexity: 0.12,
+        question: `What is the mass of ${moles} moles of a substance with molar mass ${molarMass} g/mol?`,
+        correctAnswer: moles * molarMass, unit: 'g',
+        solution: `mass = moles × molar mass = ${moles} × ${molarMass} = ${moles * molarMass} g`,
+        concept: 'Moles and Mass', trapType: null, steps: 1, complexity: 0.08,
         generatedValues: { moles, molarMass },
       }
     },
   },
   {
     subject: 'chemistry',
+    difficulties: ['rookie'],
+    generate: () => {
+      const molecules = rand(2, 6)
+      return {
+        subject: 'chemistry', difficulty: 'rookie',
+        question: `How many atoms are in ${molecules} molecules of O₂?`,
+        correctAnswer: molecules * 2, unit: 'atoms',
+        solution: `Each O₂ molecule has 2 oxygen atoms.
+${molecules} × 2 = ${molecules * 2} atoms`,
+        concept: 'Atoms in Molecules', trapType: null, steps: 1, complexity: 0.06,
+        generatedValues: { molecules },
+      }
+    },
+  },
+  {
+    subject: 'chemistry',
     difficulties: ['rookie', 'scholar'],
+    generate: () => {
+      const moles = rand(1, 5), molarMass = rand(2, 10) * 10
+      return {
+        subject: 'chemistry', difficulty: 'rookie',
+        question: `Calculate the mass of ${moles} moles of a substance with molar mass ${molarMass} g/mol in grams.`,
+        correctAnswer: moles * molarMass, unit: 'g',
+        solution: `mass = moles × molar mass = ${moles} × ${molarMass} = ${moles * molarMass} g`,
+        concept: 'Moles and Mass', trapType: null, steps: 2, complexity: 0.12,
+        generatedValues: { moles, molarMass },
+      }
+    },
+  },
+  // ═══════════════════════════════════════════════════════
+  // CHEMISTRY — SCHOLAR & ABOVE
+  // ═══════════════════════════════════════════
+  {
+    subject: 'chemistry',
+    difficulties: ['scholar', 'expert'],
     generate: () => {
       const concentration = rand(1, 10, 1), volume = rand(100, 500, -2) / 1000 // in L
       const moles = concentration * volume

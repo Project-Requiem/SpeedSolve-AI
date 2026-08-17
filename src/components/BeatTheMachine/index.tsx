@@ -445,7 +445,7 @@ function ResultScreen() {
 
         {/* XP & Rewards */}
         <div className="btm-result-rewards">
-          <div className="btm-xp-gain">+{result.xpGained} XP</div>
+          <div className="btm-xp-gain" style={result.xpGained < 0 ? { color: '#ef4444' } : undefined}>{result.xpGained} XP</div>
           {result.isPersonalBest && <div className="btm-reward">NEW PERSONAL BEST — {fmtTime(result.userTimeMs)}</div>}
           {result.wasStreakMilestone && <div className="btm-reward">{stats.streak} SOLVE STREAK</div>}
           {result.newLevel && <div className="btm-reward btm-reward-level">LEVEL {result.newLevel}</div>}

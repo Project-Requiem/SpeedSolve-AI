@@ -193,7 +193,7 @@ export const useBTMStore = create<BTMStore>((set, get) => ({
     // Base XP
     if (isWin) xpGained += DIFFICULTY_XP[problem.difficulty]
     else if (isLoss) xpGained += Math.floor(DIFFICULTY_XP[problem.difficulty] * 0.3)
-    else xpGained += 10
+    else xpGained = -25  // Wrong answer: lose XP
 
     // Speed bonus
     if (isWin && userTimeMs < benchmark.aiTimeMs * 0.5) xpGained += 50
@@ -211,7 +211,7 @@ export const useBTMStore = create<BTMStore>((set, get) => ({
     const bestStreak = Math.max(stats.bestStreak, newStreak)
 
     // Level check
-    const newXP = stats.xp + xpGained
+    const newXP = Math.max(0, stats.xp + xpGained)
     const oldLevel = getLevelFromXP(stats.xp)
     const newLevel = getLevelFromXP(newXP)
     const leveledUp = newLevel > oldLevel

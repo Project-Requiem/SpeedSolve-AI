@@ -104,15 +104,15 @@ async function createBenchmark(
 
     // Solving time: based on complexity, number of steps, and difficulty
     const solveBase: Record<string, [number, number]> = {
-      rookie:     [3000, 5000],   // 3-5s mental math
-      scholar:    [7000, 13000],  // 7-13s multi-step
-      expert:     [14000, 24000], // 14-24s complex reasoning
-      nightmare:  [22000, 38000], // 22-38s olympiad-style
-      requiem:    [30000, 50000], // 30-50s very hard but doable
+      rookie:     [5000, 12000],  // 5-12s — very generous, kids can win easily
+      scholar:    [12000, 22000], // 12-22s — comfortable for students
+      expert:     [20000, 35000], // 20-35s — challenging but doable
+      nightmare:  [30000, 50000], // 30-50s — hard but solvable
+      requiem:    [40000, 65000], // 40-65s — very hard but possible
     }
     const [solveMin, solveMax] = solveBase[difficulty || 'scholar'] || solveBase.scholar
     // Scale solve time by complexity within the range
-    const solveTime = solveMin + problem.complexity * (solveMax - solveMin) + problem.steps * 800
+    const solveTime = solveMin + problem.complexity * (solveMax - solveMin) + problem.steps * 400
 
     // Typing time: based on answer length
     const typeTime = 1200 + answerDigits * 250 + (hasDecimal ? 400 : 0)
