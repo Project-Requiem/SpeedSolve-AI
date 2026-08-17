@@ -273,8 +273,8 @@
   50%  { transform: scale(1.03); }
 }
 .btm-sun-core {
-  width: 70%;
-  height: 70%;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   background: radial-gradient(circle at 40% 40%, #fff8dc 0%, #ffe066 30%, #ffcc33 60%, #f0a830 100%);
   animation: btmSunGlow 8s ease-in-out infinite alternate;
