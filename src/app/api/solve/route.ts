@@ -35,37 +35,58 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<str
 
 // ── AI Provider 2: Groq (free, fast, OpenAI-compatible) ──
 async function callGroq(systemPrompt: string, userPrompt: string): Promise<string> {
-  const key = process.env.GROQ_API_KEY;
-  if (!key) return "";
+  // Collect keys: prefer GROQ_API_KEY, then fall back to GROQ_KEY_1..5
+  const keys: string[] = [];
+  if (process.env.GROQ_API_KEY) keys.push(process.env.GROQ_API_KEY);
+  for (let i = 1; i <= 5; i++) {
+    const k = process.env[`GROQ_KEY_${i}`];
+    if (k && k.length > 10 && !keys.includes(k)) keys.push(k);
+  }
+  if (keys.length === 0) return "";
+
   const models = ["llama-3.3-70b-versatile", "deepseek-r1-distill-llama-70b"];
-  for (const model of models) {
-    try {
-      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          temperature: 0.1,
-          max_tokens: 8192,
-        }),
-        signal: AbortSignal.timeout(30000),
-      });
-      if (!res.ok) {
-        console.error(`[SpeedSolve] Groq ${model}: ${res.status} ${await res.text().catch(() => "")}`);
-        continue;
+  const seenErrors = new Set<string>();
+
+  for (const key of keys) {
+    for (const model of models) {
+      try {
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+            temperature: 0.1,
+            max_tokens: 8192,
+          }),
+          signal: AbortSignal.timeout(30000),
+        });
+        if (res.status === 401 || res.status === 403) {
+          const errKey = `${key.slice(0, 8)}:auth`;
+          if (!seenErrors.has(errKey)) { seenErrors.add(errKey); console.error(`[SpeedSolve] Groq key ${key.slice(0, 8)}... auth failed, skipping`); }
+          break; // skip to next key
+        }
+        if (res.status === 429) {
+          const errKey = `${key.slice(0, 8)}:rate`;
+          if (!seenErrors.has(errKey)) { seenErrors.add(errKey); console.error(`[SpeedSolve] Groq key ${key.slice(0, 8)}... rate limited`); }
+          break; // try next key
+        }
+        if (!res.ok) {
+          console.error(`[SpeedSolve] Groq ${model}: ${res.status} ${await res.text().catch(() => "")}`);
+          continue;
+        }
+        const data = await res.json();
+        const text = data?.choices?.[0]?.message?.content || "";
+        if (text.trim().length > 20) {
+          console.log(`[SpeedSolve] Groq ${model} OK (${text.length} chars)`);
+          return text;
+        }
+      } catch (err: any) {
+        console.error(`[SpeedSolve] Groq ${model}: ${err?.message?.slice(0, 100)}`);
       }
-      const data = await res.json();
-      const text = data?.choices?.[0]?.message?.content || "";
-      if (text.trim().length > 20) {
-        console.log(`[SpeedSolve] Groq ${model} OK (${text.length} chars)`);
-        return text;
-      }
-    } catch (err: any) {
-      console.error(`[SpeedSolve] Groq ${model}: ${err?.message?.slice(0, 100)}`);
     }
   }
   return "";
