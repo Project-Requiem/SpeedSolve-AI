@@ -973,16 +973,7 @@ Substitute the given values into the formula and compute. Return JSON only.`;
           return NextResponse.json({ success: true, data: lastLocal, source: "local" });
         }
       }
-      return NextResponse.json({
-        success: true,
-        data: {
-          finalAnswer: "Please try again.",
-          finalFormula: "",
-          steps: [{ desc: "Could not process this question right now. Please try again.", formula: "" }],
-          altSteps: [], similar: [], mistakes: [], examTips: [],
-        },
-        source: "error",
-      });
+      return NextResponse.json({ success: false, error: "AI is currently unavailable. Please try again in a moment." });
     }
 
     // Try to parse JSON from AI response
@@ -1004,14 +995,7 @@ Substitute the given values into the formula and compute. Return JSON only.`;
             return NextResponse.json({ success: true, data: fallback, source: "local" });
           }
         }
-        return NextResponse.json({
-          success: true, data: {
-            finalAnswer: "Please try again.",
-            finalFormula: "",
-            steps: [{ desc: "Could not process this question right now. Please try again.", formula: "" }],
-            altSteps: [], similar: [], mistakes: [], examTips: [],
-          }, source: "error",
-        });
+        return NextResponse.json({ success: false, error: "AI could not solve this correctly. Please try again." });
       }
       const cleanedSteps = (parsed.steps || []).map((s: any) => ({
         desc: cleanLatex(s.desc || ""),

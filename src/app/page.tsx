@@ -453,10 +453,14 @@ export default function Home() {
           const serverRes = await fetch('/api/solve', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ problem: trimmed, subject, board, forceAI: true }),
+            body: JSON.stringify({ problem: trimmed, subject, board, forceAI: true, previousAnswer: prevAnswer, previousSteps: prevStepsSummary }),
           })
           const serverData = await serverRes.json()
-          if (serverData.data && isValidSolution(serverData.data)) {
+          if (serverData.error) {
+            setError(serverData.error)
+            setLoading(false)
+            setRetryingAI(false)
+          } else if (serverData.data && isValidSolution(serverData.data)) {
             setSolution(serverData.data)
             setSolveSource(serverData.source === 'ai' ? 'ai' : 'local')
             setProgress(100)
@@ -485,7 +489,7 @@ export default function Home() {
     if (!sol || !sol.finalAnswer) return false
     const ans = (sol.finalAnswer || '').toLowerCase()
     if (ans.length < 2) return false
-    const refusePhrases = ['i cannot', "i can't", 'i am unable', "i'm unable", 'not sure', 'don\'t know', 'unable to', 'cannot solve', 'no solution', 'insufficient', 'please provide', 'cannot be determined']
+    const refusePhrases = ['i cannot', "i can't", 'i am unable', "i'm unable", 'not sure', 'don\'t know', 'unable to', 'cannot solve', 'no solution', 'insufficient', 'please provide', 'cannot be determined', 'please try again', 'could not process', 'currently unavailable']
     if (refusePhrases.some(p => ans.includes(p))) return false
     if (sol.steps && Array.isArray(sol.steps)) {
       if (sol.steps.length > 0 && sol.steps.every((s: any) => (s.desc || '').length < 3)) return false
@@ -881,6 +885,13 @@ export default function Home() {
           body: JSON.stringify({ problem: trimmed, subject: activeSubject, board }),
         })
         const localData = await localRes.json()
+        // If server returned an explicit error (e.g. AI unavailable), show it
+        if (localData.error && !localData.data) {
+          clearInterval(progressRef.current!)
+          setError(localData.error)
+          setLoading(false)
+          return
+        }
         if (localData.data && localData.source === 'local') {
           showResult(localData.data, 'local')
           return
@@ -906,7 +917,7 @@ export default function Home() {
         setError(serverData.error)
         setLoading(false)
       } else if (serverData.data && isValidSolution(serverData.data)) {
-        showResult(serverData.data, serverData.source === 'ai' ? 'ai' : 'error')
+        showResult(serverData.data, serverData.source === 'ai' ? 'ai' : 'local')
       } else {
         clearInterval(progressRef.current!)
         setError('Could not solve this problem. Please try again.')
@@ -981,7 +992,11 @@ export default function Home() {
             body: JSON.stringify({ problem: trimmed, subject, board, forceAI: true }),
           })
           const serverData = await serverRes.json()
-          if (serverData.data && isValidSolution(serverData.data)) {
+          if (serverData.error) {
+            setError(serverData.error)
+            setLoading(false)
+            setRetryingAI(false)
+          } else if (serverData.data && isValidSolution(serverData.data)) {
             setSolution(serverData.data)
             setSolveSource(serverData.source === 'ai' ? 'ai' : 'local')
             setProgress(100)
@@ -1215,9 +1230,12 @@ export default function Home() {
 
       if (solveData.error) {
         setError(solveData.error)
-      } else if (solveData.data) {
+      } else if (solveData.data && isValidSolution(solveData.data)) {
         setSolution(solveData.data)
-        setSolveSource(solveData.source === 'ai' ? 'ai' : solveData.source === 'local' ? 'local' : 'error')
+        setSolveSource(solveData.source === 'ai' ? 'ai' : 'local')
+      } else if (solveData.data) {
+        // Data exists but failed validation — show error
+        setError('Could not solve this problem. Please try rephrasing it.')
       }
       setTimeout(() => { setLoading(false); setExtracting(false); setUploadedFile(null) }, 200)
     } catch {
@@ -1266,8 +1284,10 @@ export default function Home() {
           body: JSON.stringify({ problem: q, subject, board }),
         })
         const data = await res.json()
-        if (data.data && data.data.finalAnswer) {
-          results.push({ question: q, solution: data.data, error: null, source: data.source || 'local' })
+        if (data.error) {
+          results.push({ question: q, solution: null, error: data.error, source: 'error' })
+        } else if (data.data && isValidSolution(data.data)) {
+          results.push({ question: q, solution: data.data, error: null, source: data.source === 'ai' ? 'ai' : 'local' })
         } else {
           results.push({ question: q, solution: null, error: data.error || 'Could not solve this question', source: 'error' })
         }
