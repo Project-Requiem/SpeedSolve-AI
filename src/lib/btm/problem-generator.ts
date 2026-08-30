@@ -19,66 +19,104 @@ const TEMPLATES: Template[] = [
   // ═══════════════════════════════════════════════════════
   // MATHEMATICS — ROOKIE (very easy, build confidence)
   // ═══════════════════════════════════════════════════════
+  // Ultra-easy: single digit addition (first few questions)
   {
     subject: 'mathematics',
     difficulties: ['rookie'],
     generate: () => {
-      const a = rand(2, 20), b = rand(2, 20)
+      const a = rand(1, 9), b = rand(1, 9)
       const ans = a + b
       return {
         subject: 'mathematics', difficulty: 'rookie',
         question: `What is ${a} + ${b}?`,
         correctAnswer: ans, unit: '',
         solution: `${a} + ${b} = ${ans}`,
-        concept: 'Addition', trapType: null, steps: 1, complexity: 0.05,
+        concept: 'Addition', trapType: null, steps: 1, complexity: 0.03,
         generatedValues: { a, b },
       }
     },
   },
+  // Single digit subtraction (result always positive)
   {
     subject: 'mathematics',
     difficulties: ['rookie'],
     generate: () => {
-      const a = rand(10, 50), b = rand(2, a - 1)
+      const a = rand(5, 18), b = rand(1, a - 1)
       const ans = a - b
       return {
         subject: 'mathematics', difficulty: 'rookie',
         question: `What is ${a} − ${b}?`,
         correctAnswer: ans, unit: '',
         solution: `${a} − ${b} = ${ans}`,
-        concept: 'Subtraction', trapType: null, steps: 1, complexity: 0.05,
+        concept: 'Subtraction', trapType: null, steps: 1, complexity: 0.03,
         generatedValues: { a, b },
       }
     },
   },
+  // Small multiplication (times tables)
   {
     subject: 'mathematics',
     difficulties: ['rookie'],
     generate: () => {
-      const a = rand(2, 12), b = rand(2, 12)
+      const a = rand(2, 10), b = rand(2, 10)
       const ans = a * b
       return {
         subject: 'mathematics', difficulty: 'rookie',
         question: `What is ${a} × ${b}?`,
         correctAnswer: ans, unit: '',
         solution: `${a} × ${b} = ${ans}`,
-        concept: 'Multiplication', trapType: null, steps: 1, complexity: 0.08,
+        concept: 'Multiplication', trapType: null, steps: 1, complexity: 0.05,
         generatedValues: { a, b },
       }
     },
   },
+  // Clean division (always whole number)
   {
     subject: 'mathematics',
     difficulties: ['rookie'],
     generate: () => {
-      const b = rand(2, 12), ans = rand(2, 15)
+      const b = rand(2, 10), ans = rand(2, 10)
       const a = b * ans
       return {
         subject: 'mathematics', difficulty: 'rookie',
         question: `What is ${a} ÷ ${b}?`,
         correctAnswer: ans, unit: '',
         solution: `${a} ÷ ${b} = ${ans}`,
-        concept: 'Division', trapType: null, steps: 1, complexity: 0.08,
+        concept: 'Division', trapType: null, steps: 1, complexity: 0.05,
+        generatedValues: { a, b },
+      }
+    },
+  },
+  // Two-digit addition (slightly harder)
+  {
+    subject: 'mathematics',
+    difficulties: ['rookie'],
+    generate: () => {
+      const a = rand(10, 30), b = rand(5, 20)
+      const ans = a + b
+      return {
+        subject: 'mathematics', difficulty: 'rookie',
+        question: `What is ${a} + ${b}?`,
+        correctAnswer: ans, unit: '',
+        solution: `${a} + ${b} = ${ans}`,
+        concept: 'Addition', trapType: null, steps: 1, complexity: 0.06,
+        generatedValues: { a, b },
+      }
+    },
+  },
+  // Two-digit subtraction
+  {
+    subject: 'mathematics',
+    difficulties: ['rookie'],
+    generate: () => {
+      const a = rand(20, 50), b = rand(5, a - 1)
+      const ans = a - b
+      return {
+        subject: 'mathematics', difficulty: 'rookie',
+        question: `What is ${a} − ${b}?`,
+        correctAnswer: ans, unit: '',
+        solution: `${a} − ${b} = ${ans}`,
+        concept: 'Subtraction', trapType: null, steps: 1, complexity: 0.06,
         generatedValues: { a, b },
       }
     },
@@ -87,14 +125,14 @@ const TEMPLATES: Template[] = [
     subject: 'mathematics',
     difficulties: ['rookie', 'scholar'],
     generate: () => {
-      const a = rand(2, 15), b = rand(2, 10), c = rand(1, 20)
+      const a = rand(2, 10), b = rand(2, 8), c = rand(1, 10)
       const ans = a * b + c
       return {
         subject: 'mathematics', difficulty: 'rookie',
         question: `Find the value of ${a} × ${b} + ${c}.`,
         correctAnswer: ans, unit: '',
         solution: `Step 1: Multiply ${a} × ${b} = ${a * b}\nStep 2: Add ${c}: ${a * b} + ${c} = ${ans}`,
-        concept: 'Arithmetic Operations', trapType: null, steps: 2, complexity: 0.12,
+        concept: 'Arithmetic Operations', trapType: null, steps: 2, complexity: 0.1,
         generatedValues: { a, b, c },
       }
     },
@@ -258,11 +296,28 @@ const TEMPLATES: Template[] = [
   // ═══════════════════════════════════════════════════════
   // PHYSICS — ROOKIE (very easy)
   // ═══════════════════════════════════════════════════════
+  // Ultra-easy: simple distance (small numbers)
   {
     subject: 'physics',
     difficulties: ['rookie'],
     generate: () => {
-      const v = rand(2, 15), t = rand(2, 10)
+      const v = rand(2, 8), t = rand(2, 6)
+      return {
+        subject: 'physics', difficulty: 'rookie',
+        question: `A car travels at ${v} m/s for ${t} seconds. Find the distance in metres.`,
+        correctAnswer: v * t, unit: 'm',
+        solution: `Distance = speed \u00d7 time = ${v} \u00d7 ${t} = ${v * t} m`,
+        concept: 'Speed = Distance/Time', trapType: null, steps: 1, complexity: 0.05,
+        generatedValues: { v, t },
+      }
+    },
+  },
+  // Slightly harder speed
+  {
+    subject: 'physics',
+    difficulties: ['rookie'],
+    generate: () => {
+      const v = rand(5, 15), t = rand(3, 10)
       return {
         subject: 'physics', difficulty: 'rookie',
         question: `A car travels at ${v} m/s for ${t} seconds. Find the distance in metres.`,
@@ -273,11 +328,27 @@ const TEMPLATES: Template[] = [
       }
     },
   },
+  // Simple momentum (small numbers)
   {
     subject: 'physics',
     difficulties: ['rookie'],
     generate: () => {
-      const m = rand(2, 10), v = rand(2, 10)
+      const m = rand(2, 6), v = rand(2, 6)
+      return {
+        subject: 'physics', difficulty: 'rookie',
+        question: `An object has mass ${m} kg and velocity ${v} m/s. Find its momentum in kg\u00b7m/s.`,
+        correctAnswer: m * v, unit: 'kg\u00b7m/s',
+        solution: `p = mv = ${m} \u00d7 ${v} = ${m * v} kg\u00b7m/s`,
+        concept: 'Momentum', trapType: null, steps: 1, complexity: 0.05,
+        generatedValues: { m, v },
+      }
+    },
+  },
+  {
+    subject: 'physics',
+    difficulties: ['rookie'],
+    generate: () => {
+      const m = rand(2, 8), v = rand(2, 8)
       return {
         subject: 'physics', difficulty: 'rookie',
         question: `An object has mass ${m} kg and velocity ${v} m/s. Find its momentum in kg\u00b7m/s.`,
@@ -440,11 +511,27 @@ const TEMPLATES: Template[] = [
   // ═══════════════════════════════════════════════════════
   // CHEMISTRY — ROOKIE (very easy)
   // ═══════════════════════════════════════════════════════
+  // Ultra-easy: moles × molar mass (small round numbers)
   {
     subject: 'chemistry',
     difficulties: ['rookie'],
     generate: () => {
-      const moles = rand(1, 5), molarMass = rand(2, 10) * 10
+      const moles = rand(1, 3), molarMass = rand(2, 5) * 10
+      return {
+        subject: 'chemistry', difficulty: 'rookie',
+        question: `What is the mass of ${moles} moles of a substance with molar mass ${molarMass} g/mol?`,
+        correctAnswer: moles * molarMass, unit: 'g',
+        solution: `mass = moles × molar mass = ${moles} × ${molarMass} = ${moles * molarMass} g`,
+        concept: 'Moles and Mass', trapType: null, steps: 1, complexity: 0.05,
+        generatedValues: { moles, molarMass },
+      }
+    },
+  },
+  {
+    subject: 'chemistry',
+    difficulties: ['rookie'],
+    generate: () => {
+      const moles = rand(2, 6), molarMass = rand(2, 10) * 10
       return {
         subject: 'chemistry', difficulty: 'rookie',
         question: `What is the mass of ${moles} moles of a substance with molar mass ${molarMass} g/mol?`,
@@ -455,6 +542,22 @@ const TEMPLATES: Template[] = [
       }
     },
   },
+  // Ultra-easy: atoms in O2 (small numbers)
+  {
+    subject: 'chemistry',
+    difficulties: ['rookie'],
+    generate: () => {
+      const molecules = rand(1, 4)
+      return {
+        subject: 'chemistry', difficulty: 'rookie',
+        question: `How many atoms are in ${molecules} molecules of O\u2082?`,
+        correctAnswer: molecules * 2, unit: 'atoms',
+        solution: `Each O\u2082 molecule has 2 oxygen atoms.\n${molecules} × 2 = ${molecules * 2} atoms`,
+        concept: 'Atoms in Molecules', trapType: null, steps: 1, complexity: 0.04,
+        generatedValues: { molecules },
+      }
+    },
+  },
   {
     subject: 'chemistry',
     difficulties: ['rookie'],
@@ -462,10 +565,9 @@ const TEMPLATES: Template[] = [
       const molecules = rand(2, 6)
       return {
         subject: 'chemistry', difficulty: 'rookie',
-        question: `How many atoms are in ${molecules} molecules of O₂?`,
+        question: `How many atoms are in ${molecules} molecules of O\u2082?`,
         correctAnswer: molecules * 2, unit: 'atoms',
-        solution: `Each O₂ molecule has 2 oxygen atoms.
-${molecules} × 2 = ${molecules * 2} atoms`,
+        solution: `Each O\u2082 molecule has 2 oxygen atoms.\n${molecules} × 2 = ${molecules * 2} atoms`,
         concept: 'Atoms in Molecules', trapType: null, steps: 1, complexity: 0.06,
         generatedValues: { molecules },
       }
@@ -481,7 +583,7 @@ ${molecules} × 2 = ${molecules * 2} atoms`,
         question: `Calculate the mass of ${moles} moles of a substance with molar mass ${molarMass} g/mol in grams.`,
         correctAnswer: moles * molarMass, unit: 'g',
         solution: `mass = moles × molar mass = ${moles} × ${molarMass} = ${moles * molarMass} g`,
-        concept: 'Moles and Mass', trapType: null, steps: 2, complexity: 0.12,
+        concept: 'Moles and Mass', trapType: null, steps: 2, complexity: 0.1,
         generatedValues: { moles, molarMass },
       }
     },
@@ -706,6 +808,7 @@ export function generateProblem(
   subject?: BTMSubject,
   difficulty?: BTMDifficulty,
   forceTrap = false,
+  attemptCount = 0,
 ): BTMProblem {
   let pool = TEMPLATES.filter((t) => {
     if (subject && t.subject !== subject) return false
@@ -713,9 +816,39 @@ export function generateProblem(
     return true
   })
 
+  // ── Gradual difficulty: for the first few attempts at any difficulty,
+  //    prefer simpler templates (lower complexity) ──
+  if (attemptCount <= 3 && difficulty && difficulty !== 'rookie' && !forceTrap) {
+    // Dry-run each template to get its complexity, then sort by it
+    const scored = pool.map((t) => {
+      try {
+        const sample = t.generate(difficulty)
+        return { template: t, complexity: sample.complexity }
+      } catch { return { template: t, complexity: 1 } }
+    }).sort((a, b) => a.complexity - b.complexity)
+
+    // For first 2 attempts, only pick from the bottom 40% (easiest)
+    // For attempts 3-5, pick from bottom 70%
+    // After that, pick from all
+    const pctCutoff = attemptCount <= 1 ? 0.4 : 0.7
+    const cutoff = Math.max(1, Math.floor(scored.length * pctCutoff))
+    pool = scored.slice(0, cutoff).map((s) => s.template)
+  }
+
+  // For rookie, also prefer easier templates in the first 3 attempts
+  if (difficulty === 'rookie' && attemptCount <= 2) {
+    const scored = pool.map((t) => {
+      try {
+        const sample = t.generate('rookie')
+        return { template: t, complexity: sample.complexity }
+      } catch { return { template: t, complexity: 1 } }
+    }).sort((a, b) => a.complexity - b.complexity)
+    const cutoff = Math.max(1, Math.floor(scored.length * 0.5))
+    pool = scored.slice(0, cutoff).map((s) => s.template)
+  }
+
   if (forceTrap) {
     const traps = pool.filter((t) => {
-      // Check if template generates traps by inspecting a dry run
       try {
         const sample = t.generate(difficulty || 'scholar')
         return sample.trapType !== null
@@ -725,7 +858,6 @@ export function generateProblem(
   }
 
   if (pool.length === 0) {
-    // Fallback: pick any template
     pool = TEMPLATES.filter((t) => t.difficulties.includes(difficulty || 'rookie'))
     if (pool.length === 0) pool = [TEMPLATES[0]]
   }

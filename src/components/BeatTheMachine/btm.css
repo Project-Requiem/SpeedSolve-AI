@@ -170,7 +170,6 @@
 .btm-root.btm-day .btm-history-row.wrong .btm-history-result { color: #b91c1c; }
 .btm-root.btm-day .btm-history-problem { color: #1a2d45; }
 .btm-root.btm-day .btm-history-time { color: #4a6080; }
-.btm-root.btm-day .btm-history-xp { color: #15803d; }
 
 /* Screen transition for day mode */
 .btm-root.btm-day .btm-content { color: #0f1b2d; }
@@ -871,6 +870,10 @@
 .btm-history-problem { color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .btm-history-time { font-family: 'JetBrains Mono', monospace; color: var(--text-muted); text-align: right; }
 .btm-history-xp { font-family: 'JetBrains Mono', monospace; color: #3b82f6; text-align: right; }
+.btm-history-xp.negative { color: #ef4444; }
+
+.btm-root.btm-day .btm-history-xp { color: #15803d; }
+.btm-root.btm-day .btm-history-xp.negative { color: #dc2626; }
 
 /* ── Back to SpeedSolve ── */
 .btm-back-home {

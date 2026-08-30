@@ -505,7 +505,7 @@ function StatsScreen() {
                   <div className="btm-history-result">{h.correct ? 'WIN' : 'WRONG'}</div>
                   <div className="btm-history-problem">{h.problemText.length > 50 ? h.problemText.slice(0, 50) + '...' : h.problemText}</div>
                   <div className="btm-history-time">{fmtTime(h.timeMs)}</div>
-                  <div className="btm-history-xp">+{h.xpGained}</div>
+                  <div className={`btm-history-xp ${h.xpGained < 0 ? 'negative' : ''}`}>{h.xpGained > 0 ? '+' : ''}{h.xpGained}</div>
                 </div>
               ))}
             </div>

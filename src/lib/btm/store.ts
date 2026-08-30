@@ -137,10 +137,15 @@ export const useBTMStore = create<BTMStore>((set, get) => ({
   generateChallenge: async (difficulty, subject, daily = false) => {
     set({ screen: 'loading', submitted: false, userInput: '', result: null, timerRunning: false, timerStartedAt: null, elapsedMs: 0 })
     try {
+      // Count how many problems the user has attempted at this difficulty
+      const stats = get().stats
+      const diffStats = stats.difficultyStats[difficulty]
+      const attemptCount = diffStats ? diffStats.wins + diffStats.losses + diffStats.wrong : 0
+
       const res = await fetch('/api/btm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: daily ? 'daily' : 'generate', subject, difficulty }),
+        body: JSON.stringify({ action: daily ? 'daily' : 'generate', subject, difficulty, attemptCount }),
       })
       const data = await res.json()
       if (data.problem) {
@@ -150,7 +155,7 @@ export const useBTMStore = create<BTMStore>((set, get) => ({
         const retry = await fetch('/api/btm', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'generate', subject, difficulty }),
+          body: JSON.stringify({ action: 'generate', subject, difficulty, attemptCount }),
         })
         const retryData = await retry.json()
         if (retryData.problem) {
@@ -193,7 +198,17 @@ export const useBTMStore = create<BTMStore>((set, get) => ({
     // Base XP
     if (isWin) xpGained += DIFFICULTY_XP[problem.difficulty]
     else if (isLoss) xpGained += Math.floor(DIFFICULTY_XP[problem.difficulty] * 0.3)
-    else xpGained = -25  // Wrong answer: lose XP
+    else {
+      // Scaled negative XP based on difficulty: harder questions = bigger penalty
+      const NEGATIVE_XP: Record<string, number> = {
+        rookie: -10,
+        scholar: -20,
+        expert: -35,
+        nightmare: -50,
+        requiem: -75,
+      }
+      xpGained = NEGATIVE_XP[problem.difficulty] || -25
+    }
 
     // Speed bonus
     if (isWin && userTimeMs < benchmark.aiTimeMs * 0.5) xpGained += 50
