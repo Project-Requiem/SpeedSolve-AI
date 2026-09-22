@@ -126,26 +126,41 @@ function solveLinearEq(_m:RegExpMatchArray,text?:string):LocalSolution|null{
 }
 
 function solveQuadratic(_m:RegExpMatchArray,text?:string):LocalSolution|null{
-  const t=(text||_m[0]).toLowerCase();
-  // Extract all numbers and the variable
+  const raw=(text||_m[0]);
+  const t=raw.toLowerCase();
   const vM=t.match(/[xXyYzZ]/);if(!vM)return null;const v=vM[0];
-  const allN=N(t);
-  // Try to find a,b,c: ax^2 + bx + c = 0
-  // Handle "x^2 - 5x + 6 = 0", "x^2 = 16", "2x^2 + 3x - 5 = 0"
-  let a=1,b=0,c=0;
-  const isRHSOnly=t.match(/([xXyYzZ])\s*\^\s*2\s*=\s*(-?\d+\.?\d*)/);
-  if(isRHSOnly){
-    a=1;c=-(parseFloat(isRHSOnly[2])||0);
-    // Check if there's a coefficient: "2x^2 = 18"
-    const aM=t.match(/(-?\d*\.?\d*)\s*[xXyYzZ]\s*\^\s*2/);
-    if(aM&&aM[1]){a=parseFloat(aM[1])||1;if(aM[1]==='-'||aM[1]==='-0')a=-0;}
-  } else {
-    // Standard form: ax^2 + bx + c = 0
-    const nums=allN.filter(n=>isFinite(n));
-    if(nums.length>=3){a=nums[0];b=nums[1];c=nums[2]}
-    else if(nums.length===2){b=nums[0];c=nums[1]}
-    else return null;
+  // Normalize: collapse spaces around +/- so "- 5x" becomes "-5x"
+  const norm=t.replace(/\s*([+\-])\s*/g,' $1').replace(/([+\-])\s+/g,'$1').trim();
+  // Properly parse a, b, c from ax^2 + bx + c = 0 using regex
+  let a=0,b=0,c=0;
+  // Extract coefficient of x^2 term — sign can be implicit (start of expr after "solve" etc.)
+  const aM=norm.match(/([+\-]?)\s*(\d*\.?\d*)\s*[xXyYzZ]\s*[\^²]\s*2/);
+  if(aM){
+    const sign=aM[1]==='-'?-1:1;
+    const coef=(aM[2]===''||aM[2]===undefined)?1:parseFloat(aM[2])||1;
+    a=sign*coef;
   }
+  // Extract coefficient of x term (not x^2) — remove x^2 term first
+  const noX2=norm.replace(/[+\-]?\s*\d*\.?\d*\s*[xXyYzZ]\s*[\^²]\s*2/,'');
+  const bM=noX2.match(/([+\-])\s*(\d*\.?\d*)\s*[xXyYzZ](?!\s*[\^²])/);
+  if(bM){
+    const sign=bM[1]==='-'?-1:1;
+    const coef=bM[2]===''?1:parseFloat(bM[2])||0;
+    b=sign*coef;
+  } else {
+    // Check for implicit +x or -x without a number
+    const bM2=noX2.match(/([+\-])\s*[xXyYzZ](?!\s*[\^²])/);
+    if(bM2) b=bM2[1]==='-'?-1:1;
+  }
+  // Extract constant c
+  const noX=noX2.replace(/([+\-])\s*\d*\.?\d*\s*[xXyYzZ](?!\s*[\^²])/g,'').replace(/([+\-])\s*[xXyYzZ](?!\s*[\^²])/g,'');
+  const cM=noX.match(/([+\-])\s*(\d+\.?\d*)\s*=\s*0/)||noX.match(/([+\-])\s*(\d+\.?\d*)/);
+  if(cM){
+    const sign=cM[1]==='-'?-1:1;
+    c=sign*(parseFloat(cM[2])||0);
+  }
+  // If no x^2 term found, this isn't quadratic
+  if(a===0)return null;
   const disc=b*b-4*a*c;
   if(disc<0){const rp=fmt(-b/(2*a)),ip=fmt(Math.sqrt(-disc)/(2*a));
     return{finalAnswer:`${v} = ${rp} ± ${ip}i`,finalFormula:`${v} = ${rp} \\pm ${ip}i`,
@@ -1246,12 +1261,13 @@ function solveGasLaw(_m:RegExpMatchArray,text?:string):LocalSolution|null{
 interface PatternRule{regex:RegExp;solver:(m:RegExpMatchArray,fullText?:string)=>LocalSolution|null;useFullText?:boolean}
 
 const PATTERNS:PatternRule[]=[
-  // ── MATH: Specific patterns first ──
-  {regex:/\d*\.?\d*\s*[xXyYzZ]\s*[+\-]\s*\d+\.?\d*\s*(?:[+\-]\s*\d+\.?\d*\s*)?=\s*-?\d+\.?\d*/i,solver:solveLinearEq},
-  {regex:/(?:solve|find)\s+[\d.]*\s*[xXyYzZ]\s*[+\-]\s*\d+\s*=\s*\d+/i,solver:solveLinearEq},
+  // ── MATH: Quadratic/cubic BEFORE linear (prevents linear regex stealing x² terms) ──
   {regex:/(?:solve|find).*?roots?/i,solver:solveQuadratic,useFullText:true},
   {regex:/-?\d*\.?\d*\s*[xXyYzZ]\s*[\^²]\s*2\s*[+\-]\s*\d+\.?\d*\s*[xXyYzZ]?\s*[+\-]\s*-?\d+\.?\d*\s*=\s*0/i,solver:solveQuadratic,useFullText:true},
   {regex:/[xXyYzZ]\s*[\^²]\s*2\s*=\s*-?\d+/i,solver:solveQuadratic,useFullText:true},
+  // ── MATH: Linear equations (after quadratic so x²-5x+6=0 doesn't match as 5x+6=0) ──
+  {regex:/\d*\.?\d*\s*[xXyYzZ]\s*[+\-]\s*\d+\.?\d*\s*(?:[+\-]\s*\d+\.?\d*\s*)?=\s*-?\d+\.?\d*/i,solver:solveLinearEq},
+  {regex:/(?:solve|find)\s+[\d.]*\s*[xXyYzZ]\s*[+\-]\s*\d+\s*=\s*\d+/i,solver:solveLinearEq},
   {regex:/differentiate|d\/dx|derivative/i,solver:solvePolyDifferentiate,useFullText:true},
   {regex:/integrate|\\int|integral/i,solver:solvePolyIntegrate,useFullText:true},
   {regex:/(?:sin|cos|tan)\s+(\d+)\s*(?:degrees?|°)/i,solver:solveTrigStandardAngle},
@@ -1293,8 +1309,11 @@ const PATTERNS:PatternRule[]=[
   {regex:/\(a\+b\)\^2\s*-\s*\(a-b\)\^2/i,solver:solveLinearEq},
 
   // ── PHYSICS ──
-  {regex:/(\d+)\s*kg.*?(\d+)\s*N.*?frictionless|find\s*acceleration/i,solver:solveNewton,useFullText:true},
+  // F=ma: broad patterns for common student phrasing
+  {regex:/(\d+)\s*kg.*?accelerat.*?(\d+)\s*m\/s[²2]/i,solver:solveForceMA,useFullText:true},
+  {regex:/(\d+)\s*kg.*?(\d+)\s*m\/s[²2].*?force|force.*?(\d+)\s*kg.*?(\d+)\s*m\/s[²2]/i,solver:solveForceMA,useFullText:true},
   {regex:/(?:F\s*=\s*ma|force\s*=\s*mass|find\s*force).*?(\d+)\s*kg.*?(\d+)\s*m\/s/i,solver:solveForceMA,useFullText:true},
+  {regex:/(\d+)\s*kg.*?(\d+)\s*N.*?frictionless|find\s*acceleration/i,solver:solveNewton,useFullText:true},
   {regex:/kinetic\s*energy|KE\s*=|find\s*KE/i,solver:solveKineticEnergy,useFullText:true},
   {regex:/thrown\s+upward|projectile.*?max.*?height/i,solver:solveProjectile,useFullText:true},
   {regex:/(\d+)\s*m\/s.*?(\d+)\s*m\/s[²2].*?(\d+)\s*s.*?(?:distance|displacement)/i,solver:solveKinematic,useFullText:true},
