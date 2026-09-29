@@ -32,6 +32,8 @@ interface BatchResult {
 type Subject = 'mathematics' | 'physics' | 'chemistry'
 type Board = 'icse' | 'cbse' | 'state'
 
+interface HistoryEntry { id: string; problem: string; answer: string; subject: string; board: string; timestamp: number; bookmarked: boolean }
+
 const SUBJECTS: Subject[] = ['mathematics', 'physics', 'chemistry']
 
 const SUBJECT_META: Record<Subject, { name: string; badge: string; gradient: string; color: string }> = {
@@ -523,6 +525,174 @@ export default function Home() {
   const [extractedQuestions, setExtractedQuestions] = useState<string[] | null>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
 
+  // ── NEW Feature 1: Solution History ──
+  const [showHistory, setShowHistory] = useState(false)
+  const [historySearch, setHistorySearch] = useState('')
+  const [history, setHistory] = useState<HistoryEntry[]>([])
+  useEffect(() => {
+    try { setHistory(JSON.parse(localStorage.getItem('speedsolve-history') || '[]')) } catch {}
+  }, [])
+  const saveToHistory = (prob: string, ans: string, sub: string, brd: string) => {
+    const entry: HistoryEntry = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), problem: prob, answer: ans, subject: sub, board: brd, timestamp: Date.now(), bookmarked: false }
+    const updated = [entry, ...history].slice(0, 100)
+    setHistory(updated)
+    try { localStorage.setItem('speedsolve-history', JSON.stringify(updated)) } catch {}
+  }
+  const toggleBookmark = (id: string) => {
+    const updated = history.map(h => h.id === id ? { ...h, bookmarked: !h.bookmarked } : h)
+    setHistory(updated)
+    try { localStorage.setItem('speedsolve-history', JSON.stringify(updated)) } catch {}
+  }
+  const clearHistory = () => { setHistory([]); try { localStorage.removeItem('speedsolve-history') } catch {} }
+
+  // ── NEW Feature 2: Animated Step Reveal ──
+  const [visibleSteps, setVisibleSteps] = useState(0)
+  const [animatingSteps, setAnimatingSteps] = useState(false)
+  useEffect(() => {
+    if (solution && solution.steps.length > 0) {
+      setVisibleSteps(0)
+      setAnimatingSteps(true)
+      let count = 0
+      const interval = setInterval(() => {
+        count++
+        setVisibleSteps(count)
+        if (count >= solution.steps.length) {
+          clearInterval(interval)
+          setAnimatingSteps(false)
+        }
+      }, 350)
+      return () => clearInterval(interval)
+    }
+  }, [solution?.finalAnswer])
+
+  // ── NEW Feature 3: Quick Formula Reference ──
+  const [showFormulas, setShowFormulas] = useState(false)
+  const FORMULA_SHEETS: Record<string, { title: string; formulas: string[] }[]> = {
+    mathematics: [
+      { title: 'Algebra', formulas: ['(a+b)² = a² + 2ab + b²', '(a-b)² = a² - 2ab + b²', 'a² - b² = (a+b)(a-b)', 'x = (-b ± √(b²-4ac)) / 2a', '(a+b)³ = a³ + 3a²b + 3ab² + b³'] },
+      { title: 'Trigonometry', formulas: ['sin²θ + cos²θ = 1', '1 + tan²θ = sec²θ', 'sin(A±B) = sinA·cosB ± cosA·sinB', 'cos(A±B) = cosA·cosB ∓ sinA·sinB', 'tan(A+B) = (tanA+tanB)/(1-tanA·tanB)'] },
+      { title: 'Calculus', formulas: ['d/dx(xⁿ) = nxⁿ⁻¹', '∫xⁿdx = xⁿ⁺¹/(n+1) + C', 'd/dx(sinx) = cosx', 'd/dx(eˣ) = eˣ', '∫(1/x)dx = ln|x| + C'] },
+      { title: 'Mensuration', formulas: ['Circle: A = πr², C = 2πr', 'Sphere: V = 4/3πr³, A = 4πr²', 'Cone: V = 1/3πr²h', 'Cylinder: V = πr²h, CSA = 2πrh'] },
+    ],
+    physics: [
+      { title: 'Kinematics', formulas: ['v = u + at', 's = ut + ½at²', 'v² = u² + 2as', 's = ½(u+v)t'] },
+      { title: 'Forces & Energy', formulas: ['F = ma', 'W = Fd cosθ', 'KE = ½mv²', 'PE = mgh', 'P = W/t'] },
+      { title: 'Electricity', formulas: ['V = IR', 'P = VI = I²R = V²/R', 'R_series = R₁+R₂+...', '1/R_parallel = 1/R₁+1/R₂+...'] },
+      { title: 'Waves & Optics', formulas: ['v = fλ', '1/f = 1/v - 1/u (mirror)', '1/f = 1/v - 1/u (lens)', 'n = c/v'] },
+    ],
+    chemistry: [
+      { title: 'Mole Concept', formulas: ['n = mass/M', 'M = n/V (molarity)', 'PV = nRT', 'No. of particles = n × Nₐ'] },
+      { title: 'Equilibrium', formulas: ['K = [products]/[reactants]', 'pH = -log[H⁺]', 'pOH = -log[OH⁻]', 'pH + pOH = 14'] },
+      { title: 'Thermochemistry', formulas: ['ΔG = ΔH - TΔS', 'q = mcΔT', 'ΔH_rxn = ΣΔH(products) - ΣΔH(reactants)'] },
+    ],
+  }
+
+  // ── NEW Feature 4: Keyboard Shortcuts ──
+  // (registered after solve is defined, via ref to avoid TDZ)
+  const solveRefForKeys = useRef<() => void>(() => {})
+
+  // ── NEW Feature 5: Share as Image ──
+  const [sharing, setSharing] = useState(false)
+  const shareAsImage = async () => {
+    if (!solution) return
+    setSharing(true)
+    try {
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')!
+      canvas.width = 800; canvas.height = 200 + solution.steps.length * 60
+      ctx.fillStyle = '#0f0f1a'; ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.fillStyle = '#8b5cf6'; ctx.font = 'bold 24px Inter, sans-serif'
+      ctx.fillText('SpeedSolve AI', 30, 40)
+      ctx.fillStyle = '#e2e8f0'; ctx.font = '16px Inter, sans-serif'
+      ctx.fillText(`Problem: ${problem.slice(0, 80)}`, 30, 80)
+      ctx.fillStyle = '#10b981'; ctx.font = 'bold 20px Inter, sans-serif'
+      ctx.fillText(`Answer: ${solution.finalAnswer}`, 30, 120)
+      ctx.fillStyle = '#94a3b8'; ctx.font = '14px Inter, sans-serif'
+      solution.steps.forEach((s, i) => { ctx.fillText(`Step ${i+1}: ${s.desc.slice(0, 90)}`, 30, 160 + i * 50); if (s.formula) ctx.fillText(`  ${s.formula.slice(0, 90)}`, 50, 180 + i * 50) })
+      canvas.toBlob((blob) => {
+        if (blob) { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `speedsolve-${Date.now()}.png`; a.click(); URL.revokeObjectURL(url) }
+      })
+    } catch {}
+    setSharing(false)
+  }
+
+  // ── NEW Feature 6: Daily Streak ──
+  const [streak, setStreak] = useState(0)
+  const [totalSolved, setTotalSolved] = useState(0)
+  const [lastSolveDate, setLastSolveDate] = useState('')
+  useEffect(() => {
+    try {
+      const data = JSON.parse(localStorage.getItem('speedsolve-streak') || '{}')
+      const today = new Date().toISOString().split('T')[0]
+      let s = data.streak || 0
+      if (data.lastDate) {
+        const diff = Math.floor((new Date(today).getTime() - new Date(data.lastDate).getTime()) / 86400000)
+        if (diff === 1) s = s
+        else if (diff > 1) s = 0
+      }
+      setStreak(s); setTotalSolved(data.total || 0); setLastSolveDate(data.lastDate || '')
+    } catch {}
+  }, [])
+  const updateStreak = () => {
+    const today = new Date().toISOString().split('T')[0]
+    let newStreak = streak
+    if (lastSolveDate !== today) {
+      const diff = Math.floor((new Date(today).getTime() - new Date(lastSolveDate || today).getTime()) / 86400000)
+      newStreak = diff <= 1 ? streak + 1 : 1
+    }
+    const newTotal = totalSolved + 1
+    setStreak(newStreak); setTotalSolved(newTotal); setLastSolveDate(today)
+    try { localStorage.setItem('speedsolve-streak', JSON.stringify({ streak: newStreak, total: newTotal, lastDate: today })) } catch {}
+  }
+
+  // ── NEW Feature 7: Difficulty Detection ──
+  const getDifficulty = (text: string): { level: string; color: string; icon: string } => {
+    const t = text.toLowerCase()
+    const advancedKeywords = ['integral', 'derivative', 'differential', 'limit', 'matrix', 'determinant', 'complex', 'proof', 'induction', 'lagrange', 'eigenvalue', 'fourier', 'laplace', 'partial']
+    const intermediateKeywords = ['quadratic', 'trigonometry', 'sin', 'cos', 'tan', 'logarithm', 'exponent', 'probability', 'statistics', 'simultaneous', 'polynomial', 'congruence', 'similar', 'parallelogram', 'concave', 'convex']
+    if (advancedKeywords.some(k => t.includes(k))) return { level: 'Advanced', color: '#ef4444', icon: '🔴' }
+    if (intermediateKeywords.some(k => t.includes(k))) return { level: 'Intermediate', color: '#f97316', icon: '🟠' }
+    return { level: 'Basic', color: '#10b981', icon: '🟢' }
+  }
+
+  // ── NEW Feature 8: Sound Effects ──
+  const playSound = (type: 'solve' | 'clear' | 'click') => {
+    try {
+      const ctx = new AudioContext()
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain); gain.connect(ctx.destination)
+      if (type === 'solve') { osc.frequency.value = 880; osc.type = 'sine'; gain.gain.setValueAtTime(0.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3); osc.start(); osc.stop(ctx.currentTime + 0.3) }
+      else if (type === 'clear') { osc.frequency.value = 440; osc.type = 'triangle'; gain.gain.setValueAtTime(0.1, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15); osc.start(); osc.stop(ctx.currentTime + 0.15) }
+      else { osc.frequency.value = 660; osc.type = 'sine'; gain.gain.setValueAtTime(0.05, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05); osc.start(); osc.stop(ctx.currentTime + 0.05) }
+    } catch {}
+  }
+
+  // ── NEW Feature 9: Confetti ──
+  const [showConfetti, setShowConfetti] = useState(false)
+  const [confettiParticles, setConfettiParticles] = useState<{ x: number; y: number; vx: number; vy: number; color: string; size: number; rotation: number }[]>([])
+  const triggerConfetti = () => {
+    const colors = ['#8b5cf6', '#f97316', '#10b981', '#ef4444', '#06b6d4', '#eab308', '#ec4899']
+    const particles = Array.from({ length: 50 }, () => ({
+      x: Math.random() * 100, y: 0, vx: (Math.random() - 0.5) * 4, vy: Math.random() * 3 + 1,
+      color: colors[Math.floor(Math.random() * colors.length)], size: Math.random() * 8 + 4, rotation: Math.random() * 360,
+    }))
+    setConfettiParticles(particles); setShowConfetti(true)
+    setTimeout(() => setShowConfetti(false), 3000)
+  }
+
+  // ── NEW Feature 10: Quick Calculator ──
+  const [showCalc, setShowCalc] = useState(false)
+  const [calcInput, setCalcInput] = useState('')
+  const [calcResult, setCalcResult] = useState('')
+  const evalCalc = (expr: string) => {
+    try {
+      const sanitized = expr.replace(/[^0-9+\-*/.()^sqrt pi e ]/g, '').replace(/\^/g, '**').replace(/sqrt\(([^)]+)\)/g, 'Math.sqrt($1)').replace(/pi/g, 'Math.PI').replace(/e(?![a-zA-Z])/g, 'Math.E')
+      const result = Function(`"use strict"; return (${sanitized})`)()
+      setCalcResult(typeof result === 'number' ? (Number.isFinite(result) ? result.toString() : 'Error') : 'Error')
+    } catch { setCalcResult('Error') }
+  }
+
   // Close upload popover on outside click
   useEffect(() => {
     if (!showUploadMenu) return
@@ -627,14 +797,21 @@ export default function Home() {
     setTimeout(() => setSubjectGlow(null), 500)
   }, [subject])
 
-  // ── Client-side Groq key pool + rotation ──
+  // ── Client-side AI key pool + rotation ──
   const groqKeysRef = useRef<string[]>([])
   const keyHealthRef = useRef<Record<number, 'ok' | 'dead'>>({})
   const keyIndexRef = useRef(0) // stable round-robin counter
   const keysReadyRef = useRef(false)
+  // Alternative provider keys
+  const cerebrasKeyRef = useRef<string>('')
+  const openrouterKeyRef = useRef<string>('')
+  const togetherKeyRef = useRef<string>('')
   const keysLoadedPromiseRef = useRef<Promise<void>>(
     fetch('/api/config').then(r => r.json()).then(d => {
       groqKeysRef.current = (d.groqKeys || []).filter((k: string) => k.length > 10)
+      cerebrasKeyRef.current = d.cerebrasKey || ''
+      openrouterKeyRef.current = d.openrouterKey || ''
+      togetherKeyRef.current = d.togetherKey || ''
       keysReadyRef.current = true
     }).catch(() => { keysReadyRef.current = true })
   )
@@ -808,6 +985,75 @@ export default function Home() {
           } catch (e) { continue }
         }
       }
+
+      // ── Fallback: Cerebras ──
+      const cerebrasKey = cerebrasKeyRef.current
+      if (cerebrasKey) {
+        for (const model of ['llama-3.3-70b', 'llama3.1-8b']) {
+          try {
+            const res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${cerebrasKey}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ model, messages: [{ role: 'system', content: promptData.systemPrompt }, { role: 'user', content: userPrompt }], temperature: 0.1, max_tokens: 8192 }),
+              signal: AbortSignal.timeout(30000),
+            })
+            if (!res.ok) continue
+            const data = await res.json()
+            const text = data?.choices?.[0]?.message?.content || ''
+            if (text.trim().length < 20) continue
+            const parsed = extractJSON(text)
+            if (parsed && parsed.finalAnswer && Array.isArray(parsed.steps) && parsed.steps.length > 0) {
+              return { finalAnswer: parsed.finalAnswer || '', finalFormula: parsed.finalFormula || '', steps: (parsed.steps || []).map((s: any) => ({ desc: s.desc || '', formula: s.formula || '' })), altSteps: (parsed.altSteps || []).map((s: any) => ({ desc: s.desc || '', formula: s.formula || '' })), similar: Array.isArray(parsed.similar) ? parsed.similar.slice(0, 4) : [], mistakes: Array.isArray(parsed.mistakes) ? parsed.mistakes.slice(0, 5) : [], examTips: [], graph: parsed.graph?.type ? parsed.graph : null, diagram: null }
+            }
+          } catch (e) { continue }
+        }
+      }
+
+      // ── Fallback: OpenRouter ──
+      const openrouterKey = openrouterKeyRef.current
+      if (openrouterKey) {
+        for (const model of ['meta-llama/llama-3.3-70b-instruct:free', 'deepseek/deepseek-chat-v3-0324:free', 'google/gemma-2-9b-it:free']) {
+          try {
+            const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${openrouterKey}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://speedsolve-ai.vercel.app', 'X-Title': 'SpeedSolve AI' },
+              body: JSON.stringify({ model, messages: [{ role: 'system', content: promptData.systemPrompt }, { role: 'user', content: userPrompt }], temperature: 0.1, max_tokens: 8192 }),
+              signal: AbortSignal.timeout(45000),
+            })
+            if (!res.ok) continue
+            const data = await res.json()
+            const text = data?.choices?.[0]?.message?.content || ''
+            if (text.trim().length < 20) continue
+            const parsed = extractJSON(text)
+            if (parsed && parsed.finalAnswer && Array.isArray(parsed.steps) && parsed.steps.length > 0) {
+              return { finalAnswer: parsed.finalAnswer || '', finalFormula: parsed.finalFormula || '', steps: (parsed.steps || []).map((s: any) => ({ desc: s.desc || '', formula: s.formula || '' })), altSteps: (parsed.altSteps || []).map((s: any) => ({ desc: s.desc || '', formula: s.formula || '' })), similar: Array.isArray(parsed.similar) ? parsed.similar.slice(0, 4) : [], mistakes: Array.isArray(parsed.mistakes) ? parsed.mistakes.slice(0, 5) : [], examTips: [], graph: parsed.graph?.type ? parsed.graph : null, diagram: null }
+            }
+          } catch (e) { continue }
+        }
+      }
+
+      // ── Fallback: Together AI ──
+      const togetherKey = togetherKeyRef.current
+      if (togetherKey) {
+        for (const model of ['meta-llama/Llama-3.3-70B-Instruct-Turbo', 'deepseek-ai/DeepSeek-V3']) {
+          try {
+            const res = await fetch('https://api.together.xyz/v1/chat/completions', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${togetherKey}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ model, messages: [{ role: 'system', content: promptData.systemPrompt }, { role: 'user', content: userPrompt }], temperature: 0.1, max_tokens: 8192 }),
+              signal: AbortSignal.timeout(30000),
+            })
+            if (!res.ok) continue
+            const data = await res.json()
+            const text = data?.choices?.[0]?.message?.content || ''
+            if (text.trim().length < 20) continue
+            const parsed = extractJSON(text)
+            if (parsed && parsed.finalAnswer && Array.isArray(parsed.steps) && parsed.steps.length > 0) {
+              return { finalAnswer: parsed.finalAnswer || '', finalFormula: parsed.finalFormula || '', steps: (parsed.steps || []).map((s: any) => ({ desc: s.desc || '', formula: s.formula || '' })), altSteps: (parsed.altSteps || []).map((s: any) => ({ desc: s.desc || '', formula: s.formula || '' })), similar: Array.isArray(parsed.similar) ? parsed.similar.slice(0, 4) : [], mistakes: Array.isArray(parsed.mistakes) ? parsed.mistakes.slice(0, 5) : [], examTips: [], graph: parsed.graph?.type ? parsed.graph : null, diagram: null }
+            }
+          } catch (e) { continue }
+        }
+      }
     } catch (e) {}
     return null
   }
@@ -849,6 +1095,11 @@ export default function Home() {
       setSolution(sol)
       setSolveSource(source)
       setProgress(100)
+      // Trigger new features
+      saveToHistory(trimmed, sol.finalAnswer, activeSubject, board)
+      updateStreak()
+      playSound('solve')
+      triggerConfetti()
       setTimeout(() => {
         setLoading(false)
         setTimeout(() => setFlashAnswer(true), 50)
@@ -1019,6 +1270,22 @@ export default function Home() {
       setRetryingAI(false)
     }
   }, [problem, subject, board, solution])
+
+  // ── Register keyboard shortcuts (after solve is defined) ──
+  useEffect(() => {
+    solveRefForKeys.current = solve
+  }, [solve])
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); if (!loading && problem.trim()) solveRefForKeys.current() }
+      if (e.key === 'Escape') { e.preventDefault(); setProblem(''); setSolution(null); setError('') }
+      if (e.ctrlKey && e.key === 'k') { e.preventDefault(); setShowHistory(true) }
+      if (e.ctrlKey && e.key === 'f') { e.preventDefault(); setShowFormulas(true) }
+      if (e.ctrlKey && e.key === 'h') { e.preventDefault(); setShowHistory(prev => !prev) }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [loading, problem])
 
   // ── Feature 2: Copy answer ──
   const copyAnswer = useCallback(() => {
@@ -1736,7 +2003,30 @@ export default function Home() {
             </a>
           </div>
           <div className="nav-actions">
-            {/* Feature 5: Feedback button */}
+            {/* Streak Counter */}
+            {streak > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px', background: 'rgba(234,179,8,0.15)', borderRadius: '20px', fontSize: '0.8rem', color: '#eab308', fontWeight: 700, border: '1px solid rgba(234,179,8,0.3)' }}>
+                {'🔥'.repeat(Math.min(streak, 5))} {streak}d
+                <span style={{ fontSize: '0.65rem', color: '#a3a3a3', marginLeft: '4px' }}>({totalSolved})</span>
+              </div>
+            )}
+            {/* History Button */}
+            <button className="nav-feedback-btn" onClick={() => { playSound('click'); setShowHistory(true) }} title="History (Ctrl+H)" style={{ position: 'relative' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span>History</span>
+              {history.length > 0 && <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#8b5cf6', color: '#fff', fontSize: '0.6rem', width: '16px', height: '16px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{history.length > 99 ? '99+' : history.length}</span>}
+            </button>
+            {/* Formula Reference Button */}
+            <button className="nav-feedback-btn" onClick={() => { playSound('click'); setShowFormulas(true) }} title="Formulas (Ctrl+F)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              <span>Formulas</span>
+            </button>
+            {/* Calculator Button */}
+            <button className="nav-feedback-btn" onClick={() => { playSound('click'); setShowCalc(true) }} title="Calculator">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="8" y2="10.01"/><line x1="12" y1="10" x2="12" y2="10.01"/><line x1="16" y1="10" x2="16" y2="10.01"/><line x1="8" y1="14" x2="8" y2="14.01"/><line x1="12" y1="14" x2="12" y2="14.01"/><line x1="16" y1="14" x2="16" y2="14.01"/><line x1="8" y1="18" x2="8" y2="18.01"/><line x1="12" y1="18" x2="16" y2="18"/></svg>
+              <span>Calc</span>
+            </button>
+            {/* Feedback button */}
             <button className="nav-feedback-btn" onClick={() => setShowFeedback(true)}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               <span>Feedback</span>
@@ -2156,10 +2446,21 @@ export default function Home() {
                   {/* Steps */}
                   {solution.steps.length > 0 && (
                     <div className="solution-section fade-up visible" style={{ animationDelay: '0.1s' }}>
-                      <div className="section-label">Step-by-Step Explanation</div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <div className="section-label">Step-by-Step Explanation</div>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          {/* Difficulty Badge */}
+                          {(() => { const d = getDifficulty(problem); return <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '12px', background: `${d.color}22`, color: d.color, border: `1px solid ${d.color}44`, fontWeight: 600 }}>{d.icon} {d.level}</span> })()}
+                          {/* Share as Image */}
+                          <button onClick={shareAsImage} disabled={sharing} style={{ fontSize: '0.7rem', padding: '3px 8px', borderRadius: '8px', background: 'rgba(139,92,246,0.15)', color: '#8b5cf6', border: '1px solid rgba(139,92,246,0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }} title="Share as Image">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                            {sharing ? 'Saving...' : 'Share'}
+                          </button>
+                        </div>
+                      </div>
                       <div className="steps-container reveal">
-                        {solution.steps.map((step, i) => (
-                          <div key={i} className="step-item" data-num={String(i + 1)}>
+                        {solution.steps.slice(0, visibleSteps || solution.steps.length).map((step, i) => (
+                          <div key={i} className="step-item" data-num={String(i + 1)} style={{ opacity: (visibleSteps > 0 && i < visibleSteps) || !animatingSteps ? 1 : 0, transform: (visibleSteps > 0 && i < visibleSteps) || !animatingSteps ? 'translateY(0)' : 'translateY(10px)', transition: 'opacity 0.3s, transform 0.3s' }}>
                             <div className="step-desc" dangerouslySetInnerHTML={{ __html: renderLatex(step.desc) }} />
                             {step.formula && (
                               <div className="step-formula">
@@ -2168,6 +2469,11 @@ export default function Home() {
                             )}
                           </div>
                         ))}
+                        {animatingSteps && visibleSteps < solution.steps.length && (
+                          <div style={{ textAlign: 'center', padding: '12px', color: '#8b5cf6', fontSize: '0.85rem' }}>
+                            <span style={{ display: 'inline-block', animation: 'pulse 1s infinite' }}>●</span> Revealing steps...
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -2359,6 +2665,109 @@ export default function Home() {
       <button className={`scroll-top-btn${showScrollTop ? ' visible' : ''}`} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Scroll to top">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="18 15 12 9 6 15"/></svg>
       </button>
+
+      {/* Confetti Overlay */}
+      {showConfetti && (
+        <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 9999, overflow: 'hidden' }}>
+          {confettiParticles.map((p, i) => (
+            <div key={i} style={{ position: 'absolute', left: `${p.x}%`, top: `${p.y}%`, width: p.size, height: p.size, background: p.color, borderRadius: Math.random() > 0.5 ? '50%' : '2px', transform: `rotate(${p.rotation}deg)`, animation: `confetti-fall ${2 + Math.random()}s ease-out forwards`, animationDelay: `${Math.random() * 0.5}s` }} />
+          ))}
+        </div>
+      )}
+
+      {/* Keyboard Shortcuts Hint */}
+      {!solution && !loading && (
+        <div style={{ position: 'fixed', bottom: '12px', right: '12px', fontSize: '0.65rem', color: 'rgba(148,163,184,0.4)', zIndex: 1, textAlign: 'right', lineHeight: 1.6 }}>
+          <span style={{ background: 'rgba(148,163,184,0.1)', padding: '1px 5px', borderRadius: '4px' }}>Ctrl+Enter</span> Solve &nbsp;
+          <span style={{ background: 'rgba(148,163,184,0.1)', padding: '1px 5px', borderRadius: '4px' }}>Esc</span> Clear &nbsp;
+          <span style={{ background: 'rgba(148,163,184,0.1)', padding: '1px 5px', borderRadius: '4px' }}>Ctrl+H</span> History
+        </div>
+      )}
+
+      {/* History Modal */}
+      {showHistory && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9990, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)' }} onClick={() => setShowHistory(false)}>
+          <div style={{ background: '#1a1a2e', borderRadius: '16px', padding: '24px', maxWidth: '600px', width: '90%', maxHeight: '80vh', overflow: 'auto', border: '1px solid rgba(139,92,246,0.3)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ color: '#e2e8f0', fontSize: '1.2rem', margin: 0 }}>Solution History</h3>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {history.length > 0 && <button onClick={clearHistory} style={{ fontSize: '0.75rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer' }}>Clear All</button>}
+                <button onClick={() => setShowHistory(false)} style={{ fontSize: '0.75rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(148,163,184,0.15)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.3)', cursor: 'pointer' }}>Close</button>
+              </div>
+            </div>
+            <input type="text" placeholder="Search history..." value={historySearch} onChange={e => setHistorySearch(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.2)', color: '#e2e8f0', fontSize: '0.9rem', marginBottom: '12px', outline: 'none' }} />
+            {history.length === 0 ? (
+              <div style={{ textAlign: 'center', color: '#64748b', padding: '40px 0' }}>No solutions yet. Start solving!</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {history.filter(h => !historySearch || h.problem.toLowerCase().includes(historySearch.toLowerCase()) || h.answer.toLowerCase().includes(historySearch.toLowerCase())).map(h => (
+                  <div key={h.id} style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', border: '1px solid rgba(148,163,184,0.1)', cursor: 'pointer' }} onClick={() => { setProblem(h.problem); setShowHistory(false) }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{h.subject} · {h.board.toUpperCase()} · {new Date(h.timestamp).toLocaleDateString()}</span>
+                      <button onClick={e => { e.stopPropagation(); toggleBookmark(h.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' }}>{h.bookmarked ? '⭐' : '☆'}</button>
+                    </div>
+                    <div style={{ color: '#e2e8f0', fontSize: '0.85rem', marginTop: '4px', fontWeight: 500 }}>{h.problem.slice(0, 80)}{h.problem.length > 80 ? '...' : ''}</div>
+                    <div style={{ color: '#10b981', fontSize: '0.8rem', marginTop: '4px' }}>Answer: {h.answer.slice(0, 50)}{h.answer.length > 50 ? '...' : ''}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Formula Reference Modal */}
+      {showFormulas && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9990, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)' }} onClick={() => setShowFormulas(false)}>
+          <div style={{ background: '#1a1a2e', borderRadius: '16px', padding: '24px', maxWidth: '650px', width: '90%', maxHeight: '80vh', overflow: 'auto', border: '1px solid rgba(16,185,129,0.3)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ color: '#e2e8f0', fontSize: '1.2rem', margin: 0 }}>Quick Formula Reference</h3>
+              <button onClick={() => setShowFormulas(false)} style={{ fontSize: '0.75rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(148,163,184,0.15)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.3)', cursor: 'pointer' }}>Close</button>
+            </div>
+            {/* Subject tabs */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+              {(['mathematics', 'physics', 'chemistry'] as const).map(s => (
+                <button key={s} onClick={() => setSubject(s)} style={{ padding: '6px 14px', borderRadius: '10px', background: subject === s ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.05)', color: subject === s ? '#8b5cf6' : '#94a3b8', border: `1px solid ${subject === s ? 'rgba(139,92,246,0.4)' : 'rgba(148,163,184,0.2)'}`, cursor: 'pointer', fontSize: '0.85rem', fontWeight: subject === s ? 600 : 400, transition: 'all 0.2s' }}>{s.charAt(0).toUpperCase() + s.slice(1)}</button>
+              ))}
+            </div>
+            {(FORMULA_SHEETS[subject] || FORMULA_SHEETS.mathematics).map((section, i) => (
+              <div key={i} style={{ marginBottom: '16px' }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '8px', color: '#a78bfa' }}>{section.title}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {section.formulas.map((f, j) => (
+                    <div key={j} style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(148,163,184,0.08)', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.82rem', color: '#cbd5e1' }}>{f}</div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Quick Calculator Modal */}
+      {showCalc && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9990, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)' }} onClick={() => setShowCalc(false)}>
+          <div style={{ background: '#1a1a2e', borderRadius: '16px', padding: '24px', maxWidth: '400px', width: '90%', border: '1px solid rgba(6,182,212,0.3)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ color: '#e2e8f0', fontSize: '1.2rem', margin: 0 }}>Quick Calculator</h3>
+              <button onClick={() => setShowCalc(false)} style={{ fontSize: '0.75rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(148,163,184,0.15)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.3)', cursor: 'pointer' }}>Close</button>
+            </div>
+            <input type="text" placeholder="e.g. 7^2 + sqrt(144) * 3" value={calcInput} onChange={e => { setCalcInput(e.target.value); evalCalc(e.target.value) }} onKeyDown={e => { if (e.key === 'Enter') evalCalc(calcInput) }} style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(6,182,212,0.3)', color: '#e2e8f0', fontSize: '1rem', fontFamily: 'JetBrains Mono, monospace', outline: 'none' }} />
+            {calcResult && (
+              <div style={{ marginTop: '12px', padding: '12px 14px', borderRadius: '10px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: calcResult === 'Error' ? '#ef4444' : '#10b981', fontSize: '1.2rem', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, textAlign: 'right' }}>
+                = {calcResult}
+              </div>
+            )}
+            <div style={{ marginTop: '12px', fontSize: '0.7rem', color: '#64748b' }}>Supports: +  -  *  /  ^  ()  sqrt()  pi  e</div>
+            {/* Quick buttons */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', marginTop: '12px' }}>
+              {['7','8','9','/','sqrt(','4','5','6','*','^','1','2','3','-','pi','0','.','(',')','e'].map(b => (
+                <button key={b} onClick={() => { const v = calcInput + b; setCalcInput(v); evalCalc(v) }} style={{ padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.15)', color: '#e2e8f0', cursor: 'pointer', fontSize: '0.9rem', fontFamily: 'JetBrains Mono, monospace' }}>{b}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="footer fade-up" data-delay="100">

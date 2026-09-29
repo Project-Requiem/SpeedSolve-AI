@@ -92,13 +92,155 @@ async function callGroq(systemPrompt: string, userPrompt: string): Promise<strin
   return "";
 }
 
-// ── Try all AI providers in sequence ──
+// ── AI Provider 3: Cerebras (free, ultra-fast, OpenAI-compatible) ──
+async function callCerebras(systemPrompt: string, userPrompt: string): Promise<string> {
+  const key = process.env.CEREBRAS_API_KEY;
+  if (!key) return "";
+  const models = ["llama-3.3-70b", "llama3.1-8b"];
+  for (const model of models) {
+    try {
+      const res = await fetch("https://api.cerebras.ai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          temperature: 0.1,
+          max_tokens: 8192,
+        }),
+        signal: AbortSignal.timeout(30000),
+      });
+      if (!res.ok) {
+        console.error(`[SpeedSolve] Cerebras ${model}: ${res.status}`);
+        continue;
+      }
+      const data = await res.json();
+      const text = data?.choices?.[0]?.message?.content || "";
+      if (text.trim().length > 20) {
+        console.log(`[SpeedSolve] Cerebras ${model} OK (${text.length} chars)`);
+        return text;
+      }
+    } catch (err: any) {
+      console.error(`[SpeedSolve] Cerebras ${model}: ${err?.message?.slice(0, 100)}`);
+    }
+  }
+  return "";
+}
+
+// ── AI Provider 4: OpenRouter (free models, OpenAI-compatible) ──
+async function callOpenRouter(systemPrompt: string, userPrompt: string): Promise<string> {
+  const key = process.env.OPENROUTER_API_KEY;
+  if (!key) return "";
+  const models = [
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "deepseek/deepseek-chat-v3-0324:free",
+    "google/gemma-2-9b-it:free",
+  ];
+  for (const model of models) {
+    try {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${key}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://speedsolve-ai.vercel.app",
+          "X-Title": "SpeedSolve AI",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          temperature: 0.1,
+          max_tokens: 8192,
+        }),
+        signal: AbortSignal.timeout(45000),
+      });
+      if (!res.ok) {
+        console.error(`[SpeedSolve] OpenRouter ${model}: ${res.status}`);
+        continue;
+      }
+      const data = await res.json();
+      const text = data?.choices?.[0]?.message?.content || "";
+      if (text.trim().length > 20) {
+        console.log(`[SpeedSolve] OpenRouter ${model} OK (${text.length} chars)`);
+        return text;
+      }
+    } catch (err: any) {
+      console.error(`[SpeedSolve] OpenRouter ${model}: ${err?.message?.slice(0, 100)}`);
+    }
+  }
+  return "";
+}
+
+// ── AI Provider 5: Together AI (free tier, OpenAI-compatible) ──
+async function callTogether(systemPrompt: string, userPrompt: string): Promise<string> {
+  const key = process.env.TOGETHER_API_KEY;
+  if (!key) return "";
+  const models = ["meta-llama/Llama-3.3-70B-Instruct-Turbo", "deepseek-ai/DeepSeek-V3"];
+  for (const model of models) {
+    try {
+      const res = await fetch("https://api.together.xyz/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          temperature: 0.1,
+          max_tokens: 8192,
+        }),
+        signal: AbortSignal.timeout(30000),
+      });
+      if (!res.ok) {
+        console.error(`[SpeedSolve] Together ${model}: ${res.status}`);
+        continue;
+      }
+      const data = await res.json();
+      const text = data?.choices?.[0]?.message?.content || "";
+      if (text.trim().length > 20) {
+        console.log(`[SpeedSolve] Together ${model} OK (${text.length} chars)`);
+        return text;
+      }
+    } catch (err: any) {
+      console.error(`[SpeedSolve] Together ${model}: ${err?.message?.slice(0, 100)}`);
+    }
+  }
+  return "";
+}
+
+// ── Try all AI providers in cascade ──
 async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
+  // Provider 1: Google Gemini (fast, high quality)
   const geminiResult = await callGemini(systemPrompt, userPrompt);
   if (geminiResult) return geminiResult;
+
+  // Provider 2: Groq (free, ultra-fast inference)
   console.log("[SpeedSolve] Gemini failed, trying Groq...");
   const groqResult = await callGroq(systemPrompt, userPrompt);
   if (groqResult) return groqResult;
+
+  // Provider 3: Cerebras (free, ultra-fast)
+  console.log("[SpeedSolve] Groq failed, trying Cerebras...");
+  const cerebrasResult = await callCerebras(systemPrompt, userPrompt);
+  if (cerebrasResult) return cerebrasResult;
+
+  // Provider 4: OpenRouter (free models)
+  console.log("[SpeedSolve] Cerebras failed, trying OpenRouter...");
+  const openrouterResult = await callOpenRouter(systemPrompt, userPrompt);
+  if (openrouterResult) return openrouterResult;
+
+  // Provider 5: Together AI (free tier)
+  console.log("[SpeedSolve] OpenRouter failed, trying Together...");
+  const togetherResult = await callTogether(systemPrompt, userPrompt);
+  if (togetherResult) return togetherResult;
+
   console.error("[SpeedSolve] ALL AI providers failed");
   return "";
 }
