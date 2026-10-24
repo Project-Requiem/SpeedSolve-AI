@@ -69,6 +69,20 @@ export interface BTMStats {
     timeMs?: number
   }
   history: BTMHistoryEntry[]
+  // ─── NEW GAMIFICATION FIELDS ───
+  combo: number                    // current combo count
+  bestCombo: number               // best combo ever
+  totalXP: number                 // lifetime XP earned (never decreases, unlike xp which can go down)
+  powerUps: Record<PowerUpType, number>  // inventory
+  unlockedAchievements: string[]  // achievement IDs
+  completedLevels: string[]       // e.g. "world1-3"
+  levelStars: Record<string, number>  // e.g. "world1-3": 2
+  towerFloor: number              // highest tower climb floor
+  heatStreak: number              // consecutive days played
+  lastPlayDate: string            // YYYY-MM-DD
+  cosmetics: CosmeticState        // equipped cosmetics
+  bossDefeated: string[]          // boss IDs defeated
+  solutionPaths: Record<string, string>  // anti-cheat: stores solution method chosen
 }
 
 export interface BTMHistoryEntry {
@@ -86,6 +100,152 @@ export interface BTMHistoryEntry {
   xpGained: number
   trapType: TrapType
 }
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// WORLD MAP & LEVEL SYSTEM
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export interface BTMWorld {
+  id: string
+  name: string
+  description: string
+  color: string
+  gradient: string
+  icon: string
+  levels: BTMLevel[]
+  requiredStars: number  // total stars needed to unlock this world
+}
+
+export interface BTMLevel {
+  id: string           // e.g. "world1-3"
+  worldId: string
+  number: number       // level number within world
+  name: string
+  difficulty: BTMDifficulty
+  subject: BTMSubject
+  problemCount: number // problems to complete this level
+  isBoss: boolean
+  starsRequired: number // stars from previous levels to unlock
+  xpReward: number     // bonus XP for completing level
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// POWER-UPS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export type PowerUpType = 'timeFreeze' | 'shield' | 'hint' | 'doubleXP' | 'comboBoost'
+
+export interface PowerUp {
+  type: PowerUpType
+  name: string
+  description: string
+  icon: string
+  color: string
+  cost: number          // XP cost in shop
+  duration?: number     // ms duration for timed effects
+}
+
+export const POWER_UPS: Record<PowerUpType, PowerUp> = {
+  timeFreeze: { type: 'timeFreeze', name: 'TIME FREEZE', description: 'Pauses the timer for 3 seconds', icon: '❄️', color: '#38bdf8', cost: 200, duration: 3000 },
+  shield: { type: 'shield', name: 'SHIELD', description: 'Blocks XP loss from one wrong answer', icon: '🛡️', color: '#a78bfa', cost: 150 },
+  hint: { type: 'hint', name: 'HINT', description: 'Reveals the first step of the solution', icon: '💡', color: '#fbbf24', cost: 100 },
+  doubleXP: { type: 'doubleXP', name: 'DOUBLE XP', description: 'Next win gives 2x XP', icon: '⭐', color: '#34d399', cost: 300 },
+  comboBoost: { type: 'comboBoost', name: 'COMBO+', description: 'Combo multiplier +1 for next answer', icon: '🔥', color: '#f97316', cost: 250 },
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ACHIEVEMENTS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export interface Achievement {
+  id: string
+  name: string
+  description: string
+  icon: string
+  category: 'speed' | 'accuracy' | 'streak' | 'mastery' | 'special'
+  rarity: 'common' | 'rare' | 'epic' | 'legendary'
+  condition: (stats: BTMStats) => boolean
+  xpReward: number
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ANTI-CHEAT
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export interface KeystrokeData {
+  timestamps: number[]      // ms offsets from first keystroke
+  chars: string[]           // characters typed
+  totalDuration: number     // ms from first to last keystroke
+  isPaste: boolean          // detected paste event
+  isSuspicious: boolean     // flagged as potentially AI-assisted
+  suspiciousReason?: string
+}
+
+export interface VerificationChallenge {
+  id: string
+  question: string
+  options: string[]
+  correctIndex: number
+  concept: string          // which concept the original problem tested
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// BOSS BATTLES
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export interface BossBattle {
+  id: string
+  name: string
+  description: string
+  phases: BossPhase[]
+  color: string
+  icon: string
+}
+
+export interface BossPhase {
+  problem: BTMProblem
+  benchmark: BTMBenchmark
+  timeLimit: number   // ms - stricter than normal
+  phaseNumber: number
+  totalPhases: number
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// TOWER CLIMB
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export interface TowerFloor {
+  floor: number
+  problem: BTMProblem
+  benchmark: BTMBenchmark
+  bonusXP: number
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// COSMETICS / SHOP
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export interface CosmeticItem {
+  id: string
+  name: string
+  type: 'theme' | 'frame' | 'effect' | 'title'
+  cost: number          // XP cost
+  rarity: 'common' | 'rare' | 'epic' | 'legendary'
+  preview: string       // CSS class or color
+  description: string
+}
+
+export interface CosmeticState {
+  equippedTheme: string    // theme id
+  equippedFrame: string    // frame id
+  equippedEffect: string   // effect id
+  equippedTitle: string    // title id
+  owned: string[]          // owned cosmetic ids
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// XP & LEVELS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export const DIFFICULTY_XP: Record<BTMDifficulty, number> = {
   rookie: 100,
@@ -109,4 +269,23 @@ export function getXPForNextLevel(xp: number): { current: number; needed: number
   const currentLevelXP = LEVEL_THRESHOLDS[level - 1] || 0
   const nextLevelXP = LEVEL_THRESHOLDS[level] || LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1] + 15000
   return { current: xp - currentLevelXP, needed: nextLevelXP - currentLevelXP, level }
+}
+
+// ─── Combo Multiplier ─────────────────────────────────────
+export function getComboMultiplier(combo: number): number {
+  if (combo < 2) return 1
+  if (combo < 5) return 1.5
+  if (combo < 10) return 2
+  if (combo < 20) return 3
+  if (combo < 30) return 4
+  return 5
+}
+
+export function getComboColor(combo: number): string {
+  if (combo < 2) return '#94a3b8'
+  if (combo < 5) return '#fbbf24'
+  if (combo < 10) return '#f97316'
+  if (combo < 20) return '#ef4444'
+  if (combo < 30) return '#a855f7'
+  return '#f43f5e'
 }

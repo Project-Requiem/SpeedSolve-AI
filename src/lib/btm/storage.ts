@@ -18,6 +18,26 @@ const DEFAULT_STATS: BTMStats = {
   trapStats: { detected: 0, fallen: 0, bestTime: null },
   dailyChallenge: { date: '', completed: false },
   history: [],
+  // New gamification defaults
+  combo: 0,
+  bestCombo: 0,
+  totalXP: 0,
+  powerUps: { timeFreeze: 1, shield: 1, hint: 1, doubleXP: 0, comboBoost: 0 }, // start with 1 of each basic
+  unlockedAchievements: [],
+  completedLevels: [],
+  levelStars: {},
+  towerFloor: 0,
+  heatStreak: 0,
+  lastPlayDate: '',
+  cosmetics: {
+    equippedTheme: 'theme-default',
+    equippedFrame: 'frame-none',
+    equippedEffect: 'effect-none',
+    equippedTitle: 'title-challenger',
+    owned: ['theme-default', 'frame-none', 'effect-none', 'title-challenger'],
+  },
+  bossDefeated: [],
+  solutionPaths: {},
 }
 
 function getStorageKey(): string {
@@ -31,7 +51,7 @@ export function loadStats(): BTMStats {
     const raw = localStorage.getItem(getStorageKey())
     if (!raw) return DEFAULT_STATS
     const parsed = JSON.parse(raw)
-    return { ...DEFAULT_STATS, ...parsed }
+    return { ...DEFAULT_STATS, ...parsed, powerUps: { ...DEFAULT_STATS.powerUps, ...parsed.powerUps }, cosmetics: { ...DEFAULT_STATS.cosmetics, ...parsed.cosmetics } }
   } catch {
     return DEFAULT_STATS
   }

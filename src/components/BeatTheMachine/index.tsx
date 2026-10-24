@@ -3,8 +3,11 @@
 import './btm.css'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useBTMStore, fmtTime, getAIResponse, DIFFICULTIES } from '@/lib/btm/store'
-import { BTMDifficulty, BTMSubject, getXPForNextLevel } from '@/lib/btm/types'
+import { BTMDifficulty, BTMSubject, getXPForNextLevel, getComboMultiplier, getComboColor, POWER_UPS, PowerUpType } from '@/lib/btm/types'
 import { getActiveUser } from '@/lib/btm/user'
+import { WORLDS, getTotalStars, isWorldUnlocked, isLevelUnlocked, getLevelStars } from '@/lib/btm/worldLevels'
+import { ACHIEVEMENTS, getRarityColor, getRarityLabel } from '@/lib/btm/achievements'
+import { COSMETIC_ITEMS, getEquippedTitle } from '@/lib/btm/cosmetics'
 import dynamic from 'next/dynamic'
 
 const SkyField = dynamic(() => import('./SkyField'), { ssr: false })
@@ -16,16 +19,42 @@ const SUBJECTS: { key: BTMSubject; label: string }[] = [
   { key: 'chemistry', label: 'Chemistry' },
 ]
 
+// ─── Particles Component ───────────────────────────────────
+function WinParticles() {
+  const particles = Array.from({ length: 20 }, (_, i) => {
+    const angle = (i / 20) * Math.PI * 2
+    const dist = 80 + Math.random() * 60
+    return {
+      id: i,
+      px: Math.cos(angle) * dist,
+      py: Math.sin(angle) * dist,
+      color: ['#22c55e', '#fbbf24', '#22d3ee', '#a855f7'][i % 4],
+    }
+  })
+  return (
+    <div className="btm-particles">
+      {particles.map(p => (
+        <div key={p.id} className="btm-particle" style={{
+          left: '50%', top: '40%', background: p.color,
+          '--px': `${p.px}px`, '--py': `${p.py}px`,
+        } as React.CSSProperties} />
+      ))}
+    </div>
+  )
+}
+
 // ─── Component ─────────────────────────────────────────────
 export default function BeatTheMachine({ onExit }: { onExit?: () => void }) {
   const store = useBTMStore()
   const inputRef = useRef<HTMLInputElement>(null)
   const [localElapsed, setLocalElapsed] = useState(0)
   const [skyMode, setSkyMode] = useState<'night' | 'day'>('night')
-  const [screenKey, setScreenKey] = useState(0) // forces re-mount for transition animation
+  const [screenKey, setScreenKey] = useState(0)
+  const [showParticles, setShowParticles] = useState(false)
+  const [shake, setShake] = useState(false)
   const prevScreen = useRef(store.screen)
 
-  // Init: check for existing user on mount
+  // Init
   useEffect(() => {
     const user = getActiveUser()
     if (user) {
@@ -33,10 +62,9 @@ export default function BeatTheMachine({ onExit }: { onExit?: () => void }) {
       refreshStats()
       useBTMStore.setState({ user, screen: 'home' })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Screen transition: bump key when screen changes → triggers CSS entrance animation
+  // Screen transition
   useEffect(() => {
     if (prevScreen.current !== store.screen) {
       prevScreen.current = store.screen
@@ -56,28 +84,74 @@ export default function BeatTheMachine({ onExit }: { onExit?: () => void }) {
     return () => cancelAnimationFrame(raf)
   }, [store.timerRunning, store.timerStartedAt])
 
-  // Auto-focus input after question reveals (delayed to let animation play)
+  // Auto-focus
   useEffect(() => {
     if (store.screen === 'challenge' && store.timerRunning && inputRef.current) {
       setTimeout(() => inputRef.current?.focus(), 350)
     }
   }, [store.screen, store.timerRunning])
 
-  // Enter to submit
+  // Achievement popup auto-dismiss
+  useEffect(() => {
+    if (store.achievementPopup) {
+      const t = setTimeout(() => store.dismissAchievementPopup(), 3500)
+      return () => clearTimeout(t)
+    }
+  }, [store.achievementPopup])
+
+  // Win particles
+  useEffect(() => {
+    if (store.screen === 'result' && store.result?.correct) {
+      setShowParticles(true)
+      const t = setTimeout(() => setShowParticles(false), 1000)
+      return () => clearTimeout(t)
+    }
+  }, [store.screen, store.result?.correct])
+
+  // Screen shake on wrong
+  useEffect(() => {
+    if (store.screen === 'result' && store.result && !store.result.correct) {
+      setShake(true)
+      const t = setTimeout(() => setShake(false), 300)
+      return () => clearTimeout(t)
+    }
+  }, [store.screen, store.result?.correct])
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !store.submitted && store.timerRunning) {
-      store.submitAnswer()
+      if (store.screen === 'levelPlay') store.submitLevelAnswer()
+      else if (store.screen === 'tower') store.submitTowerAnswer()
+      else store.submitAnswer()
     }
-  }, [store.submitted, store.timerRunning, store.submitAnswer])
+  }, [store.submitted, store.timerRunning, store.submitAnswer, store.screen])
+
+  // Handle paste for anti-cheat
+  const handlePaste = useCallback(() => {
+    store.keystrokeTracker?.markPaste()
+  }, [store.keystrokeTracker])
 
   const xpInfo = getXPForNextLevel(store.stats.xp)
+  const title = getEquippedTitle(store.stats.cosmetics)
 
   return (
-    <div className={`btm-root${skyMode === 'day' ? ' btm-day' : ''}`} onKeyDown={handleKeyDown}>
-      {/* ── Anime.js powered sky ── */}
+    <div className={`btm-root${skyMode === 'day' ? ' btm-day' : ''}${shake ? ' btm-shake' : ''}`} onKeyDown={handleKeyDown}>
       <SkyField mode={skyMode} />
+      {showParticles && store.result?.correct && <WinParticles />}
 
-      {/* ── Top bar (all screens except setup) ── */}
+      {/* Achievement popup */}
+      {store.achievementPopup && (
+        <div className="btm-achievement-popup">
+          <div className="btm-achievement-icon">{store.achievementPopup.icon}</div>
+          <div className="btm-achievement-info">
+            <div className="btm-achievement-name">{store.achievementPopup.name}</div>
+            <div className={`btm-achievement-rarity btm-achievement-rarity-${store.achievementPopup.rarity}`}>
+              {getRarityLabel(store.achievementPopup.rarity as any)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Top bar */}
       {store.screen !== 'setup' && (
         <div className="btm-topbar">
           <button className="btm-back" onClick={() => { if (store.screen === 'home' || store.screen === 'setup') onExit?.() ; else store.goToHome() }} aria-label="Back">
@@ -85,10 +159,9 @@ export default function BeatTheMachine({ onExit }: { onExit?: () => void }) {
           </button>
           <div className="btm-topbar-title">BEAT THE MACHINE</div>
           <div className="btm-topbar-right">
+            <div className="btm-xp-badge">{title}</div>
             <div className="btm-xp-badge">LVL {store.stats.level}</div>
-            {store.stats.streak > 0 && (
-              <div className="btm-streak-badge">{store.stats.streak} streak</div>
-            )}
+            {store.stats.streak > 0 && <div className="btm-streak-badge">{store.stats.streak} streak</div>}
           </div>
           <button className="btm-icon-btn btm-sky-toggle" onClick={() => setSkyMode(m => m === 'night' ? 'day' : 'night')} aria-label="Toggle sky">
             {skyMode === 'night' ? (
@@ -100,7 +173,7 @@ export default function BeatTheMachine({ onExit }: { onExit?: () => void }) {
           <button className="btm-icon-btn" onClick={() => store.setScreen(store.screen === 'stats' ? 'home' : 'stats')} aria-label="Stats">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
           </button>
-          <button className="btm-icon-btn" onClick={() => { store.logout(); onExit?.() }} aria-label="Switch user">
+          <button className="btm-icon-btn" onClick={() => store.logout(); onExit?.()} aria-label="Switch user">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
           </button>
         </div>
@@ -116,15 +189,21 @@ export default function BeatTheMachine({ onExit }: { onExit?: () => void }) {
         </div>
       )}
 
-      {/* ── Screens ── */}
+      {/* Screens */}
       <div className="btm-content" key={screenKey}>
         {store.screen === 'setup' && <SetupScreen />}
         {store.screen === 'home' && <HomeScreen />}
-        {store.screen === 'difficulty' && <DifficultyScreen />}
+        {store.screen === 'worldMap' && <WorldMapScreen />}
+        {store.screen === 'levelPlay' && <LevelPlayScreen elapsed={localElapsed} inputRef={inputRef} onPaste={handlePaste} />}
         {store.screen === 'loading' && <LoadingScreen />}
-        {store.screen === 'challenge' && <ChallengeScreen elapsed={localElapsed} inputRef={inputRef} />}
+        {store.screen === 'challenge' && <ChallengeScreen elapsed={localElapsed} inputRef={inputRef} onPaste={handlePaste} />}
         {store.screen === 'result' && <ResultScreen />}
         {store.screen === 'stats' && <StatsScreen />}
+        {store.screen === 'tower' && <TowerScreen elapsed={localElapsed} inputRef={inputRef} onPaste={handlePaste} />}
+        {store.screen === 'towerResult' && <TowerResultScreen />}
+        {store.screen === 'shop' && <ShopScreen />}
+        {store.screen === 'achievements' && <AchievementsScreen />}
+        {store.screen === 'verification' && <VerificationScreen />}
       </div>
     </div>
   )
@@ -153,20 +232,9 @@ function SetupScreen() {
         <p className="btm-subtitle">Can you solve it faster than SpeedSolve?</p>
         <div className="btm-form-group">
           <label className="btm-label">Choose a username</label>
-          <input
-            ref={inputRef}
-            className="btm-input"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleCreate()}
-            placeholder="e.g. Alex"
-            maxLength={20}
-            autoComplete="off"
-          />
+          <input ref={inputRef} className="btm-input" value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleCreate()} placeholder="e.g. Alex" maxLength={20} autoComplete="off" />
         </div>
-        <button className="btm-btn-primary" onClick={handleCreate} disabled={name.trim().length < 2}>
-          CREATE ACCOUNT
-        </button>
+        <button className="btm-btn-primary" onClick={handleCreate} disabled={name.trim().length < 2}>CREATE ACCOUNT</button>
         <a href="/" className="btm-back-home">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
           Back to SpeedSolve AI
@@ -175,9 +243,7 @@ function SetupScreen() {
           <div className="btm-existing-users">
             <div className="btm-divider"><span>or continue as</span></div>
             {store.allUsers.slice(0, 3).map(u => (
-              <button key={u.id} className="btm-user-chip" onClick={() => store.selectUser(u.id)}>
-                {u.username}
-              </button>
+              <button key={u.id} className="btm-user-chip" onClick={() => store.selectUser(u.id)}>{u.username}</button>
             ))}
           </div>
         )}
@@ -190,8 +256,8 @@ function SetupScreen() {
 function HomeScreen() {
   const store = useBTMStore()
   const stats = store.stats
-  const winRate = stats.totalWins + stats.totalLosses > 0
-    ? Math.round((stats.totalWins / (stats.totalWins + stats.totalLosses)) * 100) : 0
+  const winRate = stats.totalWins + stats.totalLosses > 0 ? Math.round((stats.totalWins / (stats.totalWins + stats.totalLosses)) * 100) : 0
+  const totalStars = getTotalStars(stats)
 
   return (
     <div className="btm-screen btm-screen-center">
@@ -205,13 +271,11 @@ function HomeScreen() {
         </div>
 
         <div className="btm-home-actions">
-          <button className="btm-btn-primary" onClick={() => store.setScreen('difficulty')}>CHALLENGE</button>
+          <button className="btm-btn-primary" onClick={() => store.setScreen('worldMap')}>WORLD MAP</button>
           <button className="btm-btn-secondary" onClick={() => store.generateChallenge('scholar', 'mathematics', true)}>DAILY MACHINE</button>
+          <button className="btm-btn-secondary" onClick={() => store.startTower()}>TOWER CLIMB</button>
+          <button className="btm-btn-secondary" onClick={() => store.setScreen('shop')}>SHOP</button>
         </div>
-        <a href="/" className="btm-back-home">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          Back to SpeedSolve AI
-        </a>
 
         <div className="btm-home-stats">
           <div className="btm-stat-chip">
@@ -219,81 +283,174 @@ function HomeScreen() {
             <div className="btm-stat-label">wins</div>
           </div>
           <div className="btm-stat-chip">
-            <div className="btm-stat-value">{stats.bestStreak}</div>
-            <div className="btm-stat-label">best streak</div>
+            <div className="btm-stat-value">{totalStars}★</div>
+            <div className="btm-stat-label">stars</div>
           </div>
           <div className="btm-stat-chip">
-            <div className="btm-stat-value">{stats.bestTimeMs ? fmtTime(stats.bestTimeMs) : '--'}</div>
-            <div className="btm-stat-label">personal best</div>
+            <div className="btm-stat-value">{stats.bestStreak}</div>
+            <div className="btm-stat-label">best streak</div>
           </div>
           <div className="btm-stat-chip">
             <div className="btm-stat-value">{winRate}%</div>
             <div className="btm-stat-label">win rate</div>
           </div>
         </div>
+
+        {stats.combo >= 2 && (
+          <div className={`btm-combo${stats.combo >= 10 ? ' btm-combo-mega' : stats.combo >= 5 ? ' btm-combo-fire' : ''}`} style={{ color: getComboColor(stats.combo) }}>
+            {stats.combo}x COMBO
+            <div className="btm-combo-mult">({getComboMultiplier(stats.combo)}x XP)</div>
+          </div>
+        )}
+
+        {stats.heatStreak > 1 && (
+          <div style={{ fontSize: 12, color: '#f97316' }}>🔥 {stats.heatStreak} day heat streak</div>
+        )}
+
+        <a href="/" className="btm-back-home">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Back to SpeedSolve AI
+        </a>
       </div>
     </div>
   )
 }
 
-// ─── DIFFICULTY ─────────────────────────────────────────────
-function DifficultyScreen() {
+// ─── WORLD MAP ─────────────────────────────────────────────
+function WorldMapScreen() {
   const store = useBTMStore()
-  const lvl = store.stats.level
+  const stats = store.stats
 
   return (
     <div className="btm-screen">
-      <div className="btm-difficulty">
-        <div className="btm-section-heading">
-          <h2>SELECT DIFFICULTY</h2>
-          <p>Choose your opponent level</p>
-        </div>
-
-        <div className="btm-subject-row">
-          {SUBJECTS.map(s => (
-            <button
-              key={s.key}
-              className={`btm-subject-btn${store.subject === s.key ? ' active' : ''}`}
-              onClick={() => store.setSubject(s.key)}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="btm-diff-cards">
-          {DIFFICULTIES.map(d => {
-            const locked = lvl < d.minLevel
-            const ds = store.stats.difficultyStats[d.key]
-            return (
-              <button
-                key={d.key}
-                className="btm-diff-card"
-                style={{ borderLeftColor: d.color, opacity: locked ? 0.35 : 1 }}
-                disabled={locked}
-                onClick={() => !locked && store.generateChallenge(d.key, store.subject)}
-              >
-                <div className="btm-diff-top">
-                  <span className="btm-diff-label" style={{ color: d.color }}>{d.label}</span>
-                  {locked && <span className="btm-diff-lock">LVL {d.minLevel}</span>}
+      <div className="btm-world-map">
+        <div className="btm-world-map-title">WORLD MAP</div>
+        {WORLDS.map(world => {
+          const unlocked = isWorldUnlocked(world, stats)
+          return (
+            <div key={world.id} className={`btm-world-card${unlocked ? '' : ' btm-world-card-locked'}`} style={{ background: unlocked ? world.gradient : 'var(--c-bg-s)' }}>
+              <div className="btm-world-header">
+                <div className="btm-world-icon">{world.icon}</div>
+                <div>
+                  <div className="btm-world-name" style={{ color: unlocked ? '#fff' : 'var(--c-text3)' }}>{world.name}</div>
+                  <div className="btm-world-desc">{world.description}</div>
                 </div>
-                <div className="btm-diff-desc">{d.desc}</div>
-                {ds && (ds.wins > 0 || ds.bestTime) && (
-                  <div className="btm-diff-meta">
-                    {ds.wins > 0 && <span>W {ds.wins}</span>}
-                    {ds.bestTime && <span>PB {fmtTime(ds.bestTime)}</span>}
-                  </div>
-                )}
-              </button>
-            )
-          })}
+                {!unlocked && <div className="btm-world-stars-req">★ {world.requiredStars} needed</div>}
+              </div>
+              <div className="btm-level-row">
+                {world.levels.map(level => {
+                  const levelUnlocked = unlocked && isLevelUnlocked(level, stats)
+                  const completed = stats.completedLevels.includes(level.id)
+                  const stars = getLevelStars(level.id, stats)
+                  return (
+                    <button key={level.id}
+                      className={`btm-level-node${completed ? ' btm-level-node-completed' : level.isBoss ? ' btm-level-node-boss' : !levelUnlocked ? ' btm-level-node-locked' : ''}`}
+                      disabled={!levelUnlocked}
+                      onClick={() => levelUnlocked && store.startLevel(level.id)}
+                    >
+                      {level.isBoss ? '⚔' : level.number}
+                      {completed && (
+                        <div className="btm-level-stars">
+                          {[1, 2, 3].map(s => (
+                            <span key={s} className={s <= stars ? 'btm-star-filled' : 'btm-star-empty'}>★</span>
+                          ))}
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+        <button className="btm-ghost" onClick={() => store.setScreen('home')}>Back</button>
+      </div>
+    </div>
+  )
+}
+
+// ─── LEVEL PLAY (replaces old difficulty+challenge for world map) ──
+function LevelPlayScreen({ elapsed, inputRef, onPaste }: { elapsed: number; inputRef: React.RefObject<HTMLInputElement | null>; onPaste: () => void }) {
+  const store = useBTMStore()
+  const { problem, benchmark, timerRunning, submitted, userInput, levelPlay, stats } = store
+  if (!problem || !benchmark || !levelPlay) return null
+
+  const displayTime = timerRunning ? elapsed : store.elapsedMs
+  const isOvertime = timerRunning && displayTime > benchmark.aiTimeMs
+  const timerColor = !timerRunning && submitted ? 'var(--text-primary)' : isOvertime ? '#dc2626' : 'var(--text-primary)'
+  const revealed = timerRunning || submitted
+  const playerProgress = Math.min(displayTime / benchmark.aiTimeMs, 1)
+  const diff = DIFFICULTIES.find(d => d.key === problem.difficulty)
+
+  return (
+    <div className="btm-screen">
+      <div className="btm-challenge">
+        {/* Level progress */}
+        <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--c-text3)', marginBottom: 4 }}>
+          Problem {levelPlay.currentIndex + 1} of {levelPlay.problems.length}
+          {levelPlay.results.length > 0 && ` — ${levelPlay.results.filter(Boolean).length} correct`}
         </div>
 
-        <button className="btm-ghost" onClick={() => store.setScreen('home')}>Back</button>
-        <a href="/" className="btm-back-home">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          Back to SpeedSolve AI
-        </a>
+        {/* Race track */}
+        <div className="btm-race-track">
+          <div className="btm-race-lane btm-race-player">
+            <div className="btm-race-label btm-race-label-player">YOU</div>
+            <div className="btm-race-bar">
+              <div className="btm-race-fill" style={{ width: `${playerProgress * 100}%` }} />
+            </div>
+          </div>
+          <div className="btm-race-lane btm-race-ai">
+            <div className="btm-race-label btm-race-label-ai">AI</div>
+            <div className="btm-race-bar">
+              <div className="btm-race-fill" style={{ width: '100%' }} />
+              <div className="btm-race-finish" />
+            </div>
+          </div>
+        </div>
+
+        {/* AI Benchmark */}
+        <div className="btm-ai-benchmark">
+          <div className="btm-ai-label">SPEEDSOLVE</div>
+          <div className="btm-ai-time">{fmtTime(benchmark.aiTimeMs)}</div>
+          <div className="btm-ai-sub">Beat my time!</div>
+        </div>
+
+        {/* Problem */}
+        <div className={`btm-problem-card${revealed ? ' btm-problem-revealed' : ' btm-problem-hidden'}`}>
+          <div className="btm-problem-meta">
+            <span className="btm-problem-badge" style={{ color: diff?.color }}>{diff?.label}</span>
+            <span className="btm-problem-concept">{problem.concept}</span>
+          </div>
+          <p className="btm-problem-text">{problem.question}</p>
+        </div>
+
+        {/* Timer */}
+        <div className="btm-timer-wrap">
+          <div className={`btm-timer${isOvertime ? ' btm-heartbeat' : ''}`} style={{ color: timerColor }}>
+            {timerRunning || submitted ? fmtTime(displayTime) : '0.00'}
+          </div>
+          {!timerRunning && !submitted && <button className="btm-btn-start" onClick={() => store.startTimer()}>START</button>}
+        </div>
+
+        {/* Power-up bar */}
+        <PowerUpBar />
+
+        {/* Input */}
+        {timerRunning && !submitted && (
+          <div className="btm-input-wrap btm-slide-up">
+            <input ref={inputRef} className="btm-input btm-input-large" value={userInput}
+              onChange={e => store.setUserInput(e.target.value)} onPaste={onPaste}
+              placeholder="Your answer" autoComplete="off" />
+            <button className="btm-btn-submit" onClick={() => store.submitLevelAnswer()} disabled={!userInput.trim()}>SUBMIT</button>
+          </div>
+        )}
+
+        {/* Combo */}
+        {stats.combo >= 2 && (
+          <div className={`btm-combo${stats.combo >= 10 ? ' btm-combo-mega' : stats.combo >= 5 ? ' btm-combo-fire' : ''}`} style={{ color: getComboColor(stats.combo) }}>
+            {stats.combo}x
+          </div>
+        )}
       </div>
     </div>
   )
@@ -311,66 +468,74 @@ function LoadingScreen() {
   )
 }
 
-// ─── CHALLENGE ─────────────────────────────────────────────
-function ChallengeScreen({ elapsed, inputRef }: { elapsed: number; inputRef: React.RefObject<HTMLInputElement | null> }) {
+// ─── CHALLENGE (quick play) ────────────────────────────────
+function ChallengeScreen({ elapsed, inputRef, onPaste }: { elapsed: number; inputRef: React.RefObject<HTMLInputElement | null>; onPaste: () => void }) {
   const store = useBTMStore()
-  const { problem, benchmark, timerRunning, submitted, userInput } = store
+  const { problem, benchmark, timerRunning, submitted, userInput, stats } = store
   if (!problem || !benchmark) return null
 
   const displayTime = timerRunning ? elapsed : store.elapsedMs
   const isOvertime = timerRunning && displayTime > benchmark.aiTimeMs
   const timerColor = !timerRunning && submitted ? 'var(--text-primary)' : isOvertime ? '#dc2626' : 'var(--text-primary)'
   const revealed = timerRunning || submitted
+  const playerProgress = Math.min(displayTime / benchmark.aiTimeMs, 1)
+  const diff = DIFFICULTIES.find(d => d.key === problem.difficulty)
 
   return (
     <div className="btm-screen">
       <div className="btm-challenge">
-        {/* AI Benchmark */}
+        {/* Race track */}
+        <div className="btm-race-track">
+          <div className="btm-race-lane btm-race-player">
+            <div className="btm-race-label btm-race-label-player">YOU</div>
+            <div className="btm-race-bar">
+              <div className="btm-race-fill" style={{ width: `${playerProgress * 100}%` }} />
+            </div>
+          </div>
+          <div className="btm-race-lane btm-race-ai">
+            <div className="btm-race-label btm-race-label-ai">AI</div>
+            <div className="btm-race-bar">
+              <div className="btm-race-fill" style={{ width: '100%' }} />
+              <div className="btm-race-finish" />
+            </div>
+          </div>
+        </div>
+
         <div className="btm-ai-benchmark">
           <div className="btm-ai-label">SPEEDSOLVE</div>
           <div className="btm-ai-time">{fmtTime(benchmark.aiTimeMs)}</div>
           <div className="btm-ai-sub">Can you beat me?</div>
         </div>
 
-        {/* Problem — hidden until START, then revealed with animation */}
         <div className={`btm-problem-card${revealed ? ' btm-problem-revealed' : ' btm-problem-hidden'}`}>
           <div className="btm-problem-meta">
-            <span className="btm-problem-badge" style={{ color: DIFFICULTIES.find(d => d.key === problem.difficulty)?.color }}>{DIFFICULTIES.find(d => d.key === problem.difficulty)?.label}</span>
+            <span className="btm-problem-badge" style={{ color: diff?.color }}>{diff?.label}</span>
             <span className="btm-problem-concept">{problem.concept}</span>
           </div>
           <p className="btm-problem-text">{problem.question}</p>
         </div>
 
-        {/* Timer */}
         <div className="btm-timer-wrap">
-          <div className="btm-timer" style={{ color: timerColor }}>
-            {timerRunning || submitted
-              ? (displayTime < 1000 ? displayTime.toFixed(0) + 'ms' : displayTime < 10000 ? (displayTime / 1000).toFixed(2) + 's' : (displayTime / 1000).toFixed(1) + 's')
-              : '0.00'}
+          <div className={`btm-timer${isOvertime ? ' btm-heartbeat' : ''}`} style={{ color: timerColor }}>
+            {timerRunning || submitted ? fmtTime(displayTime) : '0.00'}
           </div>
-          {!timerRunning && !submitted && (
-            <button className="btm-btn-start" onClick={() => store.startTimer()}>START</button>
-          )}
+          {!timerRunning && !submitted && <button className="btm-btn-start" onClick={() => store.startTimer()}>START</button>}
         </div>
 
-        {/* Input — slides in after question reveals */}
+        <PowerUpBar />
+
         {timerRunning && !submitted && (
           <div className="btm-input-wrap btm-slide-up">
-            <input
-              ref={inputRef}
-              className="btm-input btm-input-large"
-              value={userInput}
-              onChange={e => store.setUserInput(e.target.value)}
-              placeholder="Your answer"
-              autoComplete="off"
-            />
-            <button
-              className="btm-btn-submit"
-              onClick={() => store.submitAnswer()}
-              disabled={!userInput.trim()}
-            >
-              SUBMIT
-            </button>
+            <input ref={inputRef} className="btm-input btm-input-large" value={userInput}
+              onChange={e => store.setUserInput(e.target.value)} onPaste={onPaste}
+              placeholder="Your answer" autoComplete="off" />
+            <button className="btm-btn-submit" onClick={() => store.submitAnswer()} disabled={!userInput.trim()}>SUBMIT</button>
+          </div>
+        )}
+
+        {stats.combo >= 2 && (
+          <div className={`btm-combo${stats.combo >= 10 ? ' btm-combo-mega' : stats.combo >= 5 ? ' btm-combo-fire' : ''}`} style={{ color: getComboColor(stats.combo) }}>
+            {stats.combo}x
           </div>
         )}
       </div>
@@ -378,10 +543,37 @@ function ChallengeScreen({ elapsed, inputRef }: { elapsed: number; inputRef: Rea
   )
 }
 
+// ─── POWER-UP BAR ──────────────────────────────────────────
+function PowerUpBar() {
+  const store = useBTMStore()
+  const powerUpTypes: PowerUpType[] = ['timeFreeze', 'shield', 'hint', 'doubleXP', 'comboBoost']
+
+  return (
+    <div className="btm-powerup-bar">
+      {powerUpTypes.map(type => {
+        const pu = POWER_UPS[type]
+        const count = store.stats.powerUps[type] || 0
+        const isActive = store.activePowerUps.includes(type)
+        return (
+          <button key={type}
+            className={`btm-powerup-slot${isActive ? ' btm-powerup-active' : count === 0 ? ' btm-powerup-empty' : ''}`}
+            onClick={() => count > 0 && store.usePowerUp(type)}
+            disabled={count === 0 || !store.timerRunning}
+            title={pu.description}
+          >
+            <span>{pu.icon}</span>
+            <span className="btm-powerup-count">{count}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // ─── RESULT ─────────────────────────────────────────────────
 function ResultScreen() {
   const store = useBTMStore()
-  const { problem, benchmark, result, stats } = store
+  const { problem, benchmark, result, stats, levelPlay } = store
   if (!problem || !benchmark || !result) return null
 
   const isWin = result.correct && result.userTimeMs < result.aiTimeMs
@@ -392,12 +584,10 @@ function ResultScreen() {
   return (
     <div className="btm-screen">
       <div className="btm-result">
-        {/* Heading */}
         <div className={`btm-result-heading ${isWin ? 'win' : isLoss ? 'loss' : 'wrong'}`}>
           {isWin ? 'YOU BEAT THE MACHINE' : isLoss ? 'AI WON' : 'INCORRECT'}
         </div>
 
-        {/* Times */}
         <div className="btm-result-times">
           <div className="btm-result-time">
             <div className="btm-result-time-label">You</div>
@@ -410,55 +600,267 @@ function ResultScreen() {
           </div>
         </div>
 
-        {/* Context */}
         <div className="btm-result-context">
           {isWin && <p>Advantage: <strong>{(gap / 1000).toFixed(2)}s</strong></p>}
           {isLoss && gap < 1000 && <p>{(gap / 1000).toFixed(2)} seconds. Almost.</p>}
           {isLoss && gap >= 1000 && <p>You were <strong>{(gap / 1000).toFixed(2)}s</strong> away.</p>}
         </div>
 
-        {/* Wrong answer details */}
         {isWrong && result.validation && (
           <div className="btm-result-error">
-            <div className="btm-result-error-row">
-              <span>Your answer</span>
-              <span>{store.userInput}</span>
-            </div>
-            <div className="btm-result-error-row">
-              <span>Correct answer</span>
-              <span>{problem.correctAnswer}{problem.unit ? ' ' + problem.unit : ''}</span>
-            </div>
+            <div className="btm-result-error-row"><span>Your answer</span><span>{store.userInput}</span></div>
+            <div className="btm-result-error-row"><span>Correct answer</span><span>{problem.correctAnswer}{problem.unit ? ' ' + problem.unit : ''}</span></div>
             {result.validation.trapDetected && result.validation.trapExplanation && (
-              <div className="btm-trap-detected">
-                <div className="btm-trap-label">TRAP DETECTED</div>
-                <p>{result.validation.trapExplanation}</p>
-              </div>
+              <div className="btm-trap-detected"><div className="btm-trap-label">TRAP DETECTED</div><p>{result.validation.trapExplanation}</p></div>
             )}
             {result.validation.mistakeExplanation && (
-              <div className="btm-mistake">
-                <div className="btm-mistake-label">LIKELY ERROR</div>
-                <p>{result.validation.mistakeExplanation}</p>
-              </div>
+              <div className="btm-mistake"><div className="btm-mistake-label">LIKELY ERROR</div><p>{result.validation.mistakeExplanation}</p></div>
             )}
           </div>
         )}
 
-        {/* XP & Rewards */}
         <div className="btm-result-rewards">
           <div className="btm-xp-gain" style={result.xpGained < 0 ? { color: '#ef4444' } : undefined}>{result.xpGained} XP</div>
+          {result.comboCount >= 2 && <div className="btm-reward" style={{ color: getComboColor(result.comboCount) }}>{result.comboCount}x COMBO ({result.comboMultiplier}x XP)</div>}
           {result.isPersonalBest && <div className="btm-reward">NEW PERSONAL BEST — {fmtTime(result.userTimeMs)}</div>}
           {result.wasStreakMilestone && <div className="btm-reward">{stats.streak} SOLVE STREAK</div>}
           {result.newLevel && <div className="btm-reward btm-reward-level">LEVEL {result.newLevel}</div>}
         </div>
 
-        {/* AI Response */}
+        {/* Level completion stars */}
+        {levelPlay?.completed && (
+          <div style={{ fontSize: 24, textAlign: 'center', margin: '8px 0' }}>
+            {[1, 2, 3].map(s => (
+              <span key={s} style={{ color: s <= levelPlay.stars ? '#fbbf24' : '#334155', margin: '0 4px' }}>★</span>
+            ))}
+          </div>
+        )}
+
         {isLoss && <div className="btm-ai-response">{getAIResponse(stats.streak)}</div>}
 
-        {/* Actions */}
         <div className="btm-result-actions">
           <button className="btm-btn-primary" onClick={() => store.rematch()}>REMATCH</button>
-          <button className="btm-btn-secondary" onClick={() => store.setScreen('difficulty')}>CHANGE LEVEL</button>
+          <button className="btm-btn-secondary" onClick={() => store.setScreen('worldMap')}>WORLD MAP</button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── TOWER CLIMB ───────────────────────────────────────────
+function TowerScreen({ elapsed, inputRef, onPaste }: { elapsed: number; inputRef: React.RefObject<HTMLInputElement | null>; onPaste: () => void }) {
+  const store = useBTMStore()
+  const { problem, benchmark, timerRunning, submitted, userInput, tower, stats } = store
+  if (!problem || !benchmark || !tower) return null
+
+  const displayTime = timerRunning ? elapsed : store.elapsedMs
+  const revealed = timerRunning || submitted
+  const diff = DIFFICULTIES.find(d => d.key === problem.difficulty)
+
+  return (
+    <div className="btm-screen">
+      <div className="btm-tower">
+        <div className="btm-tower-floor-label">FLOOR</div>
+        <div className="btm-tower-floor-display">{tower.currentFloor}</div>
+        <div className="btm-tower-best">Best: Floor {Math.max(stats.towerFloor, tower.currentFloor)}</div>
+
+        <div className="btm-race-track">
+          <div className="btm-race-lane btm-race-player">
+            <div className="btm-race-label btm-race-label-player">YOU</div>
+            <div className="btm-race-bar">
+              <div className="btm-race-fill" style={{ width: `${Math.min(displayTime / benchmark.aiTimeMs, 1) * 100}%` }} />
+            </div>
+          </div>
+          <div className="btm-race-lane btm-race-ai">
+            <div className="btm-race-label btm-race-label-ai">AI</div>
+            <div className="btm-race-bar">
+              <div className="btm-race-fill" style={{ width: '100%' }} />
+            </div>
+          </div>
+        </div>
+
+        <div className={`btm-problem-card${revealed ? ' btm-problem-revealed' : ' btm-problem-hidden'}`}>
+          <div className="btm-problem-meta">
+            <span className="btm-problem-badge" style={{ color: diff?.color }}>{diff?.label}</span>
+            <span className="btm-problem-concept">{problem.concept}</span>
+          </div>
+          <p className="btm-problem-text">{problem.question}</p>
+        </div>
+
+        <div className="btm-timer-wrap">
+          <div className="btm-timer" style={{ color: 'var(--text-primary)' }}>
+            {timerRunning || submitted ? fmtTime(displayTime) : '0.00'}
+          </div>
+          {!timerRunning && !submitted && <button className="btm-btn-start" onClick={() => store.startTimer()}>START</button>}
+        </div>
+
+        <PowerUpBar />
+
+        {timerRunning && !submitted && (
+          <div className="btm-input-wrap btm-slide-up">
+            <input ref={inputRef} className="btm-input btm-input-large" value={userInput}
+              onChange={e => store.setUserInput(e.target.value)} onPaste={onPaste}
+              placeholder="Your answer" autoComplete="off" />
+            <button className="btm-btn-submit" onClick={() => store.submitTowerAnswer()} disabled={!userInput.trim()}>SUBMIT</button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── TOWER RESULT ──────────────────────────────────────────
+function TowerResultScreen() {
+  const store = useBTMStore()
+  const { tower, stats } = store
+  if (!tower) return null
+
+  return (
+    <div className="btm-screen btm-screen-center">
+      <div className="btm-tower">
+        <div className="btm-tower-floor-label">YOU REACHED</div>
+        <div className="btm-tower-floor-display">{tower.currentFloor}</div>
+        <div className="btm-tower-best">Best: Floor {stats.towerFloor}</div>
+        <div style={{ fontSize: 13, color: 'var(--c-gold)', marginTop: 8 }}>+{tower.totalBonusXP} XP</div>
+        <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+          <button className="btm-btn-primary" onClick={() => store.startTower()}>CLIMB AGAIN</button>
+          <button className="btm-btn-secondary" onClick={() => store.goToHome()}>HOME</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── SHOP ──────────────────────────────────────────────────
+function ShopScreen() {
+  const store = useBTMStore()
+  const stats = store.stats
+  const types = ['theme', 'frame', 'effect', 'title'] as const
+  const typeLabels = { theme: 'Themes', frame: 'Frames', effect: 'Effects', title: 'Titles' }
+
+  return (
+    <div className="btm-screen">
+      <div className="btm-shop">
+        <h2>SHOP</h2>
+        <div style={{ textAlign: 'center', fontSize: 13, color: '#fbbf24', fontFamily: "'JetBrains Mono', monospace" }}>
+          {stats.xp.toLocaleString()} XP available
+        </div>
+
+        {/* Power-ups */}
+        <div className="btm-shop-section-title">POWER-UPS</div>
+        <div className="btm-shop-grid">
+          {(Object.entries(POWER_UPS) as [PowerUpType, typeof POWER_UPS[PowerUpType]][]).map(([type, pu]) => (
+            <div key={type} className="btm-shop-item" onClick={() => store.buyPowerUp(type)}>
+              <div style={{ fontSize: 20 }}>{pu.icon}</div>
+              <div className="btm-shop-item-name">{pu.name}</div>
+              <div className="btm-shop-cost">{pu.cost} XP</div>
+              <div style={{ fontSize: 9, color: 'var(--c-text3)' }}>Have: {stats.powerUps[type] || 0}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Cosmetics */}
+        {types.map(type => {
+          const items = COSMETIC_ITEMS.filter(c => c.type === type)
+          return (
+            <div key={type}>
+              <div className="btm-shop-section-title">{typeLabels[type].toUpperCase()}</div>
+              <div className="btm-shop-grid">
+                {items.map(item => {
+                  const owned = stats.cosmetics.owned.includes(item.id)
+                  const equipped = (stats.cosmetics as Record<string, string>)[`equipped${type.charAt(0).toUpperCase() + type.slice(1)}`] === item.id
+                  return (
+                    <div key={item.id}
+                      className={`btm-shop-item${owned ? ' btm-shop-owned' : ''}${equipped ? ' btm-shop-equipped' : ''}`}
+                      onClick={() => {
+                        if (!owned && stats.xp >= item.cost) store.buyCosmetic(item.id, item.cost)
+                        else if (owned) store.equipCosmetic(type, item.id)
+                      }}
+                    >
+                      <div className="btm-shop-preview" style={{ background: item.preview === 'none' ? 'var(--c-bg-s)' : item.preview }} />
+                      <div className="btm-shop-item-name">{item.name}</div>
+                      <div className="btm-shop-cost">{owned ? (equipped ? '✓' : 'EQUIP') : `${item.cost} XP`}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+
+        <button className="btm-ghost" onClick={() => store.setScreen('home')}>Back</button>
+      </div>
+    </div>
+  )
+}
+
+// ─── ACHIEVEMENTS ──────────────────────────────────────────
+function AchievementsScreen() {
+  const store = useBTMStore()
+  const stats = store.stats
+  const categories = ['speed', 'accuracy', 'streak', 'mastery', 'special'] as const
+
+  return (
+    <div className="btm-screen">
+      <div className="btm-achievements">
+        <h2>ACHIEVEMENTS</h2>
+        <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--c-text3)' }}>
+          {stats.unlockedAchievements.length} / {ACHIEVEMENTS.length} unlocked
+        </div>
+        {categories.map(cat => (
+          <div key={cat}>
+            <div className="btm-shop-section-title">{cat.toUpperCase()}</div>
+            {ACHIEVEMENTS.filter(a => a.category === cat).map(ach => {
+              const unlocked = stats.unlockedAchievements.includes(ach.id)
+              return (
+                <div key={ach.id} className={`btm-achievement-row${unlocked ? '' : ' btm-achievement-row-locked'}`}>
+                  <div className="btm-achievement-row-icon">{ach.icon}</div>
+                  <div className="btm-achievement-row-info">
+                    <div className="btm-achievement-row-name">{ach.name}</div>
+                    <div className="btm-achievement-row-desc">{ach.description}</div>
+                  </div>
+                  <div className={`btm-achievement-rarity btm-achievement-rarity-${ach.rarity}`} style={{ background: 'none', color: getRarityColor(ach.rarity) }}>
+                    {getRarityLabel(ach.rarity)}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ))}
+        <button className="btm-ghost" onClick={() => store.setScreen('home')}>Back</button>
+      </div>
+    </div>
+  )
+}
+
+// ─── VERIFICATION (Anti-Cheat) ─────────────────────────────
+function VerificationScreen() {
+  const store = useBTMStore()
+  const { verificationChallenge, verificationPassed } = store
+  if (!verificationChallenge) return null
+
+  return (
+    <div className="btm-verify-overlay">
+      <div className="btm-verify-modal">
+        <div className="btm-verify-title">SHOW YOUR WORK</div>
+        <div className="btm-verify-subtitle">Prove you solved it yourself</div>
+        <div className="btm-verify-question">{verificationChallenge.question}</div>
+        <div className="btm-verify-options">
+          {verificationChallenge.options.map((opt, i) => (
+            <button key={i}
+              className={`btm-verify-option${verificationPassed === true && i === verificationChallenge.correctIndex ? ' btm-verify-correct' : verificationPassed === false && i !== verificationChallenge.correctIndex ? '' : ''}${verificationPassed === false && i === verificationChallenge.correctIndex ? ' btm-verify-correct' : ''}`}
+              onClick={() => verificationPassed === null && store.submitVerification(i)}
+              disabled={verificationPassed !== null}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+        {verificationPassed === true && <div style={{ textAlign: 'center', color: '#22c55e', marginTop: 12, fontSize: 13 }}>Verified! Your answer counts.</div>}
+        {verificationPassed === false && <div style={{ textAlign: 'center', color: '#ef4444', marginTop: 12, fontSize: 13 }}>Incorrect verification. XP reduced.</div>}
+        {verificationPassed !== null && (
+          <button className="btm-btn-primary" onClick={() => store.setScreen('result')} style={{ marginTop: 12, width: '100%' }}>CONTINUE</button>
+        )}
       </div>
     </div>
   )
@@ -469,8 +871,8 @@ function StatsScreen() {
   const store = useBTMStore()
   const stats = store.stats
   const xpInfo = getXPForNextLevel(stats.xp)
-  const winRate = stats.totalWins + stats.totalLosses > 0
-    ? Math.round((stats.totalWins / (stats.totalWins + stats.totalLosses)) * 100) : 0
+  const winRate = stats.totalWins + stats.totalLosses > 0 ? Math.round((stats.totalWins / (stats.totalWins + stats.totalLosses)) * 100) : 0
+  const totalStars = getTotalStars(stats)
 
   return (
     <div className="btm-screen">
@@ -480,14 +882,16 @@ function StatsScreen() {
 
         <div className="btm-stats-grid">
           <div className="btm-stat-card"><div className="btm-stat-card-value">{stats.totalWins}</div><div className="btm-stat-card-label">Total Wins</div></div>
-          <div className="btm-stat-card"><div className="btm-stat-card-value">{stats.totalLosses}</div><div className="btm-stat-card-label">AI Wins</div></div>
           <div className="btm-stat-card"><div className="btm-stat-card-value">{winRate}%</div><div className="btm-stat-card-label">Win Rate</div></div>
           <div className="btm-stat-card"><div className="btm-stat-card-value">{stats.bestTimeMs ? fmtTime(stats.bestTimeMs) : '--'}</div><div className="btm-stat-card-label">Fastest Win</div></div>
           <div className="btm-stat-card"><div className="btm-stat-card-value">{stats.bestStreak}</div><div className="btm-stat-card-label">Best Streak</div></div>
-          <div className="btm-stat-card"><div className="btm-stat-card-value">{stats.problemsAttempted}</div><div className="btm-stat-card-label">Attempted</div></div>
+          <div className="btm-stat-card"><div className="btm-stat-card-value">{stats.bestCombo}</div><div className="btm-stat-card-label">Best Combo</div></div>
+          <div className="btm-stat-card"><div className="btm-stat-card-value">{totalStars}★</div><div className="btm-stat-card-label">Total Stars</div></div>
+          <div className="btm-stat-card"><div className="btm-stat-card-value">{stats.towerFloor}</div><div className="btm-stat-card-label">Tower Best</div></div>
+          <div className="btm-stat-card"><div className="btm-stat-card-value">{stats.bossDefeated.length}</div><div className="btm-stat-card-label">Bosses Beat</div></div>
+          <div className="btm-stat-card"><div className="btm-stat-card-value">{stats.heatStreak}</div><div className="btm-stat-card-label">Heat Streak</div></div>
         </div>
 
-        {/* Level Progress */}
         <div className="btm-level-section">
           <div className="btm-level-header"><span>Level {stats.level}</span><span>{xpInfo.current} / {xpInfo.needed} XP</span></div>
           <div className="btm-xp-bar btm-xp-bar-lg">
@@ -495,7 +899,11 @@ function StatsScreen() {
           </div>
         </div>
 
-        {/* Recent History */}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 8 }}>
+          <button className="btm-btn-secondary" onClick={() => store.setScreen('achievements')}>ACHIEVEMENTS</button>
+          <button className="btm-btn-secondary" onClick={() => store.setScreen('shop')}>SHOP</button>
+        </div>
+
         {stats.history.length > 0 && (
           <div className="btm-history-section">
             <h3>Recent</h3>
@@ -513,10 +921,6 @@ function StatsScreen() {
         )}
 
         <button className="btm-ghost" onClick={() => store.setScreen('home')}>Back</button>
-        <a href="/" className="btm-back-home">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          Back to SpeedSolve AI
-        </a>
       </div>
     </div>
   )
