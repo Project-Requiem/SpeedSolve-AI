@@ -1,7 +1,81 @@
 import { BTMStats, BTMHistoryEntry } from './types'
 import { getActiveUser, getStatsKey } from './user'
+import { RelicSlot } from './relics'
+import { QuestProgress } from './quests'
 
-const LEGACY_KEY = 'speedsolve-btm-stats' // pre-user migration
+// ── RPG State Persistence ────────────────────────────────────────────────────────
+
+export interface CapturedBeast {
+  instanceId: string
+  beastId: string
+  level: number
+  xp: number
+  abilitiesUnlocked: string[]
+  nickname?: string
+  capturedAt: string
+}
+
+export interface RPGState {
+  capturedBeasts: CapturedBeast[]
+  activeTeam: string[]
+  selectedBeast: string | null
+  ownedRelics: string[]
+  equippedRelics: Record<RelicSlot, string | null>
+  activeQuests: QuestProgress[]
+  lastQuestRefresh: string
+  adventureProgress: Record<string, boolean>
+  currentRegion: string
+}
+
+const DEFAULT_RPG_STATE: RPGState = {
+  capturedBeasts: [],
+  activeTeam: [],
+  selectedBeast: null,
+  ownedRelics: [],
+  equippedRelics: {
+    head: null,
+    body: null,
+    weapon: null,
+    accessory: null,
+    aura: null,
+  },
+  activeQuests: [],
+  lastQuestRefresh: '',
+  adventureProgress: {},
+  currentRegion: 'region-1',
+}
+
+const RPG_KEY_PREFIX = 'speedsolve-btm-rpg'
+
+function getRPGStorageKey(): string {
+  const user = getActiveUser()
+  return user ? `${RPG_KEY_PREFIX}-${user.id}` : RPG_KEY_PREFIX
+}
+
+export function loadRPGState(): RPGState {
+  if (typeof window === 'undefined') return DEFAULT_RPG_STATE
+  try {
+    const raw = localStorage.getItem(getRPGStorageKey())
+    if (!raw) return DEFAULT_RPG_STATE
+    const parsed = JSON.parse(raw)
+    return {
+      ...DEFAULT_RPG_STATE,
+      ...parsed,
+      equippedRelics: { ...DEFAULT_RPG_STATE.equippedRelics, ...parsed.equippedRelics },
+    }
+  } catch {
+    return DEFAULT_RPG_STATE
+  }
+}
+
+export function saveRPGState(state: RPGState): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(getRPGStorageKey(), JSON.stringify(state))
+  } catch { /* silently fail */ }
+}
+
+// ── Stats Persistence ────────────────────────────────────────────────────────────
 
 const DEFAULT_STATS: BTMStats = {
   xp: 0,

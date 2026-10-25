@@ -6,12 +6,15 @@ import {
   PowerUpType, POWER_UPS, getComboMultiplier,
   KeystrokeData, VerificationChallenge,
 } from './types'
-import { loadStats, saveStats, addHistoryEntry, getSubjectStats, getDifficultyStats } from './storage'
+import { loadStats, saveStats, addHistoryEntry, getSubjectStats, getDifficultyStats, loadRPGState, saveRPGState } from './storage'
 import { validateAnswer } from './answer-validator'
 import { BTMUser, getActiveUser, createUser, switchUser, getAllUsers, updateUserActivity } from './user'
 import { checkNewAchievements } from './achievements'
 import { createKeystrokeTracker, shouldTriggerVerification, generateVerificationChallenge, analyzeAnswerTiming } from './antiCheat'
 import { WORLDS, calculateStars, getTotalStars } from './worldLevels'
+import { Element, MonsterRarity, EvolutionStage, MindBeast, MonsterAbility, ALL_BEASTS, getCaptureChance } from './monsters'
+import { RelicSlot, Relic, ALL_RELICS } from './relics'
+import { Quest, QuestProgress, generateDailyQuests, generateWeeklyQuests } from './quests'
 
 // ─── Types ──────────────────────────────────────────────────
 type Screen =
@@ -30,6 +33,14 @@ type Screen =
   | 'bossBattle'
   | 'bossResult'
   | 'verification'
+  | 'collection'
+  | 'codex'
+  | 'monsterLab'
+  | 'battleArena'
+  | 'quests'
+  | 'relics'
+  | 'adventure'
+  | 'beastDetail'
 
 interface ResultData {
   userTimeMs: number
@@ -64,6 +75,17 @@ interface TowerState {
   userTimeMs: number
   correct: boolean
   totalBonusXP: number
+}
+
+// ─── RPG Types ────────────────────────────────────────────────
+export interface CapturedBeast {
+  instanceId: string   // unique id for this specific captured instance
+  beastId: string      // references MindBeast.id
+  level: number        // 1-50
+  xp: number           // XP towards next level
+  abilitiesUnlocked: string[]  // ability ids unlocked
+  nickname?: string
+  capturedAt: string   // date
 }
 
 // ─── Store ──────────────────────────────────────────────────
@@ -147,6 +169,23 @@ interface BTMStore {
   comboDisplay: number
   comboFadeTimer: ReturnType<typeof setTimeout> | null
 
+  // ── Monster collection state ──
+  capturedBeasts: CapturedBeast[]
+  activeTeam: string[]               // instanceIds of 3-5 monsters in active team (max 5)
+  selectedBeast: string | null       // currently viewed beast id
+
+  // ── Relic state ──
+  ownedRelics: string[]              // relic ids
+  equippedRelics: Record<RelicSlot, string | null>  // one relic per slot
+
+  // ── Quest state ──
+  activeQuests: QuestProgress[]      // current daily/weekly quests
+  lastQuestRefresh: string           // YYYY-MM-DD
+
+  // ── Adventure state ──
+  adventureProgress: Record<string, boolean>  // node id → completed
+  currentRegion: string              // current region id
+
   // Actions
   generateChallenge: (difficulty: BTMDifficulty, subject: BTMSubject, daily?: boolean) => Promise<void>
   startTimer: () => void
@@ -154,9 +193,50 @@ interface BTMStore {
   submitAnswer: () => Promise<void>
   rematch: () => void
   goToHome: () => void
+
+  // ── Monster actions ──
+  captureBeast: (beastId: string) => void
+  addToTeam: (instanceId: string) => void
+  removeFromTeam: (instanceId: string) => void
+  levelUpBeast: (instanceId: string, xpGained: number) => void
+  evolveBeast: (instanceId: string) => void
+  feedBeast: (instanceId: string, xpAmount: number) => void
+  renameBeast: (instanceId: string, nickname: string) => void
+  selectBeast: (beastId: string) => void
+
+  // ── Relic actions ──
+  buyRelic: (relicId: string) => void
+  equipRelic: (relicId: string, slot: RelicSlot) => void
+  unequipRelic: (slot: RelicSlot) => void
+
+  // ── Quest actions ──
+  refreshQuests: () => void
+  updateQuestProgress: (type: string, amount: number) => void
+  claimQuestReward: (questId: string) => void
+
+  // ── Adventure actions ──
+  completeAdventureNode: (nodeId: string) => void
+  setRegion: (regionId: string) => void
 }
 
-export const useBTMStore = create<BTMStore>((set, get) => ({
+export const useBTMStore = create<BTMStore>((set, get) => {
+  // ── RPG persistence helper ──
+  const persistRPG = () => {
+    const s = get()
+    saveRPGState({
+      capturedBeasts: s.capturedBeasts,
+      activeTeam: s.activeTeam,
+      selectedBeast: s.selectedBeast,
+      ownedRelics: s.ownedRelics,
+      equippedRelics: s.equippedRelics,
+      activeQuests: s.activeQuests,
+      lastQuestRefresh: s.lastQuestRefresh,
+      adventureProgress: s.adventureProgress,
+      currentRegion: s.currentRegion,
+    })
+  }
+
+  return {
   // ── User ──
   user: null,
   allUsers: [],
@@ -661,6 +741,23 @@ export const useBTMStore = create<BTMStore>((set, get) => ({
   comboDisplay: 0,
   comboFadeTimer: null,
 
+  // ── Monster collection state (loaded from localStorage) ──
+  capturedBeasts: loadRPGState().capturedBeasts,
+  activeTeam: loadRPGState().activeTeam,
+  selectedBeast: loadRPGState().selectedBeast,
+
+  // ── Relic state ──
+  ownedRelics: loadRPGState().ownedRelics,
+  equippedRelics: loadRPGState().equippedRelics,
+
+  // ── Quest state ──
+  activeQuests: loadRPGState().activeQuests,
+  lastQuestRefresh: loadRPGState().lastQuestRefresh,
+
+  // ── Adventure state ──
+  adventureProgress: loadRPGState().adventureProgress,
+  currentRegion: loadRPGState().currentRegion,
+
   // ── Actions ──
   generateChallenge: async (difficulty, subject, daily = false) => {
     const tracker = createKeystrokeTracker()
@@ -909,7 +1006,266 @@ export const useBTMStore = create<BTMStore>((set, get) => ({
   },
 
   goToHome: () => set({ screen: 'home', problem: null, benchmark: null, result: null, userInput: '', submitted: false, levelPlay: null, tower: null }),
-}))
+
+  // ── Monster actions ──
+  captureBeast: (beastId) => {
+    const beastDef = ALL_BEASTS.find(b => b.id === beastId)
+    if (!beastDef) return
+
+    const instanceId = `beast-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    // Unlock all abilities of the base beast definition
+    const initialAbilities = beastDef.abilities.map(a => a.id)
+
+    const newBeast: CapturedBeast = {
+      instanceId,
+      beastId,
+      level: 1,
+      xp: 0,
+      abilitiesUnlocked: initialAbilities,
+      capturedAt: new Date().toISOString().slice(0, 10),
+    }
+
+    set(s => ({ capturedBeasts: [...s.capturedBeasts, newBeast] }))
+    persistRPG()
+  },
+
+  addToTeam: (instanceId) => {
+    const { activeTeam } = get()
+    if (activeTeam.length >= 5) return
+    if (activeTeam.includes(instanceId)) return
+    set({ activeTeam: [...activeTeam, instanceId] })
+    persistRPG()
+  },
+
+  removeFromTeam: (instanceId) => {
+    set(s => ({ activeTeam: s.activeTeam.filter(id => id !== instanceId) }))
+    persistRPG()
+  },
+
+  levelUpBeast: (instanceId, xpGained) => {
+    set(s => {
+      const beast = s.capturedBeasts.find(b => b.instanceId === instanceId)
+      if (!beast) return s
+
+      let newLevel = beast.level
+      let newXp = beast.xp + xpGained
+      const xpThreshold = () => 100 * newLevel
+
+      // Level up loop (may level up multiple times)
+      while (newXp >= xpThreshold() && newLevel < 50) {
+        newXp -= xpThreshold()
+        newLevel++
+      }
+      if (newLevel >= 50) { newXp = 0 }
+
+      // Unlock new abilities at milestone levels (5, 10, 15, 20, 25, 30...)
+      const beastDef = ALL_BEASTS.find(b => b.id === beast.beastId)
+      const newAbilities = [...beast.abilitiesUnlocked]
+      if (beastDef) {
+        const milestoneLevels = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+        for (const ml of milestoneLevels) {
+          if (beast.level < ml && newLevel >= ml) {
+            // At each milestone, ensure all abilities for this beast are unlocked
+            for (const a of beastDef.abilities) {
+              if (!newAbilities.includes(a.id)) {
+                newAbilities.push(a.id)
+              }
+            }
+          }
+        }
+      }
+
+      const updatedBeasts = s.capturedBeasts.map(b =>
+        b.instanceId === instanceId
+          ? { ...b, level: newLevel, xp: newXp, abilitiesUnlocked: newAbilities }
+          : b
+      )
+      return { capturedBeasts: updatedBeasts }
+    })
+    persistRPG()
+  },
+
+  evolveBeast: (instanceId) => {
+    const { capturedBeasts } = get()
+    const beast = capturedBeasts.find(b => b.instanceId === instanceId)
+    if (!beast) return
+
+    const beastDef = ALL_BEASTS.find(b => b.id === beast.beastId)
+    if (!beastDef || !beastDef.evolvesTo) return
+
+    // Check evolution conditions
+    const requiredLevel = beastDef.stage === 1 ? 15 : beastDef.stage === 2 ? 30 : 999
+    if (beast.level < requiredLevel) return
+
+    const evolvedDef = ALL_BEASTS.find(b => b.id === beastDef.evolvesTo)
+    if (!evolvedDef) return
+
+    // Create evolved beast instance
+    const newInstance: CapturedBeast = {
+      instanceId: `beast-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      beastId: evolvedDef.id,
+      level: beast.level,
+      xp: beast.xp,
+      abilitiesUnlocked: evolvedDef.abilities.map(a => a.id),
+      nickname: beast.nickname,
+      capturedAt: beast.capturedAt,
+    }
+
+    set(s => ({
+      capturedBeasts: [
+        ...s.capturedBeasts.filter(b => b.instanceId !== instanceId),
+        newInstance,
+      ],
+      // Update activeTeam reference
+      activeTeam: s.activeTeam.map(id => id === instanceId ? newInstance.instanceId : id),
+      selectedBeast: s.selectedBeast === instanceId ? newInstance.instanceId : s.selectedBeast,
+    }))
+    persistRPG()
+  },
+
+  feedBeast: (instanceId, xpAmount) => {
+    const { stats } = get()
+    if (stats.xp < xpAmount) return
+
+    // Deduct XP from player stats
+    const newStats = { ...stats, xp: stats.xp - xpAmount }
+    saveStats(newStats)
+    set({ stats: newStats })
+
+    // Apply XP to beast
+    get().levelUpBeast(instanceId, xpAmount)
+    persistRPG()
+  },
+
+  renameBeast: (instanceId, nickname) => {
+    set(s => ({
+      capturedBeasts: s.capturedBeasts.map(b =>
+        b.instanceId === instanceId ? { ...b, nickname } : b
+      ),
+    }))
+    persistRPG()
+  },
+
+  selectBeast: (beastId) => {
+    set({ selectedBeast: beastId })
+    persistRPG()
+  },
+
+  // ── Relic actions ──
+  buyRelic: (relicId) => {
+    const { stats, ownedRelics } = get()
+    const relic = ALL_RELICS.find(r => r.id === relicId)
+    if (!relic) return
+    if (stats.xp < relic.cost) return
+    if (ownedRelics.includes(relicId)) return
+
+    const newStats = { ...stats, xp: stats.xp - relic.cost }
+    saveStats(newStats)
+    set({ stats: newStats, ownedRelics: [...ownedRelics, relicId] })
+    persistRPG()
+  },
+
+  equipRelic: (relicId, slot) => {
+    set(s => ({
+      equippedRelics: { ...s.equippedRelics, [slot]: relicId },
+    }))
+    persistRPG()
+  },
+
+  unequipRelic: (slot) => {
+    set(s => ({
+      equippedRelics: { ...s.equippedRelics, [slot]: null },
+    }))
+    persistRPG()
+  },
+
+  // ── Quest actions ──
+  refreshQuests: () => {
+    const today = new Date().toISOString().slice(0, 10)
+    const { lastQuestRefresh, stats } = get()
+    if (lastQuestRefresh === today) return
+
+    const dailyQuests = generateDailyQuests(stats.level)
+    const weeklyQuests = generateWeeklyQuests(stats.level)
+    const allQuests = [...dailyQuests, ...weeklyQuests]
+
+    const activeQuests: QuestProgress[] = allQuests.map(q => ({
+      questId: q.id,
+      current: 0,
+      completed: false,
+      claimed: false,
+    }))
+
+    set({ activeQuests, lastQuestRefresh: today })
+    persistRPG()
+  },
+
+  updateQuestProgress: (type, amount) => {
+    set(s => {
+      const updated = s.activeQuests.map(qp => {
+        // Find the quest definition to check its type
+        const allDaily = generateDailyQuests(s.stats.level)
+        const allWeekly = generateWeeklyQuests(s.stats.level)
+        const allQuests = [...allDaily, ...allWeekly]
+        const questDef = allQuests.find(q => q.id === qp.questId)
+        if (!questDef || questDef.type !== type) return qp
+        if (qp.completed) return qp
+
+        const newCurrent = qp.current + amount
+        return {
+          ...qp,
+          current: newCurrent,
+          completed: newCurrent >= questDef.target,
+        }
+      })
+      return { activeQuests: updated }
+    })
+    persistRPG()
+  },
+
+  claimQuestReward: (questId) => {
+    const { activeQuests, stats } = get()
+    const questProgress = activeQuests.find(q => q.questId === questId)
+    if (!questProgress || !questProgress.completed || questProgress.claimed) return
+
+    // Find quest definition for reward
+    const allDaily = generateDailyQuests(stats.level)
+    const allWeekly = generateWeeklyQuests(stats.level)
+    const allQuests = [...allDaily, ...allWeekly]
+    const questDef = allQuests.find(q => q.id === questId)
+    if (!questDef) return
+
+    // Add XP reward
+    const newStats = { ...stats, xp: stats.xp + questDef.reward.xp, totalXP: stats.totalXP + questDef.reward.xp }
+    saveStats(newStats)
+
+    // Mark as claimed
+    const updatedQuests = activeQuests.map(q =>
+      q.questId === questId ? { ...q, claimed: true } : q
+    )
+
+    // Grant relic rewards
+    const newOwnedRelics = questDef.reward.relics
+      ? [...get().ownedRelics, ...questDef.reward.relics]
+      : get().ownedRelics
+
+    set({ stats: newStats, activeQuests: updatedQuests, ownedRelics: newOwnedRelics })
+    persistRPG()
+  },
+
+  // ── Adventure actions ──
+  completeAdventureNode: (nodeId) => {
+    set(s => ({
+      adventureProgress: { ...s.adventureProgress, [nodeId]: true },
+    }))
+    persistRPG()
+  },
+
+  setRegion: (regionId) => {
+    set({ currentRegion: regionId })
+    persistRPG()
+  },
+}})
 
 // ─── Derived helpers ────────────────────────────────────────
 export function fmtTime(ms: number): string {
