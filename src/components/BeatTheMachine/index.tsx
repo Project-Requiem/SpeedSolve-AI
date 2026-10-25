@@ -222,6 +222,8 @@ export default function BeatTheMachine({ onExit }: { onExit?: () => void }) {
   return (
     <div className={`btm-root${skyMode === 'day' ? ' btm-day' : ''}${shake ? ' btm-shake' : ''}`} onKeyDown={handleKeyDown}>
       <SkyField mode={skyMode} />
+      {/* Version indicator - remove after debugging */}
+      <div style={{ position: 'fixed', bottom: 4, right: 8, fontSize: 9, color: 'rgba(0,229,255,0.5)', fontFamily: 'monospace', zIndex: 99999, pointerEvents: 'none' }}>MB v2.0.1</div>
       {showParticles && store.result?.correct && <WinParticles />}
       {showConfetti && <Confetti />}
 
