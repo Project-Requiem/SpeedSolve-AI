@@ -352,8 +352,9 @@ function HomeScreen() {
   const stats = store.stats
   const winRate = stats.totalWins + stats.totalLosses > 0 ? Math.round((stats.totalWins / (stats.totalWins + stats.totalLosses)) * 100) : 0
   const totalStars = getTotalStars(stats)
+  const [featuredIdx] = useState(() => Math.floor(Math.random() * 100))
   const discoveredCount = new Set(store.capturedBeasts.map(cb => cb.beastId)).size
-  const featuredBeast = store.capturedBeasts.length > 0 ? store.capturedBeasts[Math.floor(Math.random() * Math.min(store.capturedBeasts.length, 10))] : null
+  const featuredBeast = store.capturedBeasts.length > 0 ? store.capturedBeasts[featuredIdx % store.capturedBeasts.length] : null
   const featuredMindBeast = featuredBeast ? ALL_BEASTS.find(b => b.id === featuredBeast.beastId) : null
 
   return (
@@ -364,6 +365,7 @@ function HomeScreen() {
             <div className="btm-ai-label">SPEEDSOLVE</div>
             <div className="btm-ai-text">I can solve this.</div>
             <div className="btm-ai-text">Can you beat me?</div>
+            <div style={{ fontSize: 10, color: '#64748b', marginTop: 4, fontFamily: 'monospace' }}>MIND BEASTS v2.0</div>
           </div>
         </div>
 
