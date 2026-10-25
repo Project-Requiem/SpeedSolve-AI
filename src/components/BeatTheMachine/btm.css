@@ -565,3 +565,524 @@
 .btm-sun-core { width: 60px; height: 60px; border-radius: 50%; background: radial-gradient(circle, #fff176, #ffb300); box-shadow: 0 0 40px 15px rgba(255,179,0,0.2); }
 .btm-sun-rays { position: absolute; inset: -20px; border-radius: 50%; background: radial-gradient(circle, rgba(255,179,0,0.1), transparent 70%); animation: btmSpin 20s linear infinite; }
 @keyframes btmSpin { to { transform: rotate(360deg); } }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   §NEW  READY PHASE & COUNTDOWN — Dramatic Pre-Game
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Ready Overlay ── */
+.btm-ready-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(5,10,24,0.92) 0%, rgba(2,4,12,0.98) 100%);
+  backdrop-filter: blur(12px);
+  animation: btmReadyFadeIn 0.4s ease-out;
+}
+
+@keyframes btmReadyFadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* ── Ready Card ── */
+.btm-ready-card {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 40px 48px; text-align: center;
+  background: linear-gradient(135deg, rgba(12,20,40,0.9) 0%, rgba(20,30,55,0.85) 100%);
+  border: 1px solid rgba(0,229,255,0.15);
+  border-radius: 20px;
+  box-shadow: 0 0 60px rgba(0,229,255,0.08), 0 0 120px rgba(179,136,255,0.06), inset 0 1px 0 rgba(255,255,255,0.05);
+  animation: btmReadyCardEnter 0.5s cubic-bezier(0.16,1,0.3,1) 0.1s both;
+  max-width: 400px; width: 90vw;
+}
+
+@keyframes btmReadyCardEnter {
+  0% { opacity: 0; transform: translateY(30px) scale(0.9); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Difficulty Badge ── */
+.btm-ready-badge {
+  display: inline-block;
+  font-family: var(--g-mono); font-size: 13px; font-weight: 700;
+  letter-spacing: 3px; text-transform: uppercase;
+  padding: 6px 18px; border-radius: 6px;
+  border: 2px solid; background: rgba(255,255,255,0.03);
+  animation: btmBadgePulse 2s ease-in-out infinite;
+}
+
+@keyframes btmBadgePulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(0,229,255,0.2); }
+  50% { box-shadow: 0 0 25px rgba(0,229,255,0.4); }
+}
+
+/* ── Subject ── */
+.btm-ready-subject {
+  font-family: var(--g-display); font-size: 16px;
+  color: var(--g-text2); letter-spacing: 1px;
+}
+
+/* ── Title ── */
+.btm-ready-title {
+  font-family: var(--g-display); font-size: 32px; font-weight: 800;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, var(--g-cyan), var(--g-purple));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: btmTitleShimmer 3s ease-in-out infinite;
+  background-size: 200% 100%;
+}
+
+@keyframes btmTitleShimmer {
+  0%, 100% { background-position: 0% center; }
+  50% { background-position: 100% center; }
+}
+
+/* ── AI Time Display ── */
+.btm-ready-ai {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 20px; border-radius: 10px;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+}
+.btm-ready-ai-label {
+  font-size: 12px; color: var(--g-text3); font-family: var(--g-mono);
+  letter-spacing: 1px;
+}
+.btm-ready-ai-time {
+  font-size: 22px; font-weight: 700; color: var(--g-gold);
+  font-family: var(--g-mono);
+  text-shadow: 0 0 20px rgba(255,215,64,0.4);
+}
+
+/* ── Warning ── */
+.btm-ready-warning {
+  font-size: 12px; color: var(--g-orange); font-family: var(--g-mono);
+  letter-spacing: 0.5px; padding: 6px 14px;
+  background: rgba(255,145,0,0.08); border-radius: 6px;
+  border: 1px solid rgba(255,145,0,0.15);
+}
+
+/* ── Ready Button ── */
+.btm-btn-ready {
+  position: relative; overflow: hidden;
+  padding: 16px 48px; margin-top: 8px;
+  font-family: var(--g-display); font-size: 18px; font-weight: 700;
+  letter-spacing: 3px; color: #fff; text-transform: uppercase;
+  background: linear-gradient(135deg, #00c9ff 0%, #6366f1 50%, #a855f7 100%);
+  border: none; border-radius: 12px; cursor: pointer;
+  box-shadow: 0 0 30px rgba(0,201,255,0.3), 0 0 60px rgba(168,85,247,0.2);
+  transition: transform 0.2s, box-shadow 0.2s;
+  animation: btmReadyBtnPulse 2s ease-in-out infinite;
+}
+
+.btm-btn-ready:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 40px rgba(0,201,255,0.5), 0 0 80px rgba(168,85,247,0.3);
+}
+
+.btm-btn-ready:active {
+  transform: scale(0.97);
+}
+
+@keyframes btmReadyBtnPulse {
+  0%, 100% { box-shadow: 0 0 30px rgba(0,201,255,0.3), 0 0 60px rgba(168,85,247,0.2); }
+  50% { box-shadow: 0 0 50px rgba(0,201,255,0.5), 0 0 90px rgba(168,85,247,0.35); }
+}
+
+.btm-btn-ready-text {
+  position: relative; z-index: 2;
+}
+
+.btm-btn-ready-glow {
+  position: absolute; inset: -2px; z-index: 1;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  background-size: 200% 100%;
+  animation: btmBtnGlowSlide 1.5s ease-in-out infinite;
+  border-radius: 12px;
+}
+
+@keyframes btmBtnGlowSlide {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ── Countdown Numbers ── */
+.btm-countdown {
+  font-family: var(--g-display); font-size: 120px; font-weight: 900;
+  color: var(--g-cyan); line-height: 1;
+  text-shadow: 0 0 40px rgba(0,229,255,0.6), 0 0 80px rgba(0,229,255,0.3);
+  animation: btmCountdownPop 0.5s cubic-bezier(0.16,1,0.3,1);
+}
+
+.btm-countdown-go {
+  font-size: 100px; color: var(--g-green);
+  text-shadow: 0 0 40px rgba(0,230,118,0.6), 0 0 80px rgba(0,230,118,0.3);
+  animation: btmGoBurst 0.4s cubic-bezier(0.16,1,0.3,1);
+}
+
+@keyframes btmCountdownPop {
+  0% { transform: scale(2.5); opacity: 0; filter: blur(8px); }
+  50% { transform: scale(0.9); opacity: 1; filter: blur(0); }
+  100% { transform: scale(1); opacity: 1; filter: blur(0); }
+}
+
+@keyframes btmGoBurst {
+  0% { transform: scale(3); opacity: 0; filter: blur(10px); }
+  40% { transform: scale(1.1); opacity: 1; filter: blur(0); }
+  100% { transform: scale(1); opacity: 1; filter: blur(0); }
+}
+
+/* ── Screen Enter Animation ── */
+.btm-screen-enter {
+  animation: btmScreenSlideIn 0.35s cubic-bezier(0.16,1,0.3,1);
+}
+
+@keyframes btmScreenSlideIn {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Problem Card Enter (dramatic reveal) ── */
+.btm-problem-enter {
+  animation: btmProblemReveal 0.5s cubic-bezier(0.16,1,0.3,1) 0.05s both;
+}
+
+@keyframes btmProblemReveal {
+  0% { opacity: 0; transform: translateY(20px) scale(0.95); filter: blur(4px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   §ENHANCED  Enhanced Existing Styles for Premium Game Feel
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Enhanced Timer ── */
+.btm-timer {
+  transition: color 0.3s, text-shadow 0.3s;
+}
+
+.btm-timer.btm-heartbeat {
+  animation: btmHeartbeat 0.8s ease-in-out infinite, btmTimerDanger 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes btmTimerDanger {
+  0% { text-shadow: 0 0 10px rgba(255,23,68,0.3); }
+  100% { text-shadow: 0 0 30px rgba(255,23,68,0.7), 0 0 60px rgba(255,23,68,0.3); }
+}
+
+/* ── Enhanced Race Track with glow ── */
+.btm-race-fill {
+  transition: width 0.15s ease-out;
+  position: relative;
+}
+
+.btm-race-lane.btm-race-player .btm-race-fill {
+  background: linear-gradient(90deg, var(--g-cyan), var(--g-blue));
+  box-shadow: 0 0 12px rgba(0,229,255,0.4);
+}
+
+.btm-race-lane.btm-race-ai .btm-race-fill {
+  background: linear-gradient(90deg, var(--g-red), var(--g-rose));
+  box-shadow: 0 0 12px rgba(255,23,68,0.4);
+}
+
+/* ── Enhanced Problem Card ── */
+.btm-problem-card {
+  transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+}
+
+.btm-problem-card:hover {
+  border-color: rgba(0,229,255,0.2);
+  box-shadow: 0 0 30px rgba(0,229,255,0.08);
+}
+
+/* ── Enhanced Submit Button ── */
+.btm-btn-submit {
+  transition: all 0.2s cubic-bezier(0.16,1,0.3,1);
+  position: relative; overflow: hidden;
+}
+
+.btm-btn-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0,229,255,0.3);
+}
+
+.btm-btn-submit:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+}
+
+/* ── Enhanced Input ── */
+.btm-input-large {
+  transition: all 0.2s;
+  border: 2px solid transparent;
+}
+
+.btm-input-large:focus {
+  border-color: var(--g-cyan);
+  box-shadow: 0 0 20px rgba(0,229,255,0.15);
+}
+
+/* ── Enhanced Combo with fire ── */
+.btm-combo {
+  animation: btmComboPop 0.3s cubic-bezier(0.16,1,0.3,1);
+}
+
+.btm-combo-fire {
+  filter: drop-shadow(0 0 8px rgba(249,115,22,0.6));
+  animation: btmComboPop 0.3s cubic-bezier(0.16,1,0.3,1), btmComboFlicker 0.15s ease-in-out infinite alternate;
+}
+
+@keyframes btmComboFlicker {
+  0% { filter: drop-shadow(0 0 6px rgba(249,115,22,0.5)); }
+  100% { filter: drop-shadow(0 0 14px rgba(249,115,22,0.8)); }
+}
+
+.btm-combo-mega {
+  filter: drop-shadow(0 0 12px rgba(168,85,247,0.6));
+  animation: btmComboPop 0.3s cubic-bezier(0.16,1,0.3,1), btmComboMegaPulse 0.4s ease-in-out infinite alternate;
+}
+
+@keyframes btmComboMegaPulse {
+  0% { filter: drop-shadow(0 0 10px rgba(168,85,247,0.5)); transform: scale(1); }
+  100% { filter: drop-shadow(0 0 20px rgba(168,85,247,0.8)); transform: scale(1.05); }
+}
+
+/* ── Level Node Hover Enhancement ── */
+.btm-level-node:not(.btm-level-node-locked):hover {
+  transform: scale(1.15) translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0,229,255,0.3);
+}
+
+.btm-level-node-completed {
+  animation: btmLevelGlow 3s ease-in-out infinite;
+}
+
+@keyframes btmLevelGlow {
+  0%, 100% { box-shadow: 0 0 8px rgba(255,215,64,0.3); }
+  50% { box-shadow: 0 0 16px rgba(255,215,64,0.5); }
+}
+
+/* ── World Card Hover ── */
+.btm-world-card:not(.btm-world-card-locked):hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+}
+
+/* ── Power-up Slot Enhancement ── */
+.btm-powerup-slot:not(.btm-powerup-empty):hover {
+  transform: scale(1.15) translateY(-3px);
+}
+
+.btm-powerup-active {
+  animation: btmPowerUpActive 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes btmPowerUpActive {
+  0% { box-shadow: 0 0 8px rgba(251,191,36,0.4); }
+  100% { box-shadow: 0 0 20px rgba(251,191,36,0.7); }
+}
+
+/* ── Result Screen Enhancement ── */
+.btm-result-heading.win {
+  animation: btmWinTitle 0.6s cubic-bezier(0.16,1,0.3,1);
+}
+
+@keyframes btmWinTitle {
+  0% { transform: scale(0.5); opacity: 0; filter: blur(10px); }
+  60% { transform: scale(1.1); opacity: 1; filter: blur(0); }
+  100% { transform: scale(1); }
+}
+
+.btm-result-heading.loss, .btm-result-heading.wrong {
+  animation: btmLossTitle 0.5s cubic-bezier(0.16,1,0.3,1);
+}
+
+@keyframes btmLossTitle {
+  0% { transform: translateX(-10px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+/* ── XP Gain Animation ── */
+.btm-xp-gain {
+  animation: btmXPGain 0.5s cubic-bezier(0.16,1,0.3,1);
+}
+
+@keyframes btmXPGain {
+  0% { transform: scale(0.8); opacity: 0; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ── Shop Item Hover ── */
+.btm-shop-item:hover {
+  transform: translateY(-4px) scale(1.02);
+  border-color: rgba(0,229,255,0.3);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+/* ── Achievement Row Hover ── */
+.btm-achievement-row:not(.btm-achievement-row-locked):hover {
+  background: rgba(0,229,255,0.05);
+  transform: translateX(4px);
+}
+
+/* ── Button Micro-interactions ── */
+.btm-btn-primary {
+  transition: all 0.2s cubic-bezier(0.16,1,0.3,1);
+  position: relative; overflow: hidden;
+}
+
+.btm-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0,229,255,0.3);
+}
+
+.btm-btn-primary:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.btm-btn-secondary {
+  transition: all 0.2s cubic-bezier(0.16,1,0.3,1);
+}
+
+.btm-btn-secondary:hover {
+  transform: translateY(-1px);
+}
+
+.btm-btn-secondary:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* ── Glassmorphism Enhancement ── */
+.btm-problem-card {
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+}
+
+/* ── Neon border animation for challenge ── */
+.btm-challenge {
+  position: relative;
+}
+
+.btm-challenge::before {
+  content: ''; position: absolute; inset: -1px; z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(0,229,255,0.1), transparent, rgba(168,85,247,0.1));
+  animation: btmBorderRotate 4s linear infinite;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.btm-challenge:hover::before {
+  opacity: 1;
+}
+
+@keyframes btmBorderRotate {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
+/* ── Stat Chip Hover ── */
+.btm-stat-chip:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.btm-stat-chip {
+  transition: all 0.2s cubic-bezier(0.16,1,0.3,1);
+}
+
+/* ── Home Actions Enhancement ── */
+.btm-home-actions {
+  gap: 10px;
+}
+
+.btm-home-actions .btm-btn-primary,
+.btm-home-actions .btm-btn-secondary {
+  min-width: 160px;
+}
+
+/* ── Smooth Scroll for content ── */
+.btm-content {
+  scroll-behavior: smooth;
+}
+
+/* ── Scanline effect for retro-futuristic feel ── */
+.btm-root::after {
+  content: ''; position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,229,255,0.015) 2px, rgba(0,229,255,0.015) 4px
+  );
+  mix-blend-mode: overlay;
+}
+
+/* ── Tower Floor Display ── */
+.btm-tower-floor-display {
+  animation: btmFloorPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes btmFloorPulse {
+  0%, 100% { text-shadow: 0 0 10px rgba(255,215,64,0.3); }
+  50% { text-shadow: 0 0 30px rgba(255,215,64,0.6); }
+}
+
+/* ── Ghost Button Enhancement ── */
+.btm-ghost {
+  transition: all 0.2s;
+}
+
+.btm-ghost:hover {
+  color: var(--g-cyan);
+  transform: translateY(-1px);
+}
+
+/* ── Verify Modal Enhancement ── */
+.btm-verify-modal {
+  animation: btmVerifyEnter 0.4s cubic-bezier(0.16,1,0.3,1);
+}
+
+@keyframes btmVerifyEnter {
+  0% { transform: scale(0.8) translateY(20px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* ── Daily Machine Badge ── */
+.btm-btn-secondary:nth-child(2) {
+  position: relative;
+}
+
+.btm-btn-secondary:nth-child(2)::after {
+  content: 'DAILY'; position: absolute; top: -6px; right: -6px;
+  font-size: 8px; font-weight: 700; letter-spacing: 1px;
+  padding: 2px 5px; border-radius: 4px;
+  background: var(--g-gold); color: #000;
+  animation: btmDailyPulse 2s ease-in-out infinite;
+}
+
+@keyframes btmDailyPulse {
+  0%, 100% { box-shadow: 0 0 4px rgba(255,215,64,0.3); }
+  50% { box-shadow: 0 0 12px rgba(255,215,64,0.6); }
+}
+
+/* ── Responsive adjustments for ready phase ── */
+@media (max-width: 480px) {
+  .btm-ready-card {
+    padding: 28px 24px; gap: 10px;
+  }
+  .btm-ready-title {
+    font-size: 24px;
+  }
+  .btm-btn-ready {
+    padding: 14px 36px; font-size: 16px;
+  }
+  .btm-countdown {
+    font-size: 80px;
+  }
+  .btm-countdown-go {
+    font-size: 64px;
+  }
+  .btm-ready-ai-time {
+    font-size: 18px;
+  }
+}

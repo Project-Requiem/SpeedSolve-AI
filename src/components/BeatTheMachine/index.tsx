@@ -46,6 +46,60 @@ function WinParticles() {
   )
 }
 
+// ─── Ready Phase & Countdown ─────────────────────────────
+function ReadyPhase({ difficulty, subject, aiTimeMs, onStart }: { difficulty: BTMDifficulty; subject: BTMSubject; aiTimeMs: number; onStart: () => void }) {
+  const [countdown, setCountdown] = useState<number | null>(null)
+
+  const handleStart = () => {
+    setCountdown(3)
+  }
+
+  useEffect(() => {
+    if (countdown === null) return
+    if (countdown === 0) {
+      // "GO!" shown briefly then start
+      const t = setTimeout(() => onStart(), 400)
+      return () => clearTimeout(t)
+    }
+    const t = setTimeout(() => setCountdown(c => c !== null ? c - 1 : null), 700)
+    return () => clearTimeout(t)
+  }, [countdown, onStart])
+
+  const diff = DIFFICULTIES.find(d => d.key === difficulty)
+  const subjectLabel = subject.charAt(0).toUpperCase() + subject.slice(1)
+
+  if (countdown !== null) {
+    return (
+      <div className="btm-ready-overlay">
+        <div className={`btm-countdown${countdown === 0 ? ' btm-countdown-go' : ''}`}>
+          {countdown === 0 ? 'GO!' : countdown}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="btm-ready-overlay">
+      <div className="btm-ready-card">
+        <div className="btm-ready-badge" style={{ color: diff?.color, borderColor: diff?.color }}>
+          {diff?.label?.toUpperCase()}
+        </div>
+        <div className="btm-ready-subject">{subjectLabel}</div>
+        <div className="btm-ready-title">ARE YOU READY?</div>
+        <div className="btm-ready-ai">
+          <span className="btm-ready-ai-label">SpeedSolve time:</span>
+          <span className="btm-ready-ai-time">{fmtTime(aiTimeMs)}</span>
+        </div>
+        <div className="btm-ready-warning">⏱ Timer starts immediately — reading time counts!</div>
+        <button className="btm-btn-ready" onClick={handleStart}>
+          <span className="btm-btn-ready-text">I'M READY</span>
+          <span className="btm-btn-ready-glow" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Confetti ──────────────────────────────────────────
 function Confetti({ count = 40 }: { count?: number }) {
   const pieces = Array.from({ length: count }, (_, i) => {
@@ -403,6 +457,7 @@ function WorldMapScreen() {
 function LevelPlayScreen({ elapsed, inputRef, onPaste }: { elapsed: number; inputRef: React.RefObject<HTMLInputElement | null>; onPaste: () => void }) {
   const store = useBTMStore()
   const { problem, benchmark, timerRunning, submitted, userInput, levelPlay, stats } = store
+  const [gameStarted, setGameStarted] = useState(false)
   if (!problem || !benchmark || !levelPlay) return null
 
   const displayTime = timerRunning ? elapsed : store.elapsedMs
@@ -412,8 +467,12 @@ function LevelPlayScreen({ elapsed, inputRef, onPaste }: { elapsed: number; inpu
   const playerProgress = Math.min(displayTime / benchmark.aiTimeMs, 1)
   const diff = DIFFICULTIES.find(d => d.key === problem.difficulty)
 
+  if (!gameStarted) {
+    return <ReadyPhase difficulty={problem.difficulty} subject={problem.subject} aiTimeMs={benchmark.aiTimeMs} onStart={() => { setGameStarted(true); store.startTimer() }} />
+  }
+
   return (
-    <div className="btm-screen">
+    <div className="btm-screen btm-screen-enter">
       <div className="btm-challenge">
         {/* Level progress */}
         <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--c-text3)', marginBottom: 4 }}>
@@ -446,7 +505,7 @@ function LevelPlayScreen({ elapsed, inputRef, onPaste }: { elapsed: number; inpu
         </div>
 
         {/* Problem */}
-        <div className={`btm-problem-card${revealed ? ' btm-problem-revealed' : ' btm-problem-hidden'}`}>
+        <div className="btm-problem-card btm-problem-revealed btm-problem-enter">
           <div className="btm-problem-meta">
             <span className="btm-problem-badge" style={{ color: diff?.color }}>{diff?.label}</span>
             <span className="btm-problem-concept">{problem.concept}</span>
@@ -457,16 +516,15 @@ function LevelPlayScreen({ elapsed, inputRef, onPaste }: { elapsed: number; inpu
         {/* Timer */}
         <div className="btm-timer-wrap">
           <div className={`btm-timer${isOvertime ? ' btm-heartbeat' : ''}`} style={{ color: timerColor }}>
-            {timerRunning || submitted ? fmtTime(displayTime) : '0.00'}
+            {fmtTime(displayTime)}
           </div>
-          {!timerRunning && !submitted && <button className="btm-btn-start" onClick={() => store.startTimer()}>START</button>}
         </div>
 
         {/* Power-up bar */}
         <PowerUpBar />
 
         {/* Input */}
-        {timerRunning && !submitted && (
+        {!submitted && (
           <div className="btm-input-wrap btm-slide-up">
             <input ref={inputRef} className="btm-input btm-input-large" value={userInput}
               onChange={e => store.setUserInput(e.target.value)} onPaste={onPaste}
@@ -502,6 +560,7 @@ function LoadingScreen() {
 function ChallengeScreen({ elapsed, inputRef, onPaste }: { elapsed: number; inputRef: React.RefObject<HTMLInputElement | null>; onPaste: () => void }) {
   const store = useBTMStore()
   const { problem, benchmark, timerRunning, submitted, userInput, stats } = store
+  const [gameStarted, setGameStarted] = useState(false)
   if (!problem || !benchmark) return null
 
   const displayTime = timerRunning ? elapsed : store.elapsedMs
@@ -511,8 +570,12 @@ function ChallengeScreen({ elapsed, inputRef, onPaste }: { elapsed: number; inpu
   const playerProgress = Math.min(displayTime / benchmark.aiTimeMs, 1)
   const diff = DIFFICULTIES.find(d => d.key === problem.difficulty)
 
+  if (!gameStarted) {
+    return <ReadyPhase difficulty={problem.difficulty} subject={problem.subject} aiTimeMs={benchmark.aiTimeMs} onStart={() => { setGameStarted(true); store.startTimer() }} />
+  }
+
   return (
-    <div className="btm-screen">
+    <div className="btm-screen btm-screen-enter">
       <div className="btm-challenge">
         {/* Race track */}
         <div className="btm-race-track">
@@ -537,7 +600,7 @@ function ChallengeScreen({ elapsed, inputRef, onPaste }: { elapsed: number; inpu
           <div className="btm-ai-sub">Can you beat me?</div>
         </div>
 
-        <div className={`btm-problem-card${revealed ? ' btm-problem-revealed' : ' btm-problem-hidden'}`}>
+        <div className="btm-problem-card btm-problem-revealed btm-problem-enter">
           <div className="btm-problem-meta">
             <span className="btm-problem-badge" style={{ color: diff?.color }}>{diff?.label}</span>
             <span className="btm-problem-concept">{problem.concept}</span>
@@ -547,14 +610,13 @@ function ChallengeScreen({ elapsed, inputRef, onPaste }: { elapsed: number; inpu
 
         <div className="btm-timer-wrap">
           <div className={`btm-timer${isOvertime ? ' btm-heartbeat' : ''}`} style={{ color: timerColor }}>
-            {timerRunning || submitted ? fmtTime(displayTime) : '0.00'}
+            {fmtTime(displayTime)}
           </div>
-          {!timerRunning && !submitted && <button className="btm-btn-start" onClick={() => store.startTimer()}>START</button>}
         </div>
 
         <PowerUpBar />
 
-        {timerRunning && !submitted && (
+        {!submitted && (
           <div className="btm-input-wrap btm-slide-up">
             <input ref={inputRef} className="btm-input btm-input-large" value={userInput}
               onChange={e => store.setUserInput(e.target.value)} onPaste={onPaste}
@@ -681,14 +743,19 @@ function ResultScreen() {
 function TowerScreen({ elapsed, inputRef, onPaste }: { elapsed: number; inputRef: React.RefObject<HTMLInputElement | null>; onPaste: () => void }) {
   const store = useBTMStore()
   const { problem, benchmark, timerRunning, submitted, userInput, tower, stats } = store
+  const [gameStarted, setGameStarted] = useState(false)
   if (!problem || !benchmark || !tower) return null
 
   const displayTime = timerRunning ? elapsed : store.elapsedMs
   const revealed = timerRunning || submitted
   const diff = DIFFICULTIES.find(d => d.key === problem.difficulty)
 
+  if (!gameStarted) {
+    return <ReadyPhase difficulty={problem.difficulty} subject={problem.subject} aiTimeMs={benchmark.aiTimeMs} onStart={() => { setGameStarted(true); store.startTimer() }} />
+  }
+
   return (
-    <div className="btm-screen">
+    <div className="btm-screen btm-screen-enter">
       <div className="btm-tower">
         <div className="btm-tower-floor-label">FLOOR</div>
         <div className="btm-tower-floor-display">{tower.currentFloor}</div>
@@ -709,7 +776,7 @@ function TowerScreen({ elapsed, inputRef, onPaste }: { elapsed: number; inputRef
           </div>
         </div>
 
-        <div className={`btm-problem-card${revealed ? ' btm-problem-revealed' : ' btm-problem-hidden'}`}>
+        <div className="btm-problem-card btm-problem-revealed btm-problem-enter">
           <div className="btm-problem-meta">
             <span className="btm-problem-badge" style={{ color: diff?.color }}>{diff?.label}</span>
             <span className="btm-problem-concept">{problem.concept}</span>
@@ -719,14 +786,13 @@ function TowerScreen({ elapsed, inputRef, onPaste }: { elapsed: number; inputRef
 
         <div className="btm-timer-wrap">
           <div className="btm-timer" style={{ color: 'var(--text-primary)' }}>
-            {timerRunning || submitted ? fmtTime(displayTime) : '0.00'}
+            {fmtTime(displayTime)}
           </div>
-          {!timerRunning && !submitted && <button className="btm-btn-start" onClick={() => store.startTimer()}>START</button>}
         </div>
 
         <PowerUpBar />
 
-        {timerRunning && !submitted && (
+        {!submitted && (
           <div className="btm-input-wrap btm-slide-up">
             <input ref={inputRef} className="btm-input btm-input-large" value={userInput}
               onChange={e => store.setUserInput(e.target.value)} onPaste={onPaste}
