@@ -19,24 +19,50 @@ const SUBJECTS: { key: BTMSubject; label: string }[] = [
   { key: 'chemistry', label: 'Chemistry' },
 ]
 
-// ─── Particles Component ───────────────────────────────────
+// ─── Particles — Cinematic Burst ────────────────────────
 function WinParticles() {
-  const particles = Array.from({ length: 20 }, (_, i) => {
-    const angle = (i / 20) * Math.PI * 2
-    const dist = 80 + Math.random() * 60
+  const particles = Array.from({ length: 30 }, (_, i) => {
+    const angle = (i / 30) * Math.PI * 2 + (Math.random() - 0.5) * 0.5
+    const dist = 60 + Math.random() * 120
+    const size = 4 + Math.random() * 8
+    const colors = ['#00e676', '#ffd740', '#00e5ff', '#b388ff', '#ff4081', '#ffffff']
     return {
-      id: i,
-      px: Math.cos(angle) * dist,
-      py: Math.sin(angle) * dist,
-      color: ['#22c55e', '#fbbf24', '#22d3ee', '#a855f7'][i % 4],
+      id: i, px: Math.cos(angle) * dist, py: Math.sin(angle) * dist - 40,
+      color: colors[i % colors.length], size,
+      delay: Math.random() * 0.15,
     }
   })
   return (
     <div className="btm-particles">
       {particles.map(p => (
         <div key={p.id} className="btm-particle" style={{
-          left: '50%', top: '40%', background: p.color,
+          left: '50%', top: '35%', width: p.size, height: p.size,
+          background: p.color, color: p.color,
           '--px': `${p.px}px`, '--py': `${p.py}px`,
+          animationDelay: `${p.delay}s`,
+        } as React.CSSProperties} />
+      ))}
+    </div>
+  )
+}
+
+// ─── Confetti ──────────────────────────────────────────
+function Confetti({ count = 40 }: { count?: number }) {
+  const pieces = Array.from({ length: count }, (_, i) => {
+    const x = Math.random() * 100
+    const delay = Math.random() * 0.6
+    const duration = 1.2 + Math.random() * 1.5
+    const colors = ['#00e5ff', '#b388ff', '#ffd740', '#00e676', '#ff4081', '#ff9100']
+    return { id: i, x, delay, duration, color: colors[i % colors.length], rot: Math.random() * 360 }
+  })
+  return (
+    <div className="btm-particles">
+      {pieces.map(p => (
+        <div key={p.id} style={{
+          position: 'absolute', left: `${p.x}%`, top: '-10px',
+          width: 6, height: 10, background: p.color, borderRadius: 2,
+          animation: `btmConfettiFall ${p.duration}s ease-in ${p.delay}s forwards`,
+          transform: `rotate(${p.rot}deg)`,
         } as React.CSSProperties} />
       ))}
     </div>
@@ -51,6 +77,7 @@ export default function BeatTheMachine({ onExit }: { onExit?: () => void }) {
   const [skyMode, setSkyMode] = useState<'night' | 'day'>('night')
   const [screenKey, setScreenKey] = useState(0)
   const [showParticles, setShowParticles] = useState(false)
+  const [showConfetti, setShowConfetti] = useState(false)
   const [shake, setShake] = useState(false)
   const prevScreen = useRef(store.screen)
 
@@ -99,11 +126,13 @@ export default function BeatTheMachine({ onExit }: { onExit?: () => void }) {
     }
   }, [store.achievementPopup])
 
-  // Win particles
+  // Win particles & confetti
   useEffect(() => {
     if (store.screen === 'result' && store.result?.correct) {
+      const isWin = store.result.userTimeMs < store.result.aiTimeMs
       setShowParticles(true)
-      const t = setTimeout(() => setShowParticles(false), 1000)
+      if (isWin) setShowConfetti(true)
+      const t = setTimeout(() => { setShowParticles(false); setShowConfetti(false) }, 1500)
       return () => clearTimeout(t)
     }
   }, [store.screen, store.result?.correct])
@@ -137,6 +166,7 @@ export default function BeatTheMachine({ onExit }: { onExit?: () => void }) {
     <div className={`btm-root${skyMode === 'day' ? ' btm-day' : ''}${shake ? ' btm-shake' : ''}`} onKeyDown={handleKeyDown}>
       <SkyField mode={skyMode} />
       {showParticles && store.result?.correct && <WinParticles />}
+      {showConfetti && <Confetti />}
 
       {/* Achievement popup */}
       {store.achievementPopup && (
