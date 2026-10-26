@@ -561,7 +561,7 @@
 .btm-skyfield, .btm-dayfield { position: absolute; inset: 0; pointer-events: none; overflow: hidden; transition: opacity 0.8s; }
 .btm-celestial-wrap { position: absolute; pointer-events: none; transition: opacity 0.8s; }
 .btm-moon-anime { width: 50px; height: 50px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fef9c3, #fde68a); box-shadow: 0 0 30px 10px rgba(253,230,138,0.15), inset -8px -4px 0 rgba(0,0,0,0.08); }
-.btm-sun-anime! { position: relative; }
+.btm-sun-anime { position: relative; }
 .btm-sun-core { width: 60px; height: 60px; border-radius: 50%; background: radial-gradient(circle, #fff176, #ffb300); box-shadow: 0 0 40px 15px rgba(255,179,0,0.2); }
 .btm-sun-rays { position: absolute; inset: -20px; border-radius: 50%; background: radial-gradient(circle, rgba(255,179,0,0.1), transparent 70%); animation: btmSpin 20s linear infinite; }
 @keyframes btmSpin { to { transform: rotate(360deg); } }
