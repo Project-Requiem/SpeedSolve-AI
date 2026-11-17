@@ -5,44 +5,26 @@ import { QuestProgress } from './quests'
 
 // ── RPG State Persistence ────────────────────────────────────────────────────────
 
-export interface CapturedBeast {
-  instanceId: string
-  beastId: string
-  level: number
-  xp: number
-  abilitiesUnlocked: string[]
-  nickname?: string
-  capturedAt: string
-}
-
 export interface RPGState {
-  capturedBeasts: CapturedBeast[]
-  activeTeam: string[]
-  selectedBeast: string | null
+  gold: number
   ownedRelics: string[]
   equippedRelics: Record<RelicSlot, string | null>
   activeQuests: QuestProgress[]
   lastQuestRefresh: string
-  adventureProgress: Record<string, boolean>
-  currentRegion: string
 }
 
 const DEFAULT_RPG_STATE: RPGState = {
-  capturedBeasts: [],
-  activeTeam: [],
-  selectedBeast: null,
+  gold: 100,
   ownedRelics: [],
   equippedRelics: {
-    head: null,
-    body: null,
     weapon: null,
-    accessory: null,
-    aura: null,
+    armor: null,
+    helm: null,
+    ring: null,
+    amulet: null,
   },
   activeQuests: [],
   lastQuestRefresh: '',
-  adventureProgress: {},
-  currentRegion: 'region-1',
 }
 
 const RPG_KEY_PREFIX = 'speedsolve-btm-rpg'
@@ -116,7 +98,7 @@ const DEFAULT_STATS: BTMStats = {
 
 function getStorageKey(): string {
   const user = getActiveUser()
-  return user ? getStatsKey(user.id) : LEGACY_KEY
+  return user ? getStatsKey(user.id) : 'speedsolve-btm-stats'
 }
 
 export function loadStats(): BTMStats {

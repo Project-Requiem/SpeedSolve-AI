@@ -1,0 +1,934 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   REQUIEM — Dark Warrior RPG Layer
+   Ember / gold / steel palette. Cinematic boss screens. Shadow-Fight journey.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Root atmosphere ─────────────────────────────────────────────────────── */
+.btm-root {
+  background:
+    radial-gradient(1200px 700px at 50% -10%, rgba(201, 162, 39, 0.10), transparent 60%),
+    radial-gradient(900px 600px at 85% 110%, rgba(255, 77, 94, 0.07), transparent 55%),
+    linear-gradient(180deg, #0a0d14 0%, #0c101a 40%, #080a10 100%);
+}
+.btm-root::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.5) 100%);
+}
+.btm-root::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.05;
+  background-image: repeating-linear-gradient(0deg, transparent 0 2px, rgba(255,255,255,0.35) 2px 3px);
+}
+
+.btm-home, .btm-journey-screen, .btm-gear, .btm-quests {
+  position: relative;
+  z-index: 2;
+}
+
+/* Cinzel for epic headings */
+.btm-hero-title, .btm-journey-title, .btm-victory-banner, .btm-defeat-banner,
+.btm-boss-intro-name, .btm-warrior-rank, .btm-gear h2, .btm-gear-title {
+  font-family: 'Cinzel', 'Outfit', serif !important;
+  letter-spacing: 0.12em;
+}
+
+/* ── Home: hero banner ───────────────────────────────────────────────────── */
+.btm-hero-banner {
+  position: relative;
+  width: 100%;
+  height: 150px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(201, 162, 39, 0.28);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.55), inset 0 0 60px rgba(201, 162, 39, 0.06);
+  margin-bottom: 12px;
+}
+.btm-hero-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 22%;
+  filter: saturate(0.92) contrast(1.05);
+}
+.btm-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6,8,12,0.15) 0%, rgba(6,8,12,0.62) 70%, rgba(6,8,12,0.9) 100%);
+}
+.btm-hero-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 12px 14px;
+}
+.btm-hero-kicker {
+  font-size: 9px;
+  letter-spacing: 0.35em;
+  color: rgba(226, 232, 240, 0.75);
+  font-weight: 600;
+}
+.btm-hero-title {
+  font-size: 26px;
+  font-weight: 900;
+  color: #f2e6c9;
+  text-shadow: 0 0 22px rgba(201, 162, 39, 0.45), 0 2px 10px rgba(0,0,0,0.8);
+  line-height: 1.1;
+}
+.btm-hero-sub {
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: #c9a227;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+/* ── Identity strip ──────────────────────────────────────────────────────── */
+.btm-warrior-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(180deg, rgba(20, 25, 36, 0.9), rgba(12, 15, 23, 0.9));
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  backdrop-filter: blur(8px);
+}
+.btm-warrior-rank {
+  font-size: 17px;
+  font-weight: 700;
+  color: #f2e6c9;
+  text-shadow: 0 0 14px rgba(201, 162, 39, 0.35);
+}
+.btm-warrior-level {
+  font-size: 11px;
+  color: #8b94a7;
+  margin-top: 2px;
+}
+.btm-gold-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  color: #f5d67b;
+  background: linear-gradient(180deg, rgba(201, 162, 39, 0.16), rgba(201, 162, 39, 0.05));
+  border: 1px solid rgba(201, 162, 39, 0.4);
+  border-radius: 999px;
+  padding: 6px 14px;
+  box-shadow: 0 0 16px rgba(201, 162, 39, 0.12);
+}
+.btm-gold-icon { font-size: 13px; color: #e0a83c; }
+
+/* ── Loadout strip ───────────────────────────────────────────────────────── */
+.btm-loadout {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 7px;
+  margin-bottom: 10px;
+}
+.btm-loadout-slot {
+  background: rgba(14, 18, 28, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 10px;
+  padding: 8px 4px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.btm-loadout-slot:hover { transform: translateY(-2px); border-color: rgba(201, 162, 39, 0.4); }
+.btm-loadout-icon { font-size: 20px; line-height: 1.2; color: #475569; }
+.btm-loadout-label {
+  font-size: 8.5px;
+  color: #64748b;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Passive chips ───────────────────────────────────────────────────────── */
+.btm-passives-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.btm-passive-chip {
+  font-size: 10px;
+  font-weight: 600;
+  color: #d8b94a;
+  background: rgba(201, 162, 39, 0.1);
+  border: 1px solid rgba(201, 162, 39, 0.28);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+/* ── Home actions ────────────────────────────────────────────────────────── */
+.btm-home-actions { width: 100%; max-width: 380px; margin: 0 auto; }
+.btm-btn-journey {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: linear-gradient(135deg, #2a1f08 0%, #17130a 55%, #0e0b06 100%);
+  border: 1px solid rgba(201, 162, 39, 0.55);
+  border-radius: 14px;
+  padding: 13px 16px;
+  cursor: pointer;
+  color: #f2e6c9;
+  box-shadow: 0 0 24px rgba(201, 162, 39, 0.13), inset 0 1px 0 rgba(255, 229, 158, 0.08);
+  transition: transform 0.15s, box-shadow 0.15s;
+  margin-bottom: 10px;
+}
+.btm-btn-journey:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 34px rgba(201, 162, 39, 0.25), inset 0 1px 0 rgba(255, 229, 158, 0.1);
+}
+.btm-btn-journey-icon { font-size: 24px; color: #e0a83c; filter: drop-shadow(0 0 8px rgba(224, 168, 60, 0.6)); }
+.btm-btn-journey-text { flex: 1; text-align: left; display: flex; flex-direction: column; }
+.btm-btn-journey-title { font-family: 'Cinzel', serif; font-weight: 700; font-size: 16px; letter-spacing: 0.1em; }
+.btm-btn-journey-sub { font-size: 10px; color: #a98f3f; margin-top: 2px; }
+.btm-btn-journey-pct {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: #f5d67b;
+}
+.btm-home-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* ── Lords medallions ────────────────────────────────────────────────────── */
+.btm-lords-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 6px 0 4px;
+}
+.btm-lord-medallion {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid #2a3342;
+  filter: grayscale(0.9) brightness(0.55);
+  transition: filter 0.3s, transform 0.2s;
+}
+.btm-lord-medallion.beaten {
+  border-color: rgba(201, 162, 39, 0.75);
+  filter: none;
+  box-shadow: 0 0 12px rgba(201, 162, 39, 0.35);
+}
+.btm-lord-medallion img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.btm-lord-slain {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 900;
+  color: rgba(61, 220, 132, 0.9);
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.9), 0 0 14px rgba(61, 220, 132, 0.6);
+}
+.btm-lords-count {
+  width: 100%;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  color: #a98f3f;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+/* ── Journey screen ──────────────────────────────────────────────────────── */
+.btm-journey-screen { max-width: 440px; margin: 0 auto; padding: 14px 12px 24px; }
+.btm-journey-header {
+  position: relative;
+  height: 120px;
+  border-radius: 14px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center 30%;
+  border: 1px solid rgba(201, 162, 39, 0.3);
+  margin-bottom: 14px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+}
+.btm-journey-header-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(5,7,11,0.25), rgba(5,7,11,0.88));
+}
+.btm-journey-header-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 12px 14px;
+}
+.btm-journey-kicker { font-size: 9px; letter-spacing: 0.3em; color: rgba(226,232,240,0.7); font-weight: 600; }
+.btm-journey-title { font-size: 24px; font-weight: 900; color: #f2e6c9; text-shadow: 0 0 18px rgba(201,162,39,0.4); }
+.btm-journey-progress {
+  height: 5px;
+  background: rgba(148, 163, 184, 0.15);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.btm-journey-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #8a6d1d, #e0a83c, #ffd76b);
+  border-radius: 999px;
+  box-shadow: 0 0 10px rgba(224, 168, 60, 0.6);
+  transition: width 0.6s ease;
+}
+.btm-journey-progress-label { font-size: 10px; color: #94a3b8; margin-top: 5px; }
+
+.btm-journey-domains { display: flex; flex-direction: column; gap: 14px; }
+
+.btm-domain-card {
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(12, 15, 23, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+.btm-domain-card.next {
+  border-color: var(--domain-color);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--domain-color) 22%, transparent), 0 10px 30px rgba(0,0,0,0.45);
+  transform: scale(1.012);
+}
+.btm-domain-card.conquered { opacity: 0.88; }
+.btm-domain-card.locked { opacity: 0.62; filter: saturate(0.4); }
+.btm-domain-card.open { opacity: 0.94; }
+
+.btm-domain-art {
+  position: relative;
+  height: 84px;
+  background-size: cover;
+  background-position: center 35%;
+}
+.btm-domain-art-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,10,16,0.2), rgba(8,10,16,0.82)); }
+.btm-domain-num {
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: rgba(242, 230, 201, 0.9);
+  font-weight: 700;
+}
+.btm-domain-stamp {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%) rotate(-6deg);
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: #3ddc84;
+  border: 2px solid rgba(61, 220, 132, 0.65);
+  border-radius: 6px;
+  padding: 2px 10px;
+  background: rgba(5, 10, 8, 0.55);
+  text-shadow: 0 0 10px rgba(61, 220, 132, 0.5);
+}
+.btm-domain-lock {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(5, 7, 11, 0.55);
+  font-size: 11px;
+  color: #8b94a7;
+  font-weight: 700;
+}
+.btm-domain-lock span { background: rgba(10, 13, 20, 0.8); border: 1px solid rgba(148,163,184,0.2); padding: 3px 10px; border-radius: 999px; }
+
+.btm-domain-body {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px 8px;
+}
+.btm-domain-name { font-family: 'Cinzel', serif; font-size: 15px; font-weight: 700; letter-spacing: 0.06em; }
+.btm-domain-desc { font-size: 11px; color: #8b94a7; margin-top: 3px; line-height: 1.45; }
+.btm-domain-meta { font-size: 10px; color: #64748b; margin-top: 5px; }
+.btm-domain-dot { margin: 0 5px; }
+.btm-domain-lord { text-align: center; flex-shrink: 0; }
+.btm-lord-portrait {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid #2a3342;
+  filter: grayscale(0.75) brightness(0.65);
+  transition: all 0.3s;
+}
+.btm-lord-portrait.target {
+  border-color: var(--domain-color);
+  filter: none;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--domain-color) 45%, transparent);
+  animation: lordPulse 2.2s ease-in-out infinite;
+}
+.btm-lord-portrait.slain { border-color: rgba(61, 220, 132, 0.6); filter: none; }
+@keyframes lordPulse {
+  0%, 100% { box-shadow: 0 0 12px color-mix(in srgb, var(--domain-color) 30%, transparent); }
+  50% { box-shadow: 0 0 26px color-mix(in srgb, var(--domain-color) 60%, transparent); }
+}
+.btm-lord-portrait img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.btm-lord-portrait-slain {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  font-weight: 900;
+  color: rgba(61, 220, 132, 0.92);
+  text-shadow: 0 0 10px rgba(0,0,0,0.9);
+}
+.btm-domain-lord-name { font-size: 8.5px; color: #64748b; margin-top: 4px; max-width: 70px; }
+
+.btm-domain-actions { padding: 4px 14px 14px; display: flex; gap: 8px; }
+.btm-domain-locked-note { font-size: 10.5px; color: #64748b; width: 100%; text-align: center; padding: 4px; }
+
+/* ── War buttons ─────────────────────────────────────────────────────────── */
+.btm-btn-war {
+  flex: 1;
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  font-size: 13px;
+  color: #f2e6c9;
+  background: linear-gradient(135deg, #33240c, #191106);
+  border: 1px solid rgba(201, 162, 39, 0.5);
+  border-radius: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 0 16px rgba(201, 162, 39, 0.12);
+}
+.btm-btn-war:hover { transform: translateY(-2px); box-shadow: 0 0 26px rgba(201, 162, 39, 0.28); }
+.btm-btn-war-final {
+  background: linear-gradient(135deg, #4a2e10 0%, #241505 60%, #120a03 100%);
+  border-color: rgba(224, 168, 60, 0.75);
+  box-shadow: 0 0 24px rgba(224, 168, 60, 0.22);
+  animation: warGlow 2.4s ease-in-out infinite;
+}
+@keyframes warGlow {
+  0%, 100% { box-shadow: 0 0 16px rgba(224, 168, 60, 0.18); }
+  50% { box-shadow: 0 0 32px rgba(224, 168, 60, 0.38); }
+}
+.btm-btn-ghost-dark {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #8b94a7;
+  background: rgba(20, 25, 36, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.btm-btn-ghost-dark:hover { border-color: rgba(201, 162, 39, 0.45); color: #d8b94a; }
+
+/* ── Boss intro (cinematic) ──────────────────────────────────────────────── */
+.btm-boss-intro {
+  position: relative;
+  min-height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.btm-cinema-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8%;
+  background: #030407;
+  z-index: 6;
+  box-shadow: 0 0 24px rgba(0,0,0,0.9);
+}
+.btm-cinema-bar.top { top: 0; border-bottom: 1px solid rgba(201,162,39,0.18); }
+.btm-cinema-bar.bottom { bottom: 0; border-top: 1px solid rgba(201,162,39,0.18); }
+.btm-boss-intro-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%;
+  filter: contrast(1.08) saturate(1.05);
+  z-index: 1;
+}
+.btm-boss-intro-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background:
+    radial-gradient(700px 400px at 50% 30%, transparent 0%, rgba(3,4,8,0.55) 75%),
+    linear-gradient(180deg, rgba(3,4,8,0.72) 0%, rgba(3,4,8,0.25) 35%, rgba(3,4,8,0.94) 92%);
+}
+.btm-ember-field { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
+.btm-ember {
+  position: absolute;
+  bottom: -10px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #ffb454;
+  box-shadow: 0 0 8px 2px rgba(255, 152, 40, 0.55);
+  animation: emberRise linear infinite;
+  opacity: 0.85;
+}
+@keyframes emberRise {
+  0% { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+  12% { opacity: 0.9; }
+  100% { transform: translateY(-105vh) translateX(24px) scale(0.4); opacity: 0; }
+}
+.btm-boss-intro-content {
+  position: relative;
+  z-index: 5;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 20px 18px 30px;
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+}
+.btm-boss-intro-threat {
+  font-size: 10px;
+  letter-spacing: 0.34em;
+  color: #ff6b7a;
+  font-weight: 700;
+  text-shadow: 0 0 12px rgba(255, 77, 94, 0.5);
+}
+.btm-boss-intro-name {
+  font-size: 40px;
+  font-weight: 900;
+  color: var(--boss-glow, #f2e6c9);
+  line-height: 1.05;
+  margin: 6px 0 4px;
+  text-shadow: 0 0 30px color-mix(in srgb, var(--boss-glow, #c9a227) 55%, transparent), 0 3px 14px rgba(0,0,0,0.9);
+}
+.btm-boss-intro-title { font-size: 12px; color: #b9c2d0; letter-spacing: 0.06em; }
+.btm-boss-intro-quote {
+  margin-top: 14px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: #e2e8f0;
+  font-style: italic;
+  border-left: 3px solid color-mix(in srgb, var(--boss-glow, #c9a227) 65%, transparent);
+  padding: 6px 0 6px 12px;
+  background: linear-gradient(90deg, rgba(10,13,20,0.72), transparent);
+  border-radius: 0 8px 8px 0;
+}
+.btm-boss-intro-trials {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.btm-boss-trials-label {
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: #ff6b7a;
+  font-weight: 800;
+  border: 1px solid rgba(255, 77, 94, 0.4);
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: rgba(255, 77, 94, 0.08);
+}
+.btm-boss-trials-value { font-family: 'Cinzel', serif; font-size: 16px; font-weight: 700; color: #f2e6c9; }
+.btm-boss-trials-note { font-size: 11px; color: #8b94a7; width: 100%; }
+.btm-boss-loot-preview {
+  margin-top: 14px;
+  border: 1px solid rgba(201, 162, 39, 0.3);
+  border-radius: 12px;
+  background: rgba(9, 11, 18, 0.82);
+  padding: 10px 12px;
+  backdrop-filter: blur(6px);
+}
+.btm-boss-loot-head { font-size: 9px; letter-spacing: 0.3em; color: #a98f3f; font-weight: 700; margin-bottom: 8px; }
+.btm-boss-loot-row { display: flex; align-items: center; gap: 10px; }
+.btm-boss-loot-icon { font-size: 26px; }
+.btm-boss-loot-name { font-size: 14px; font-weight: 700; }
+.btm-boss-loot-desc { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+.btm-boss-loot-gold {
+  margin-left: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #f5d67b;
+}
+.btm-boss-intro-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+/* ── Boss victory ────────────────────────────────────────────────────────── */
+.btm-boss-victory { position: relative; min-height: 100%; overflow: hidden; }
+.btm-boss-victory-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center 30%;
+  filter: saturate(1.1) brightness(0.9);
+  z-index: 1;
+  animation: victoryZoom 14s ease-in-out infinite alternate;
+}
+@keyframes victoryZoom { from { transform: scale(1); } to { transform: scale(1.08); } }
+.btm-boss-victory-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: radial-gradient(800px 500px at 50% 20%, rgba(201, 162, 39, 0.14), transparent 60%),
+    linear-gradient(180deg, rgba(4, 6, 10, 0.55), rgba(4, 6, 10, 0.93));
+}
+.btm-boss-victory-content {
+  position: relative;
+  z-index: 5;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 40px 18px 34px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.btm-victory-banner {
+  font-size: 46px;
+  font-weight: 900;
+  color: #ffd76b;
+  letter-spacing: 0.18em;
+  text-shadow: 0 0 34px rgba(255, 215, 107, 0.55), 0 0 80px rgba(201, 162, 39, 0.3);
+  animation: victoryIn 0.8s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes victoryIn {
+  from { opacity: 0; transform: scale(2.2); letter-spacing: 0.5em; }
+  to { opacity: 1; transform: scale(1); letter-spacing: 0.18em; }
+}
+.btm-victory-sub { font-size: 12px; letter-spacing: 0.24em; color: #d8b94a; margin-top: 6px; font-weight: 700; }
+.btm-victory-line { font-size: 13px; color: #b9c2d0; font-style: italic; margin-top: 10px; }
+.btm-victory-portrait-wrap { position: relative; margin-top: 18px; }
+.btm-victory-portrait {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top;
+  border: 2px solid rgba(255, 77, 94, 0.5);
+  filter: grayscale(1) brightness(0.5);
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
+}
+.btm-victory-slain-stamp {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: #ff4d5e;
+  transform: rotate(-14deg);
+  text-shadow: 0 0 14px rgba(255, 77, 94, 0.7);
+  animation: stampIn 0.5s 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+@keyframes stampIn { from { opacity: 0; transform: rotate(-14deg) scale(2.6); } to { opacity: 1; transform: rotate(-14deg) scale(1); } }
+.btm-loot-reveal {
+  width: 100%;
+  margin-top: 18px;
+  border: 1px solid rgba(201, 162, 39, 0.4);
+  border-radius: 14px;
+  background: rgba(9, 11, 18, 0.9);
+  padding: 16px;
+  animation: lootIn 0.6s 0.9s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+  backdrop-filter: blur(8px);
+}
+@keyframes lootIn { from { opacity: 0; transform: translateY(26px) scale(0.92); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.btm-loot-reveal-head { font-size: 10px; letter-spacing: 0.32em; color: #a98f3f; font-weight: 800; margin-bottom: 10px; }
+.btm-loot-relic-icon { font-size: 44px; animation: relicSpin 1.6s 1s cubic-bezier(0.3, 1.4, 0.4, 1) both; }
+@keyframes relicSpin { from { transform: scale(0) rotate(-180deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+.btm-loot-relic-name { font-family: 'Cinzel', serif; font-size: 20px; font-weight: 700; margin-top: 6px; }
+.btm-loot-relic-passive { font-size: 13px; color: #e2e8f0; margin-top: 8px; font-weight: 600; }
+.btm-loot-relic-lore { font-size: 11px; color: #8b94a7; font-style: italic; margin-top: 8px; line-height: 1.6; }
+.btm-loot-equip-note {
+  font-size: 10.5px;
+  color: #3ddc84;
+  margin-top: 10px;
+  border-top: 1px solid rgba(61, 220, 132, 0.25);
+  padding-top: 8px;
+}
+.btm-loot-reveal-repeat { border-style: dashed; }
+.btm-victory-rewards { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 16px 0; }
+.btm-victory-reward {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #f5d67b;
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  background: rgba(201, 162, 39, 0.08);
+  padding: 6px 14px;
+  border-radius: 999px;
+}
+.btm-victory-reward.rank { color: #ffe9b0; width: 100%; text-align: center; }
+
+/* ── Boss defeat ─────────────────────────────────────────────────────────── */
+.btm-boss-defeat { position: relative; min-height: 100%; overflow: hidden; }
+.btm-boss-defeat-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center 20%;
+  filter: grayscale(0.6) brightness(0.42) contrast(1.1);
+  z-index: 1;
+}
+.btm-boss-defeat-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(180deg, rgba(10, 4, 5, 0.55), rgba(6, 4, 8, 0.94));
+}
+.btm-boss-defeat-content {
+  position: relative;
+  z-index: 5;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 44px 18px 34px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.btm-defeat-banner {
+  font-size: 40px;
+  font-weight: 900;
+  color: #ff4d5e;
+  letter-spacing: 0.2em;
+  text-shadow: 0 0 30px rgba(255, 77, 94, 0.5);
+  animation: defeatIn 0.7s ease both;
+}
+@keyframes defeatIn { from { opacity: 0; transform: scale(1.6); filter: blur(8px); } to { opacity: 1; transform: scale(1); filter: blur(0); } }
+.btm-defeat-sub { font-size: 12px; letter-spacing: 0.22em; color: #ff8a94; margin-top: 6px; font-weight: 700; }
+.btm-defeat-score { font-size: 12px; color: #b9c2d0; margin-top: 14px; }
+.btm-defeat-quote {
+  font-size: 12.5px;
+  color: #8b94a7;
+  font-style: italic;
+  margin-top: 12px;
+  line-height: 1.6;
+  max-width: 320px;
+}
+
+/* ── Boss HUD during battle ──────────────────────────────────────────────── */
+.btm-boss-hud {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(26, 14, 10, 0.92), rgba(12, 10, 18, 0.92));
+  border: 1px solid color-mix(in srgb, var(--boss-glow, #c9a227) 55%, transparent);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  box-shadow: 0 0 20px color-mix(in srgb, var(--boss-glow, #c9a227) 18%, transparent);
+}
+.btm-boss-hud-img {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  object-fit: cover;
+  object-position: top;
+  border: 1.5px solid color-mix(in srgb, var(--boss-glow, #c9a227) 60%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--boss-glow, #c9a227) 30%, transparent);
+}
+.btm-boss-hud-info { flex: 1; min-width: 0; }
+.btm-boss-hud-threat { font-size: 8.5px; letter-spacing: 0.28em; color: #ff6b7a; font-weight: 700; }
+.btm-boss-hud-name {
+  font-family: 'Cinzel', serif;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-top: 2px;
+  text-shadow: 0 0 14px color-mix(in srgb, var(--boss-glow, #c9a227) 45%, transparent);
+}
+.btm-boss-hud-hp { display: flex; align-items: center; gap: 5px; margin-top: 7px; }
+.btm-boss-hp-seg {
+  height: 7px;
+  flex: 1;
+  border-radius: 4px;
+  background: rgba(148, 163, 184, 0.18);
+  transition: background 0.4s, box-shadow 0.4s;
+}
+.btm-boss-hp-seg.active {
+  background: linear-gradient(90deg, #ff4d5e, #ff8a94);
+  box-shadow: 0 0 8px rgba(255, 77, 94, 0.5);
+  animation: hpPulse 1.6s ease-in-out infinite;
+}
+@keyframes hpPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.65; } }
+.btm-boss-hp-seg.down { background: rgba(61, 220, 132, 0.5); }
+.btm-boss-hp-label { font-size: 8.5px; color: #8b94a7; letter-spacing: 0.14em; margin-left: 4px; white-space: nowrap; }
+.btm-gold-gain {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #f5d67b;
+  margin-top: 4px;
+  text-shadow: 0 0 10px rgba(245, 214, 123, 0.35);
+}
+
+/* ── Armory ──────────────────────────────────────────────────────────────── */
+.btm-gear { max-width: 480px; margin: 0 auto; padding: 16px 14px 24px; }
+.btm-gear-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.btm-gear h2 { font-size: 24px; color: #f2e6c9; margin: 0; }
+.btm-gear-title { font-size: 24px; color: #f2e6c9; text-align: center; margin: 0 0 12px; }
+.btm-gear-section-title {
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: #a98f3f;
+  font-weight: 800;
+  margin: 18px 0 10px;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.18);
+  padding-bottom: 6px;
+}
+.btm-equip-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.btm-equip-slot {
+  position: relative;
+  background: rgba(14, 18, 28, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  padding: 10px 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+  min-height: 96px;
+}
+.btm-equip-slot:hover { transform: translateY(-2px); }
+.btm-equip-slot-label { font-size: 8.5px; color: #64748b; letter-spacing: 0.08em; }
+.btm-equip-slot-icon { font-size: 24px; margin-top: 6px; }
+.btm-equip-slot-name { font-size: 9px; color: #e2e8f0; margin-top: 5px; line-height: 1.3; }
+.btm-equip-slot-desc { font-size: 8px; color: #a98f3f; margin-top: 2px; font-weight: 600; }
+.btm-equip-slot-empty { font-size: 12px; color: #334155; margin-top: 22px; }
+.btm-equip-picker {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 210px;
+  background: rgba(9, 11, 18, 0.97);
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  border-radius: 10px;
+  padding: 10px;
+  z-index: 30;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.65);
+  cursor: default;
+}
+.btm-equip-picker-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; }
+.btm-equip-picker-name { flex: 1; font-size: 11px; color: #e2e8f0; text-align: left; }
+.btm-equip-picker-empty { font-size: 10.5px; color: #64748b; text-align: center; padding: 6px 0; }
+
+/* Boss relic cards */
+.btm-boss-relic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+.btm-boss-relic-card {
+  background: rgba(14, 18, 28, 0.9);
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 12px 10px;
+  text-align: center;
+}
+.btm-boss-relic-card.unowned { opacity: 0.55; }
+.btm-boss-relic-icon { font-size: 30px; }
+.btm-boss-relic-name { font-size: 11px; color: #e2e8f0; font-weight: 700; margin-top: 6px; }
+.btm-boss-relic-desc { font-size: 9.5px; color: #8b94a7; margin-top: 4px; line-height: 1.45; }
+.btm-boss-relic-equipped { font-size: 9px; color: #3ddc84; letter-spacing: 0.14em; font-weight: 700; margin-top: 6px; }
+
+/* Armory shop list */
+.btm-armory-list { display: flex; flex-direction: column; gap: 8px; }
+.btm-armory-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(14, 18, 28, 0.85);
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.btm-armory-icon { font-size: 24px; width: 30px; text-align: center; flex-shrink: 0; }
+.btm-armory-info { flex: 1; min-width: 0; }
+.btm-armory-name { font-size: 13px; font-weight: 700; }
+.btm-armory-rarity { font-size: 9px; opacity: 0.75; font-weight: 600; letter-spacing: 0.08em; }
+.btm-armory-desc { font-size: 11px; color: #8b94a7; margin-top: 2px; }
+.btm-armory-buy { text-align: center; flex-shrink: 0; }
+.btm-armory-cost {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: #f5d67b;
+  margin-bottom: 4px;
+}
+
+/* ── Contracts (quests) ──────────────────────────────────────────────────── */
+.btm-quests { max-width: 480px; margin: 0 auto; padding: 16px 14px 24px; }
+.btm-quest-card {
+  background: rgba(14, 18, 28, 0.88);
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  backdrop-filter: blur(6px);
+}
+.btm-quest-icon { font-size: 22px; filter: drop-shadow(0 0 6px rgba(201, 162, 39, 0.3)); }
+.btm-quest-name { font-size: 13.5px; color: #f2e6c9; font-weight: 700; }
+.btm-quest-diff {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: 1px solid;
+  border-radius: 5px;
+  padding: 1px 7px;
+}
+.btm-quest-desc { font-size: 11px; color: #8b94a7; margin-top: 3px; }
+.btm-quest-bar { background: rgba(148, 163, 184, 0.12); border-radius: 999px; height: 5px; overflow: hidden; margin-top: 3px; }
+.btm-quest-bar-fill { height: 100%; border-radius: 999px; transition: width 0.4s ease; box-shadow: 0 0 6px rgba(201, 162, 39, 0.4); }
+.btm-quest-reward { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #d8b94a; }
+
+/* Narrow screens */
+@media (max-width: 380px) {
+  .btm-hero-title { font-size: 21px; }
+  .btm-boss-intro-name { font-size: 30px; }
+  .btm-victory-banner { font-size: 34px; }
+  .btm-equip-grid { grid-template-columns: repeat(3, 1fr); }
+}

@@ -12,16 +12,21 @@ import { BTMUser, getActiveUser, createUser, switchUser, getAllUsers, updateUser
 import { checkNewAchievements } from './achievements'
 import { createKeystrokeTracker, shouldTriggerVerification, generateVerificationChallenge, analyzeAnswerTiming } from './antiCheat'
 import { WORLDS, calculateStars, getTotalStars } from './worldLevels'
-import { Element, MonsterRarity, EvolutionStage, MindBeast, MonsterAbility, ALL_BEASTS, getCaptureChance } from './monsters'
-import { RelicSlot, Relic, ALL_RELICS } from './relics'
+import type { BTMLevel } from './types'
+import { RelicSlot, Relic, ALL_RELICS, getRelicById, computeGearEffects, GearEffects } from './relics'
+import { BOSSES, Boss, getBossByWorldId, getBossById } from './bosses'
 import { Quest, QuestProgress, generateDailyQuests, generateWeeklyQuests } from './quests'
 
 // ─── Types ──────────────────────────────────────────────────
 type Screen =
   | 'setup'
   | 'home'
+  | 'journey'
   | 'worldMap'
   | 'levelPlay'
+  | 'bossIntro'
+  | 'bossVictory'
+  | 'bossDefeat'
   | 'loading'
   | 'challenge'
   | 'result'
@@ -30,17 +35,9 @@ type Screen =
   | 'towerResult'
   | 'shop'
   | 'achievements'
-  | 'bossBattle'
-  | 'bossResult'
   | 'verification'
-  | 'collection'
-  | 'codex'
-  | 'monsterLab'
-  | 'battleArena'
   | 'quests'
-  | 'relics'
-  | 'adventure'
-  | 'beastDetail'
+  | 'gear'
 
 interface ResultData {
   userTimeMs: number
@@ -48,6 +45,7 @@ interface ResultData {
   correct: boolean
   validation: BTMValidationResponse | null
   xpGained: number
+  goldGained: number
   isPersonalBest: boolean
   wasStreakMilestone: boolean
   newLevel: number | null
@@ -66,6 +64,19 @@ interface LevelPlayState {
   results: boolean[]
   completed: boolean
   stars: number
+  isBoss: boolean
+  bossId: string | null
+  forgivenUsed: boolean
+}
+
+export interface BossVictoryState {
+  bossId: string
+  firstClear: boolean
+  relicId: string
+  goldEarned: number
+  xpEarned: number
+  rank: string
+  stars: number
 }
 
 interface TowerState {
@@ -75,17 +86,6 @@ interface TowerState {
   userTimeMs: number
   correct: boolean
   totalBonusXP: number
-}
-
-// ─── RPG Types ────────────────────────────────────────────────
-export interface CapturedBeast {
-  instanceId: string   // unique id for this specific captured instance
-  beastId: string      // references MindBeast.id
-  level: number        // 1-50
-  xp: number           // XP towards next level
-  abilitiesUnlocked: string[]  // ability ids unlocked
-  nickname?: string
-  capturedAt: string   // date
 }
 
 // ─── Store ──────────────────────────────────────────────────
@@ -169,22 +169,26 @@ interface BTMStore {
   comboDisplay: number
   comboFadeTimer: ReturnType<typeof setTimeout> | null
 
-  // ── Monster collection state ──
-  capturedBeasts: CapturedBeast[]
-  activeTeam: string[]               // instanceIds of 3-5 monsters in active team (max 5)
-  selectedBeast: string | null       // currently viewed beast id
+  // ── Gold economy ──
+  gold: number                       // currency for the Armory & power-ups
+  earnGold: (amount: number) => void
+  spendGold: (amount: number) => boolean
 
-  // ── Relic state ──
+  // ── Boss state ──
+  activeBoss: Boss | null            // boss currently fought
+  bossVictory: BossVictoryState | null
+  startBossBattle: (bossId: string) => Promise<void>
+  startBossIntro: (bossId: string) => void
+  dismissBossVictory: () => void
+
+  // ── Gear (equipment) state ──
   ownedRelics: string[]              // relic ids
   equippedRelics: Record<RelicSlot, string | null>  // one relic per slot
+  getGearEffects: () => GearEffects  // active passives from equipped gear
 
   // ── Quest state ──
-  activeQuests: QuestProgress[]      // current daily/weekly quests
+  activeQuests: QuestProgress[]      // current daily/weekly contracts
   lastQuestRefresh: string           // YYYY-MM-DD
-
-  // ── Adventure state ──
-  adventureProgress: Record<string, boolean>  // node id → completed
-  currentRegion: string              // current region id
 
   // Actions
   generateChallenge: (difficulty: BTMDifficulty, subject: BTMSubject, daily?: boolean) => Promise<void>
@@ -194,17 +198,7 @@ interface BTMStore {
   rematch: () => void
   goToHome: () => void
 
-  // ── Monster actions ──
-  captureBeast: (beastId: string) => void
-  addToTeam: (instanceId: string) => void
-  removeFromTeam: (instanceId: string) => void
-  levelUpBeast: (instanceId: string, xpGained: number) => void
-  evolveBeast: (instanceId: string) => void
-  feedBeast: (instanceId: string, xpAmount: number) => void
-  renameBeast: (instanceId: string, nickname: string) => void
-  selectBeast: (beastId: string) => void
-
-  // ── Relic actions ──
+  // ── Gear actions ──
   buyRelic: (relicId: string) => void
   equipRelic: (relicId: string, slot: RelicSlot) => void
   unequipRelic: (slot: RelicSlot) => void
@@ -214,9 +208,6 @@ interface BTMStore {
   updateQuestProgress: (type: string, amount: number) => void
   claimQuestReward: (questId: string) => void
 
-  // ── Adventure actions ──
-  completeAdventureNode: (nodeId: string) => void
-  setRegion: (regionId: string) => void
 }
 
 export const useBTMStore = create<BTMStore>((set, get) => {
@@ -224,15 +215,11 @@ export const useBTMStore = create<BTMStore>((set, get) => {
   const persistRPG = () => {
     const s = get()
     saveRPGState({
-      capturedBeasts: s.capturedBeasts,
-      activeTeam: s.activeTeam,
-      selectedBeast: s.selectedBeast,
+      gold: s.gold,
       ownedRelics: s.ownedRelics,
       equippedRelics: s.equippedRelics,
       activeQuests: s.activeQuests,
       lastQuestRefresh: s.lastQuestRefresh,
-      adventureProgress: s.adventureProgress,
-      currentRegion: s.currentRegion,
     })
   }
 
@@ -355,7 +342,7 @@ export const useBTMStore = create<BTMStore>((set, get) => {
   levelPlay: null,
   startLevel: async (levelId) => {
     // Find the level definition
-    let levelDef = null
+    let levelDef: BTMLevel | null = null
     for (const world of WORLDS) {
       const found = world.levels.find(l => l.id === levelId)
       if (found) { levelDef = found; break }
@@ -390,7 +377,8 @@ export const useBTMStore = create<BTMStore>((set, get) => {
       return
     }
 
-    // Start with first problem
+    // Start with first problem — apply gear passives
+    const gear = computeGearEffects(Object.values(get().equippedRelics))
     const tracker = createKeystrokeTracker()
     set({
       screen: 'levelPlay',
@@ -405,6 +393,9 @@ export const useBTMStore = create<BTMStore>((set, get) => {
         results: [],
         completed: false,
         stars: 0,
+        isBoss: levelDef.isBoss,
+        bossId: levelDef.isBoss ? getBossByWorldId(levelDef.worldId)?.id || null : null,
+        forgivenUsed: false,
       },
       userInput: '',
       submitted: false,
@@ -414,7 +405,7 @@ export const useBTMStore = create<BTMStore>((set, get) => {
       keystrokeTracker: tracker,
       keystrokeData: null,
       activePowerUps: [],
-      shieldActive: false,
+      shieldActive: gear.startShields > 0,
       hintRevealed: false,
       doubleXPActive: false,
       timeFreezeEnd: null,
@@ -430,11 +421,29 @@ export const useBTMStore = create<BTMStore>((set, get) => {
     const validation = validateAnswer(userInput, problem)
     const ksData = keystrokeTracker?.getData() || null
 
-    const isWin = validation.correct && userTimeMs < benchmark.aiTimeMs
+    // Gear passives
+    const gear = computeGearEffects(Object.values(get().equippedRelics))
+    const graceMult = 1 + gear.timeGracePct / 100
+    const isWin = validation.correct && userTimeMs < benchmark.aiTimeMs * graceMult
+
+    // Second Chance: forgive the first wrong answer of the battle
+    let forgiven = false
+    if (!validation.correct && !levelPlay.forgivenUsed && gear.secondChance > 0 && !levelPlay.forgivenUsed) {
+      forgiven = true
+    }
+    const effectiveCorrect = validation.correct || forgiven
+
+    // Gold from this problem
+    let goldGained = 0
+    if (isWin) {
+      goldGained += 12
+      if (userTimeMs < benchmark.aiTimeMs * 0.5) goldGained += 6
+      goldGained = Math.round(goldGained * (1 + gear.goldBoostPct / 100))
+    }
 
     // Update level play state
     const newUserTimes = [...levelPlay.userTimes, userTimeMs]
-    const newResults = [...levelPlay.results, validation.correct]
+    const newResults = [...levelPlay.results, effectiveCorrect]
     const nextIndex = levelPlay.currentIndex + 1
     const isComplete = nextIndex >= levelPlay.problems.length
 
@@ -446,19 +455,23 @@ export const useBTMStore = create<BTMStore>((set, get) => {
 
     // XP for this problem
     let xpGained = 0
-    if (isWin) {
+    if (forgiven) {
+      xpGained = 0  // forgiven mistake: survive, but no XP
+    } else if (isWin) {
       xpGained += DIFFICULTY_XP[problem.difficulty]
       // Speed bonus
       if (userTimeMs < benchmark.aiTimeMs * 0.5) xpGained += 50
+      xpGained = Math.round(xpGained * (1 + gear.xpBoostPct / 100))
     } else if (validation.correct) {
       xpGained += Math.floor(DIFFICULTY_XP[problem.difficulty] * 0.3)
+      xpGained = Math.round(xpGained * (1 + gear.xpBoostPct / 100))
     } else {
       xpGained = -(problem.difficulty === 'rookie' ? 10 : problem.difficulty === 'scholar' ? 20 : 35)
     }
 
     // Combo
-    const newCombo = isWin ? stats.combo + 1 : 0
-    const comboMult = getComboMultiplier(newCombo)
+    const newCombo = (isWin || forgiven) ? stats.combo + 1 : 0
+    const comboMult = getComboMultiplier(newCombo) + gear.comboPower
 
     // Update stats
     const newXP = Math.max(0, stats.xp + xpGained)
@@ -523,17 +536,85 @@ export const useBTMStore = create<BTMStore>((set, get) => {
       : null
 
     if (isComplete) {
-      // Level complete - show result
+      // Level complete — check for Machine Lord conquest
+      let bossVictoryState: BossVictoryState | null = null
+      let finalStats = newStats
+      let finalGold = goldGained
+
+      if (levelPlay.isBoss && levelPlay.bossId && stars > 0) {
+        const boss = getBossById(levelPlay.bossId)
+        if (boss) {
+          const firstClear = !newStats.bossDefeated.includes(boss.id)
+          const goldFromBoss = Math.round((firstClear ? boss.drops.gold : Math.round(boss.drops.gold * 0.3)) * (1 + gear.goldBoostPct / 100))
+          const xpFromBoss = Math.round((firstClear ? boss.drops.xp : Math.round(boss.drops.xp * 0.3)) * (1 + gear.xpBoostPct / 100))
+          finalGold += goldFromBoss
+
+          const completedBosses = firstClear ? [...newStats.bossDefeated, boss.id] : newStats.bossDefeated
+          const newXPWithBoss = newStats.xp + xpFromBoss
+          finalStats = {
+            ...newStats,
+            xp: newXPWithBoss,
+            totalXP: newStats.totalXP + xpFromBoss,
+            level: getLevelFromXP(newXPWithBoss),
+            bossDefeated: completedBosses,
+          }
+
+          if (firstClear) {
+            // Grant the boss artifact — auto-equip into its slot
+            const relic = getRelicById(boss.drops.relicId)
+            const currentOwned = get().ownedRelics
+            const currentEquipped = get().equippedRelics
+            const newOwned = currentOwned.includes(boss.drops.relicId)
+              ? currentOwned
+              : [...currentOwned, boss.drops.relicId]
+            const equipped = relic
+              ? { ...currentEquipped, [relic.slot]: relic.id }
+              : currentEquipped
+            bossVictoryState = {
+              bossId: boss.id,
+              firstClear: true,
+              relicId: boss.drops.relicId,
+              goldEarned: goldFromBoss,
+              xpEarned: xpFromBoss,
+              rank: boss.drops.rank,
+              stars,
+            }
+            set({ ownedRelics: newOwned, equippedRelics: equipped, gold: get().gold + finalGold })
+            persistRPG()
+          } else {
+            bossVictoryState = {
+              bossId: boss.id,
+              firstClear: false,
+              relicId: boss.drops.relicId,
+              goldEarned: goldFromBoss,
+              xpEarned: xpFromBoss,
+              rank: boss.drops.rank,
+              stars,
+            }
+            set({ gold: get().gold + finalGold })
+            persistRPG()
+          }
+        }
+      } else if (goldGained > 0) {
+        set({ gold: get().gold + goldGained })
+        persistRPG()
+      }
+
+      // Quest progress hooks
+      get().updateQuestProgress('level', 1)
+      if (stars >= 3) get().updateQuestProgress('level', 0)
+
       set({
-        stats: newStats,
+        stats: finalStats,
         problem: null,
         benchmark: null,
         result: {
           userTimeMs,
           aiTimeMs: benchmark.aiTimeMs,
-          correct: validation.correct,
+          correct: effectiveCorrect,
           validation,
           xpGained,
+          goldGained: finalGold,
           isPersonalBest: false,
           wasStreakMilestone: false,
           newLevel: null,
@@ -549,14 +630,23 @@ export const useBTMStore = create<BTMStore>((set, get) => {
           results: newResults,
           completed: true,
           stars,
+          forgivenUsed: levelPlay.forgivenUsed || forgiven,
         },
-        screen: 'result',
+        bossVictory: bossVictoryState,
+        screen: bossVictoryState ? 'bossVictory' : (levelPlay.isBoss ? 'bossDefeat' : 'result'),
         achievementPopup,
         comboDisplay: newCombo,
       })
     } else {
       // Next problem in level
       const tracker = createKeystrokeTracker()
+      if (goldGained > 0) {
+        set({ gold: get().gold + goldGained })
+        persistRPG()
+      }
+      // Quest progress hooks
+      get().updateQuestProgress('win', isWin ? 1 : 0)
+      if (isWin && userTimeMs < benchmark.aiTimeMs * 0.5) get().updateQuestProgress('speed', 1)
       set({
         stats: newStats,
         problem: levelPlay.problems[nextIndex],
@@ -566,6 +656,7 @@ export const useBTMStore = create<BTMStore>((set, get) => {
           currentIndex: nextIndex,
           userTimes: newUserTimes,
           results: newResults,
+          forgivenUsed: levelPlay.forgivenUsed || forgiven,
         },
         userInput: '',
         submitted: false,
@@ -628,6 +719,12 @@ export const useBTMStore = create<BTMStore>((set, get) => {
     const isWin = validation.correct && userTimeMs < benchmark.aiTimeMs
 
     const bonusXP = isWin ? tower.currentFloor * 20 : 0
+    if (isWin) {
+      const goldT = Math.round((10 + tower.currentFloor * 4) * (1 + computeGearEffects(Object.values(get().equippedRelics)).goldBoostPct / 100))
+      set({ gold: get().gold + goldT })
+      persistRPG()
+      get().updateQuestProgress('tower', 1)
+    }
 
     const newStats = {
       ...stats,
@@ -695,12 +792,16 @@ export const useBTMStore = create<BTMStore>((set, get) => {
 
   // ── Shop ──
   buyPowerUp: (type) => {
-    const { stats } = get()
-    const cost = POWER_UPS[type].cost
-    if (stats.xp < cost) return false
+    const base = POWER_UPS[type].cost
+    const gearS = computeGearEffects(Object.values(get().equippedRelics))
+    const cost = type === 'hint'
+      ? Math.round(base * (1 - Math.min(gearS.hintDiscountPct, 80) / 100))
+      : base
+    if (!get().spendGold(cost)) return false
 
+    const stats = get().stats
     const newPowerUps = { ...stats.powerUps, [type]: (stats.powerUps[type] || 0) + 1 }
-    const newStats = { ...stats, xp: stats.xp - cost, powerUps: newPowerUps }
+    const newStats = { ...stats, powerUps: newPowerUps }
     saveStats(newStats)
     set({ stats: newStats })
     return true
@@ -708,10 +809,11 @@ export const useBTMStore = create<BTMStore>((set, get) => {
 
   buyCosmetic: (id, cost) => {
     const { stats } = get()
-    if (stats.xp < cost || stats.cosmetics.owned.includes(id)) return false
+    if (stats.cosmetics.owned.includes(id)) return false
+    if (!get().spendGold(cost)) return false
 
     const newCosmetics = { ...stats.cosmetics, owned: [...stats.cosmetics.owned, id] }
-    const newStats = { ...stats, xp: stats.xp - cost, cosmetics: newCosmetics }
+    const newStats = { ...stats, cosmetics: newCosmetics }
     saveStats(newStats)
     set({ stats: newStats })
     return true
@@ -741,27 +843,54 @@ export const useBTMStore = create<BTMStore>((set, get) => {
   comboDisplay: 0,
   comboFadeTimer: null,
 
-  // ── Monster collection state (loaded from localStorage) ──
-  capturedBeasts: loadRPGState().capturedBeasts,
-  activeTeam: loadRPGState().activeTeam,
-  selectedBeast: loadRPGState().selectedBeast,
+  // ── Gold economy ──
+  gold: loadRPGState().gold,
+  earnGold: (amount) => {
+    set(s => ({ gold: s.gold + amount }))
+    persistRPG()
+  },
+  spendGold: (amount) => {
+    if (get().gold < amount) return false
+    set(s => ({ gold: s.gold - amount }))
+    persistRPG()
+    return true
+  },
 
-  // ── Relic state ──
+  // ── Boss state ──
+  activeBoss: null,
+  bossVictory: null,
+  startBossIntro: (bossId) => {
+    const boss = getBossById(bossId)
+    if (!boss) return
+    set({ activeBoss: boss, screen: 'bossIntro' })
+  },
+  startBossBattle: async (bossId) => {
+    const boss = getBossById(bossId)
+    if (!boss) return
+    set({ activeBoss: boss })
+    await get().startLevel(`${boss.worldId}-5`)
+  },
+  dismissBossVictory: () => {
+    set({ bossVictory: null, screen: 'journey' })
+  },
+
+  // ── Gear state ──
   ownedRelics: loadRPGState().ownedRelics,
   equippedRelics: loadRPGState().equippedRelics,
+  getGearEffects: () => {
+    const { equippedRelics } = get()
+    return computeGearEffects(Object.values(equippedRelics))
+  },
 
   // ── Quest state ──
   activeQuests: loadRPGState().activeQuests,
   lastQuestRefresh: loadRPGState().lastQuestRefresh,
 
-  // ── Adventure state ──
-  adventureProgress: loadRPGState().adventureProgress,
-  currentRegion: loadRPGState().currentRegion,
-
   // ── Actions ──
   generateChallenge: async (difficulty, subject, daily = false) => {
     const tracker = createKeystrokeTracker()
-    set({ screen: 'loading', submitted: false, userInput: '', result: null, timerRunning: false, timerStartedAt: null, elapsedMs: 0, keystrokeTracker: tracker, keystrokeData: null, activePowerUps: [], shieldActive: false, hintRevealed: false, doubleXPActive: false, timeFreezeEnd: null })
+    const gear0 = computeGearEffects(Object.values(get().equippedRelics))
+    set({ screen: 'loading', submitted: false, userInput: '', result: null, timerRunning: false, timerStartedAt: null, elapsedMs: 0, keystrokeTracker: tracker, keystrokeData: null, activePowerUps: [], shieldActive: gear0.startShields > 0, hintRevealed: false, doubleXPActive: false, timeFreezeEnd: null })
     try {
       const stats = get().stats
       const diffStats = stats.difficultyStats[difficulty]
@@ -814,10 +943,13 @@ export const useBTMStore = create<BTMStore>((set, get) => {
     const validation = validateAnswer(userInput, problem)
     const ksData = keystrokeTracker?.getData() || null
 
-    // Calculate XP and update stats
+    // Calculate XP and update stats — gear passives apply here too
+    const gearC = computeGearEffects(Object.values(get().equippedRelics))
+    const graceMultC = 1 + gearC.timeGracePct / 100
+    let goldGainedC = 0
     let xpGained = 0
-    const isWin = validation.correct && userTimeMs < benchmark.aiTimeMs
-    const isLoss = validation.correct && userTimeMs >= benchmark.aiTimeMs
+    const isWin = validation.correct && userTimeMs < benchmark.aiTimeMs * graceMultC
+    const isLoss = validation.correct && userTimeMs >= benchmark.aiTimeMs * graceMultC
     const isWrong = !validation.correct
 
     // Base XP
@@ -852,9 +984,18 @@ export const useBTMStore = create<BTMStore>((set, get) => {
 
     const bestStreak = Math.max(stats.bestStreak, newStreak)
 
+    // Gold (quick challenge)
+    if (isWin) {
+      goldGainedC = Math.round((12 + (userTimeMs < benchmark.aiTimeMs * 0.5 ? 6 : 0)) * (1 + gearC.goldBoostPct / 100))
+      set({ gold: get().gold + goldGainedC })
+      persistRPG()
+      get().updateQuestProgress('win', 1)
+      if (userTimeMs < benchmark.aiTimeMs * 0.5) get().updateQuestProgress('speed', 1)
+    }
+
     // Combo
     const newCombo = isWin ? stats.combo + 1 : 0
-    const comboMultiplier = getComboMultiplier(newCombo)
+    const comboMultiplier = getComboMultiplier(newCombo) + gearC.comboPower
     if (isWin && newCombo >= 2) {
       xpGained = Math.floor(xpGained * comboMultiplier)
     }
@@ -957,7 +1098,7 @@ export const useBTMStore = create<BTMStore>((set, get) => {
     const winRate = newStats.totalWins + newStats.totalLosses > 0
       ? newStats.totalWins / (newStats.totalWins + newStats.totalLosses) : 0
     const needsVerification = isWin && shouldTriggerVerification(ksData, validation.correct, problem.difficulty, winRate)
-    let verificationChallenge = null
+    let verificationChallenge: VerificationChallenge | null = null
     if (needsVerification) {
       verificationChallenge = generateVerificationChallenge(problem)
     }
@@ -975,6 +1116,7 @@ export const useBTMStore = create<BTMStore>((set, get) => {
         correct: validation.correct,
         validation,
         xpGained,
+        goldGained: goldGainedC,
         isPersonalBest,
         wasStreakMilestone,
         newLevel: leveledUp ? newLevel : null,
@@ -1008,160 +1150,15 @@ export const useBTMStore = create<BTMStore>((set, get) => {
   goToHome: () => set({ screen: 'home', problem: null, benchmark: null, result: null, userInput: '', submitted: false, levelPlay: null, tower: null }),
 
   // ── Monster actions ──
-  captureBeast: (beastId) => {
-    const beastDef = ALL_BEASTS.find(b => b.id === beastId)
-    if (!beastDef) return
-
-    const instanceId = `beast-${Date.now()}-${Math.random().toString(36).slice(2)}`
-    // Unlock all abilities of the base beast definition
-    const initialAbilities = beastDef.abilities.map(a => a.id)
-
-    const newBeast: CapturedBeast = {
-      instanceId,
-      beastId,
-      level: 1,
-      xp: 0,
-      abilitiesUnlocked: initialAbilities,
-      capturedAt: new Date().toISOString().slice(0, 10),
-    }
-
-    set(s => ({ capturedBeasts: [...s.capturedBeasts, newBeast] }))
-    persistRPG()
-  },
-
-  addToTeam: (instanceId) => {
-    const { activeTeam } = get()
-    if (activeTeam.length >= 5) return
-    if (activeTeam.includes(instanceId)) return
-    set({ activeTeam: [...activeTeam, instanceId] })
-    persistRPG()
-  },
-
-  removeFromTeam: (instanceId) => {
-    set(s => ({ activeTeam: s.activeTeam.filter(id => id !== instanceId) }))
-    persistRPG()
-  },
-
-  levelUpBeast: (instanceId, xpGained) => {
-    set(s => {
-      const beast = s.capturedBeasts.find(b => b.instanceId === instanceId)
-      if (!beast) return s
-
-      let newLevel = beast.level
-      let newXp = beast.xp + xpGained
-      const xpThreshold = () => 100 * newLevel
-
-      // Level up loop (may level up multiple times)
-      while (newXp >= xpThreshold() && newLevel < 50) {
-        newXp -= xpThreshold()
-        newLevel++
-      }
-      if (newLevel >= 50) { newXp = 0 }
-
-      // Unlock new abilities at milestone levels (5, 10, 15, 20, 25, 30...)
-      const beastDef = ALL_BEASTS.find(b => b.id === beast.beastId)
-      const newAbilities = [...beast.abilitiesUnlocked]
-      if (beastDef) {
-        const milestoneLevels = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
-        for (const ml of milestoneLevels) {
-          if (beast.level < ml && newLevel >= ml) {
-            // At each milestone, ensure all abilities for this beast are unlocked
-            for (const a of beastDef.abilities) {
-              if (!newAbilities.includes(a.id)) {
-                newAbilities.push(a.id)
-              }
-            }
-          }
-        }
-      }
-
-      const updatedBeasts = s.capturedBeasts.map(b =>
-        b.instanceId === instanceId
-          ? { ...b, level: newLevel, xp: newXp, abilitiesUnlocked: newAbilities }
-          : b
-      )
-      return { capturedBeasts: updatedBeasts }
-    })
-    persistRPG()
-  },
-
-  evolveBeast: (instanceId) => {
-    const { capturedBeasts } = get()
-    const beast = capturedBeasts.find(b => b.instanceId === instanceId)
-    if (!beast) return
-
-    const beastDef = ALL_BEASTS.find(b => b.id === beast.beastId)
-    if (!beastDef || !beastDef.evolvesTo) return
-
-    // Check evolution conditions
-    const requiredLevel = beastDef.stage === 1 ? 15 : beastDef.stage === 2 ? 30 : 999
-    if (beast.level < requiredLevel) return
-
-    const evolvedDef = ALL_BEASTS.find(b => b.id === beastDef.evolvesTo)
-    if (!evolvedDef) return
-
-    // Create evolved beast instance
-    const newInstance: CapturedBeast = {
-      instanceId: `beast-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      beastId: evolvedDef.id,
-      level: beast.level,
-      xp: beast.xp,
-      abilitiesUnlocked: evolvedDef.abilities.map(a => a.id),
-      nickname: beast.nickname,
-      capturedAt: beast.capturedAt,
-    }
-
-    set(s => ({
-      capturedBeasts: [
-        ...s.capturedBeasts.filter(b => b.instanceId !== instanceId),
-        newInstance,
-      ],
-      // Update activeTeam reference
-      activeTeam: s.activeTeam.map(id => id === instanceId ? newInstance.instanceId : id),
-      selectedBeast: s.selectedBeast === instanceId ? newInstance.instanceId : s.selectedBeast,
-    }))
-    persistRPG()
-  },
-
-  feedBeast: (instanceId, xpAmount) => {
-    const { stats } = get()
-    if (stats.xp < xpAmount) return
-
-    // Deduct XP from player stats
-    const newStats = { ...stats, xp: stats.xp - xpAmount }
-    saveStats(newStats)
-    set({ stats: newStats })
-
-    // Apply XP to beast
-    get().levelUpBeast(instanceId, xpAmount)
-    persistRPG()
-  },
-
-  renameBeast: (instanceId, nickname) => {
-    set(s => ({
-      capturedBeasts: s.capturedBeasts.map(b =>
-        b.instanceId === instanceId ? { ...b, nickname } : b
-      ),
-    }))
-    persistRPG()
-  },
-
-  selectBeast: (beastId) => {
-    set({ selectedBeast: beastId })
-    persistRPG()
-  },
-
   // ── Relic actions ──
   buyRelic: (relicId) => {
-    const { stats, ownedRelics } = get()
-    const relic = ALL_RELICS.find(r => r.id === relicId)
-    if (!relic) return
-    if (stats.xp < relic.cost) return
+    const { ownedRelics } = get()
+    const relic = getRelicById(relicId)
+    if (!relic || relic.bossDrop) return
     if (ownedRelics.includes(relicId)) return
+    if (!get().spendGold(relic.cost)) return
 
-    const newStats = { ...stats, xp: stats.xp - relic.cost }
-    saveStats(newStats)
-    set({ stats: newStats, ownedRelics: [...ownedRelics, relicId] })
+    set({ ownedRelics: [...ownedRelics, relicId] })
     persistRPG()
   },
 
@@ -1235,9 +1232,11 @@ export const useBTMStore = create<BTMStore>((set, get) => {
     const questDef = allQuests.find(q => q.id === questId)
     if (!questDef) return
 
-    // Add XP reward
+    // Add XP + gold reward
+    const questGold = questDef.reward.gold || 60
     const newStats = { ...stats, xp: stats.xp + questDef.reward.xp, totalXP: stats.totalXP + questDef.reward.xp }
     saveStats(newStats)
+    set({ gold: get().gold + questGold })
 
     // Mark as claimed
     const updatedQuests = activeQuests.map(q =>
@@ -1253,18 +1252,6 @@ export const useBTMStore = create<BTMStore>((set, get) => {
     persistRPG()
   },
 
-  // ── Adventure actions ──
-  completeAdventureNode: (nodeId) => {
-    set(s => ({
-      adventureProgress: { ...s.adventureProgress, [nodeId]: true },
-    }))
-    persistRPG()
-  },
-
-  setRegion: (regionId) => {
-    set({ currentRegion: regionId })
-    persistRPG()
-  },
 }})
 
 // ─── Derived helpers ────────────────────────────────────────

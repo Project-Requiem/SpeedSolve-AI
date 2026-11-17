@@ -1,7 +1,10 @@
-// ─── Beat the Machine — Relic / Artifact System ───────────────────────────────
-// Passive equipment that grants bonuses to the player's monster team.
+// ─── Beat the Machine — The Armory: Weapons, Armor & Artifacts ────────────────
+// Gear grants REAL passives that change battles. Boss artifacts cannot be
+// bought — they are claimed by conquering the Machine Lords.
 
-export type RelicSlot = 'head' | 'body' | 'weapon' | 'accessory' | 'aura'
+export type RelicSlot = 'weapon' | 'armor' | 'helm' | 'ring' | 'amulet'
+
+export type Rarity = 'common' | 'rare' | 'epic' | 'legendary' | 'mythic'
 
 export interface Relic {
   id: string
@@ -9,588 +12,298 @@ export interface Relic {
   description: string
   lore: string
   slot: RelicSlot
-  rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'mythic'
+  rarity: Rarity
   icon: string
   color: string
-  bonuses: {
-    speedBonus?: number
-    xpBonus?: number
-    comboBonus?: number
-    captureBonus?: number
-    luckBonus?: number
-    shieldChance?: number
-    critChance?: number
+  bossDrop?: boolean          // cannot be purchased — claimed from a Machine Lord
+  passive: {
+    timeGrace?: number        // % extra time allowance before losing the race
+    xpBoost?: number          // % extra XP on wins
+    goldBoost?: number        // % extra gold on wins
+    startShields?: number     // shields active at battle start
+    comboPower?: number       // flat bonus added to combo multiplier
+    hintDiscount?: number     // % cheaper hints
+    secondChance?: number     // wrong answers forgiven per battle
+    omni?: number             // (Omega Core) % amplify all other passives
   }
   requiredLevel: number
-  cost: number
+  cost: number                // gold cost (0 for boss drops)
 }
 
 // ─── Slot metadata ────────────────────────────────────────────────────────────
 
-export const RELIC_SLOT_INFO: Record<RelicSlot, { label: string; icon: string }> = {
-  head:      { label: 'Head',      icon: '🪖' },
-  body:      { label: 'Body',      icon: '🧥' },
-  weapon:    { label: 'Weapon',    icon: '⚔️' },
-  accessory: { label: 'Accessory', icon: '💍' },
-  aura:      { label: 'Aura',      icon: '✨' },
+export const RELIC_SLOT_INFO: Record<RelicSlot, { label: string; icon: string; desc: string }> = {
+  weapon: { label: 'Weapon',  icon: '⚔', desc: 'Edge & momentum' },
+  armor:  { label: 'Armor',   icon: '🛡', desc: 'Protection & endurance' },
+  helm:   { label: 'Helm',    icon: '头盔', desc: 'Focus & insight' },
+  ring:   { label: 'Ring',    icon: '💍', desc: 'Fortune & power' },
+  amulet: { label: 'Amulet',  icon: '🔮', desc: 'Forbidden knowledge' },
 }
 
-// ─── Color palette per rarity ─────────────────────────────────────────────────
+// ─── Rarity palette ───────────────────────────────────────────────────────────
 
-const COLORS = {
-  common:    '#9ca3af',
-  rare:      '#3b82f6',
-  epic:      '#a855f7',
-  legendary: '#f59e0b',
-  mythic:    '#ef4444',
-} as const
+export const RARITY_COLORS: Record<Rarity, string> = {
+  common:    '#9aa5b1',
+  rare:      '#4da3ff',
+  epic:      '#b06bff',
+  legendary: '#f5a524',
+  mythic:    '#ff4d5e',
+}
 
-// ─── All Relics ───────────────────────────────────────────────────────────────
+export const RARITY_LABELS: Record<Rarity, string> = {
+  common: 'Common', rare: 'Rare', epic: 'Epic', legendary: 'Legendary', mythic: 'Mythic',
+}
 
-export const ALL_RELICS: Relic[] = [
+const C = RARITY_COLORS
 
-  // ── HEAD ──────────────────────────────────────────────────────────────────
+// ─── Boss Artifact Definitions (drops from Machine Lords) ─────────────────────
 
+const BOSS_ARTIFACTS: Relic[] = [
   {
-    id: 'swift-crown',
-    name: 'Swift Crown',
-    description: 'A lightweight circlet that sharpens reflexes.',
-    lore: 'Forged by the Timekeepers of Axiom to give their champions an edge in speed trials.',
-    slot: 'head',
-    rarity: 'common',
-    icon: '👑',
-    color: COLORS.common,
-    bonuses: { speedBonus: 5 },
-    requiredLevel: 1,
-    cost: 50,
+    id: 'sentinel-core',
+    name: 'Sentinel Core',
+    description: 'The furnace heart of the Gate Warden. Time bends around it.',
+    lore: 'Torn from the chest of SENTINEL PRIME. It still ticks with the patience of a fortress.',
+    slot: 'amulet', rarity: 'legendary', icon: '🔥', color: '#e0a83c', bossDrop: true,
+    passive: { timeGrace: 10 }, requiredLevel: 1, cost: 0,
   },
   {
-    id: 'scholars-tiara',
-    name: "Scholar's Tiara",
-    description: 'Channels ambient knowledge into experience gains.',
-    lore: 'Worn by the Sage-Monks of the Integral Order during their century-long studies.',
-    slot: 'head',
-    rarity: 'common',
-    icon: '🎓',
-    color: COLORS.common,
-    bonuses: { xpBonus: 5 },
-    requiredLevel: 1,
-    cost: 50,
+    id: 'axiom-sigil',
+    name: 'Axiom Sigil',
+    description: 'A badge of pure proof. All victories teach you more.',
+    lore: 'Struck from the halo of THE ARCHITECT. Its light rewrites experience into wisdom.',
+    slot: 'helm', rarity: 'legendary', icon: '📐', color: '#5eb0ff', bossDrop: true,
+    passive: { xpBoost: 20 }, requiredLevel: 1, cost: 0,
   },
   {
-    id: 'lucky-beret',
-    name: 'Lucky Beret',
-    description: 'A whimsical hat that bends probability in your favor.',
-    lore: 'Knitted by a probability weaver from the Fractal Shores on a particularly auspicious afternoon.',
-    slot: 'head',
-    rarity: 'rare',
-    icon: '🧢',
-    color: COLORS.rare,
-    bonuses: { luckBonus: 3, captureBonus: 4 },
-    requiredLevel: 3,
-    cost: 150,
+    id: 'prism-aegis',
+    name: 'Prism Aegis',
+    description: 'A shard-shield that absorbs the first blow of every battle.',
+    lore: 'Forged from THE GEOMANCER\'s mirror-cloak. It stands where you would have fallen.',
+    slot: 'armor', rarity: 'epic', icon: '🔮', color: '#a86bff', bossDrop: true,
+    passive: { startShields: 1 }, requiredLevel: 1, cost: 0,
   },
   {
-    id: 'rune-helm',
-    name: 'Rune Helm',
-    description: 'Engraved with protective glyphs that occasionally deflect harm.',
-    lore: 'Recovered from the ruins of the Symbolic Citadel, where warding was an art form.',
-    slot: 'head',
-    rarity: 'rare',
-    icon: '⛑️',
-    color: COLORS.rare,
-    bonuses: { shieldChance: 8, speedBonus: 3 },
-    requiredLevel: 5,
-    cost: 200,
+    id: 'volt-gauntlets',
+    name: 'Volt Gauntlets',
+    description: 'Storm-forged fists. Your combos strike far harder.',
+    lore: 'Ripped from OVERLORD VOLT\'s raised fist. The arcs still hunger.',
+    slot: 'weapon', rarity: 'legendary', icon: '⚡', color: '#ffc14d', bossDrop: true,
+    passive: { comboPower: 0.3 }, requiredLevel: 1, cost: 0,
   },
   {
-    id: 'lens-of-truth',
-    name: 'Lens of Truth',
-    description: 'Reveals trap questions and boosts capture rates significantly.',
-    lore: 'The one artifact the Labyrinth Architects could never hide from. It sees through every deception.',
-    slot: 'head',
-    rarity: 'epic',
-    icon: '🔍',
-    color: COLORS.epic,
-    bonuses: { captureBonus: 10, luckBonus: 4 },
-    requiredLevel: 8,
-    cost: 500,
+    id: 'elixir-philosophicum',
+    name: 'Elixir Philosophicum',
+    description: 'A vial of distilled insight. Hints cost half their price.',
+    lore: 'Poured from THE TYRANT\'s own veins. Knowledge, made drinkable.',
+    slot: 'ring', rarity: 'epic', icon: '⚗', color: '#52e892', bossDrop: true,
+    passive: { hintDiscount: 50 }, requiredLevel: 1, cost: 0,
   },
   {
-    id: 'mind-crown',
-    name: 'Crown of the Undivided Mind',
-    description: 'Grants focus that compounds combo streaks faster.',
-    lore: 'Legend says wearing it splits your consciousness across every parallel timeline simultaneously.',
-    slot: 'head',
-    rarity: 'epic',
-    icon: '🧿',
-    color: COLORS.epic,
-    bonuses: { comboBonus: 2, critChance: 6 },
-    requiredLevel: 10,
-    cost: 600,
+    id: 'void-crown',
+    name: 'Void Crown',
+    description: 'A crown of silence. One mistake per battle is erased.',
+    lore: 'Lifted from NULL SOVEREIGN\'s brow. It whispers forgiveness in a dead language.',
+    slot: 'helm', rarity: 'mythic', icon: '👑', color: '#8fb4ff', bossDrop: true,
+    passive: { secondChance: 1 }, requiredLevel: 1, cost: 0,
   },
   {
-    id: 'omega-diadem',
-    name: 'Omega Diadem',
-    description: 'Transcendent headpiece amplifying every faculty at once.',
-    lore: 'The final work of the Artificer Prime — completed moments before they vanished into the Equation.',
-    slot: 'head',
-    rarity: 'legendary',
-    icon: '💠',
-    color: COLORS.legendary,
-    bonuses: { speedBonus: 10, xpBonus: 8, critChance: 5 },
-    requiredLevel: 15,
-    cost: 1500,
-  },
-  {
-    id: 'infinity-halo',
-    name: 'Halo of Infinity',
-    description: 'A blinding ring that exists partially outside of time.',
-    lore: 'Those who wear it briefly perceive all possible solutions at once. Most go mad. You seem fine.',
-    slot: 'head',
-    rarity: 'mythic',
-    icon: '🔰',
-    color: COLORS.mythic,
-    bonuses: { speedBonus: 15, critChance: 10, xpBonus: 12, luckBonus: 5 },
-    requiredLevel: 25,
-    cost: 5000,
-  },
-
-  // ── BODY ──────────────────────────────────────────────────────────────────
-
-  {
-    id: 'linen-vest',
-    name: 'Linen Vest of Focus',
-    description: 'Simple garment that steadies the mind for faster solves.',
-    lore: 'Standard issue for apprentices at the Academy of Exact Thought.',
-    slot: 'body',
-    rarity: 'common',
-    icon: '🦺',
-    color: COLORS.common,
-    bonuses: { speedBonus: 3 },
-    requiredLevel: 1,
-    cost: 40,
-  },
-  {
-    id: 'mantle-of-mastery',
-    name: 'Mantle of Mastery',
-    description: 'Absorbs lessons from every encounter, increasing XP gains.',
-    lore: 'Woven from the threads of a thousand solved proofs by the Weaver of Understanding.',
-    slot: 'body',
-    rarity: 'common',
-    icon: '🧣',
-    color: COLORS.common,
-    bonuses: { xpBonus: 6 },
-    requiredLevel: 2,
-    cost: 60,
-  },
-  {
-    id: 'plate-of-endurance',
-    name: 'Plate of Endurance',
-    description: 'Heavy armor that occasionally generates a protective shield.',
-    lore: 'Dented by every beast the Iron Legion faced — each scratch is a story of survival.',
-    slot: 'body',
-    rarity: 'rare',
-    icon: '🛡️',
-    color: COLORS.rare,
-    bonuses: { shieldChance: 10 },
-    requiredLevel: 4,
-    cost: 180,
-  },
-  {
-    id: 'conductor-vest',
-    name: 'Conductor Vest',
-    description: 'Channels combo energy to extend streaks further.',
-    lore: 'Invented by a duo of battling twins whose synchronicity became legendary.',
-    slot: 'body',
-    rarity: 'rare',
-    icon: '🥋',
-    color: COLORS.rare,
-    bonuses: { comboBonus: 1, speedBonus: 4 },
-    requiredLevel: 6,
-    cost: 220,
-  },
-  {
-    id: 'phase-cloak',
-    name: 'Phase Cloak',
-    description: 'Flickers in and out of reality, making you harder to hit.',
-    lore: 'Stolen from the Phase Wraith of Dimension 7 — it still wants it back.',
-    slot: 'body',
-    rarity: 'epic',
-    icon: '🧥',
-    color: COLORS.epic,
-    bonuses: { shieldChance: 12, speedBonus: 6, luckBonus: 3 },
-    requiredLevel: 9,
-    cost: 550,
-  },
-  {
-    id: 'sages-robes',
-    name: "Sage's Robes of Abundance",
-    description: 'Overflowing with stored knowledge that boosts XP and critical insight.',
-    lore: 'The robes grow heavier with each solved theorem — a burden their owners gladly bear.',
-    slot: 'body',
-    rarity: 'epic',
-    icon: '👘',
-    color: COLORS.epic,
-    bonuses: { xpBonus: 12, critChance: 4 },
-    requiredLevel: 11,
-    cost: 650,
-  },
-  {
-    id: 'nova-armor',
-    name: 'Nova Armor',
-    description: 'Superheated plates that accelerate every action to blistering speed.',
-    lore: 'Forged in the heart of a collapsing star by smiths who valued speed above all.',
-    slot: 'body',
-    rarity: 'legendary',
-    icon: '🔥',
-    color: COLORS.legendary,
-    bonuses: { speedBonus: 12, critChance: 7, shieldChance: 5 },
-    requiredLevel: 16,
-    cost: 1800,
-  },
-  {
-    id: 'void-mantle',
-    name: 'Void Mantle',
-    description: 'Woven from the fabric of nothingness itself. Impossibly powerful.',
-    lore: 'The Void does not destroy. It reveals what was always there, hidden by existence.',
-    slot: 'body',
-    rarity: 'mythic',
-    icon: '🕳️',
-    color: COLORS.mythic,
-    bonuses: { xpBonus: 20, speedBonus: 15, captureBonus: 10, critChance: 5 },
-    requiredLevel: 28,
-    cost: 6000,
-  },
-
-  // ── WEAPON ────────────────────────────────────────────────────────────────
-
-  {
-    id: 'quick-blade',
-    name: 'Quick Blade',
-    description: 'A nimble sword that slashes through problems faster.',
-    lore: 'Mass-produced by the Forges of Velocity for anyone who values a quick resolution.',
-    slot: 'weapon',
-    rarity: 'common',
-    icon: '🗡️',
-    color: COLORS.common,
-    bonuses: { speedBonus: 4 },
-    requiredLevel: 1,
-    cost: 45,
-  },
-  {
-    id: 'lucky-dagger',
-    name: 'Lucky Dagger',
-    description: 'Small but fortunate — finds weak points by chance.',
-    lore: "The original owner tripped into a dragon's blind spot and decided to make it a career.",
-    slot: 'weapon',
-    rarity: 'common',
-    icon: '🔪',
-    color: COLORS.common,
-    bonuses: { luckBonus: 2, critChance: 3 },
-    requiredLevel: 2,
-    cost: 55,
-  },
-  {
-    id: 'combo-scythe',
-    name: 'Combo Scythe',
-    description: 'Each swing builds on the last, extending combo chains.',
-    lore: 'Harvests not wheat but momentum — the Grim Reaper of the Speed Circuit favored this model.',
-    slot: 'weapon',
-    rarity: 'rare',
-    icon: '🌾',
-    color: COLORS.rare,
-    bonuses: { comboBonus: 2, speedBonus: 3 },
-    requiredLevel: 4,
-    cost: 170,
-  },
-  {
-    id: 'net-caster',
-    name: 'Net Caster',
-    description: 'Fires capture nets with uncanny accuracy.',
-    lore: 'Rangers of the Wild Equation use these to bring in the most elusive beasts alive.',
-    slot: 'weapon',
-    rarity: 'rare',
-    icon: '🥅',
-    color: COLORS.rare,
-    bonuses: { captureBonus: 8, luckBonus: 2 },
-    requiredLevel: 5,
-    cost: 200,
-  },
-  {
-    id: 'crit-rapier',
-    name: 'Rapier of Precise Strikes',
-    description: 'Thin blade that finds the critical point in any defense.',
-    lore: 'The Fencing Theorem proved that precision always defeats brute force — this blade is the proof.',
-    slot: 'weapon',
-    rarity: 'epic',
-    icon: '⚔️',
-    color: COLORS.epic,
-    bonuses: { critChance: 10, speedBonus: 5 },
-    requiredLevel: 9,
-    cost: 520,
-  },
-  {
-    id: 'vortex-hammer',
-    name: 'Vortex Hammer',
-    description: 'Smashes problems with overwhelming force and a swirl of luck.',
-    lore: 'When the Calculus Giants went to war, they brought these. Nothing remained unsolved.',
-    slot: 'weapon',
-    rarity: 'epic',
-    icon: '🔨',
-    color: COLORS.epic,
-    bonuses: { critChance: 8, luckBonus: 5, comboBonus: 1 },
-    requiredLevel: 11,
-    cost: 620,
-  },
-  {
-    id: 'chrono-gauntlet',
-    name: 'Chrono Gauntlet',
-    description: 'Manipulates local time to accelerate solves and land criticals.',
-    lore: 'Powered by a captured nanosecond. The Temporal Guild has been trying to get it back for epochs.',
-    slot: 'weapon',
-    rarity: 'legendary',
-    icon: '⏳',
-    color: COLORS.legendary,
-    bonuses: { speedBonus: 15, critChance: 8 },
-    requiredLevel: 17,
-    cost: 2000,
-  },
-  {
-    id: 'oblivion-edge',
-    name: 'Oblivion Edge',
-    description: 'Cuts through the very concept of difficulty. No problem survives.',
-    lore: 'Sharpened on the boundary between the solvable and the unsolvable. It cut through.',
-    slot: 'weapon',
-    rarity: 'mythic',
-    icon: '⚡',
-    color: COLORS.mythic,
-    bonuses: { speedBonus: 18, critChance: 12, captureBonus: 8, luckBonus: 6 },
-    requiredLevel: 30,
-    cost: 7500,
-  },
-
-  // ── ACCESSORY ─────────────────────────────────────────────────────────────
-
-  {
-    id: 'speed-ring',
-    name: 'Ring of Haste',
-    description: 'A simple band that makes everything feel slower around you.',
-    lore: 'Crafted by procrastinators who finally got around to enchanting something.',
-    slot: 'accessory',
-    rarity: 'common',
-    icon: '💍',
-    color: COLORS.common,
-    bonuses: { speedBonus: 4 },
-    requiredLevel: 1,
-    cost: 40,
-  },
-  {
-    id: 'xp-amulet',
-    name: 'Amulet of Learning',
-    description: 'Pulses with stored insight, slowly feeding knowledge to its wearer.',
-    lore: 'Every solved question charges it a little more. A patient teacher that never speaks.',
-    slot: 'accessory',
-    rarity: 'common',
-    icon: '📿',
-    color: COLORS.common,
-    bonuses: { xpBonus: 4 },
-    requiredLevel: 1,
-    cost: 45,
-  },
-  {
-    id: 'capture-band',
-    name: 'Capture Band',
-    description: 'A magnetic grip that makes beasts easier to hold onto.',
-    lore: "Trappers of the Untamed Variable swear by it — and sometimes AT it.",
-    slot: 'accessory',
-    rarity: 'rare',
-    icon: '🔵',
-    color: COLORS.rare,
-    bonuses: { captureBonus: 6 },
-    requiredLevel: 3,
-    cost: 140,
-  },
-  {
-    id: 'shield-pendant',
-    name: 'Shield Pendant',
-    description: "Wards off the worst hits when you're struggling.",
-    lore: 'Contains a trapped guardian spirit who really just wants to help.',
-    slot: 'accessory',
-    rarity: 'rare',
-    icon: '🔶',
-    color: COLORS.rare,
-    bonuses: { shieldChance: 9 },
-    requiredLevel: 5,
-    cost: 190,
-  },
-  {
-    id: 'crit-lens',
-    name: 'Lens of Critical Insight',
-    description: 'Focuses the mind to occasionally see the perfect solution.',
-    lore: "A polymath compressed their final epiphany into glass. One flash, then silence.",
-    slot: 'accessory',
-    rarity: 'epic',
-    icon: '💎',
-    color: COLORS.epic,
-    bonuses: { critChance: 9, xpBonus: 6 },
-    requiredLevel: 10,
-    cost: 580,
-  },
-  {
-    id: 'fortune-clover',
-    name: 'Four-leaf Fortune Clover',
-    description: 'Bends luck across all dimensions simultaneously.',
-    lore: 'Only grows in the Probability Garden, where rain falls sideways and soil is made of chance.',
-    slot: 'accessory',
-    rarity: 'epic',
-    icon: '🍀',
-    color: COLORS.epic,
-    bonuses: { luckBonus: 6, captureBonus: 5, shieldChance: 4 },
-    requiredLevel: 12,
-    cost: 640,
-  },
-  {
-    id: 'infinity-gem',
-    name: 'Infinity Gem',
-    description: 'A gemstone that exists in all states at once, boosting everything.',
-    lore: 'Miners cracked open a paradox and this is what tumbled out. Nobody has fully identified it.',
-    slot: 'accessory',
-    rarity: 'legendary',
-    icon: '🔮',
-    color: COLORS.legendary,
-    bonuses: { speedBonus: 8, xpBonus: 8, luckBonus: 4, critChance: 5 },
-    requiredLevel: 18,
-    cost: 2200,
-  },
-  {
-    id: 'chaos-ring',
-    name: 'Ring of Beautiful Chaos',
-    description: 'Turns disorder into advantage. The more chaotic, the luckier you get.',
-    lore: "The Trickster Polynomial wore seven of these at once. The universe still hasn't recovered.",
-    slot: 'accessory',
-    rarity: 'mythic',
-    icon: '🌀',
-    color: COLORS.mythic,
-    bonuses: { luckBonus: 10, critChance: 8, comboBonus: 2, shieldChance: 5 },
-    requiredLevel: 26,
-    cost: 5500,
-  },
-
-  // ── AURA ──────────────────────────────────────────────────────────────────
-
-  {
-    id: 'glow-of-haste',
-    name: 'Glow of Haste',
-    description: 'A faint shimmer that quickens your pace just enough to notice.',
-    lore: 'Speed demons project this aura unconsciously. This one has been bottled.',
-    slot: 'aura',
-    rarity: 'common',
-    icon: '💨',
-    color: COLORS.common,
-    bonuses: { speedBonus: 3 },
-    requiredLevel: 1,
-    cost: 35,
-  },
-  {
-    id: 'aura-of-growth',
-    name: 'Aura of Growth',
-    description: 'Passive radiance that nurtures experience from every action.',
-    lore: 'Students in the Groves of Learning bathed in this aura for centuries before it was captured.',
-    slot: 'aura',
-    rarity: 'common',
-    icon: '🌱',
-    color: COLORS.common,
-    bonuses: { xpBonus: 4 },
-    requiredLevel: 1,
-    cost: 40,
-  },
-  {
-    id: 'magnetic-aura',
-    name: 'Magnetic Aura',
-    description: 'Draws beasts toward you, increasing capture odds.',
-    lore: 'Like gravity for the uncaught. Beasts feel an inexplicable urge to join your team.',
-    slot: 'aura',
-    rarity: 'rare',
-    icon: '🧲',
-    color: COLORS.rare,
-    bonuses: { captureBonus: 6, luckBonus: 2 },
-    requiredLevel: 4,
-    cost: 160,
-  },
-  {
-    id: 'storm-aura',
-    name: 'Storm Aura',
-    description: 'Crackling energy that builds combo momentum and shields occasionally.',
-    lore: 'The Tempest Monks channeled weather itself. This is the bottled remnant of their art.',
-    slot: 'aura',
-    rarity: 'rare',
-    icon: '🌩️',
-    color: COLORS.rare,
-    bonuses: { comboBonus: 1, shieldChance: 6 },
-    requiredLevel: 6,
-    cost: 210,
-  },
-  {
-    id: 'aurora-of-fate',
-    name: 'Aurora of Fate',
-    description: 'Shimmering lights that weave luck into every outcome.',
-    lore: 'Visible only at the intersection of probability and wonder. Wearers call it "the friend in the sky."',
-    slot: 'aura',
-    rarity: 'epic',
-    icon: '🌌',
-    color: COLORS.epic,
-    bonuses: { luckBonus: 5, critChance: 5, captureBonus: 4 },
-    requiredLevel: 10,
-    cost: 550,
-  },
-  {
-    id: 'phoenix-aura',
-    name: 'Phoenix Aura',
-    description: 'Flames that shield and empower, rising from every setback.',
-    lore: 'When you fall, this aura burns brightest. The Ashen Circle has risen 999 times.',
-    slot: 'aura',
-    rarity: 'epic',
-    icon: '🔥',
-    color: COLORS.epic,
-    bonuses: { shieldChance: 10, xpBonus: 8 },
-    requiredLevel: 12,
-    cost: 620,
-  },
-  {
-    id: 'quantum-aura',
-    name: 'Quantum Aura',
-    description: 'Exists in superposition — grants luck, capture power, and critical flashes.',
-    lore: "Schrödinger's favorite accessory. Simultaneously the best and worst aura until observed.",
-    slot: 'aura',
-    rarity: 'legendary',
-    icon: '⚛️',
-    color: COLORS.legendary,
-    bonuses: { luckBonus: 10, captureBonus: 12, critChance: 5 },
-    requiredLevel: 19,
-    cost: 2500,
-  },
-  {
-    id: 'singularity-aura',
-    name: 'Singularity Aura',
-    description: 'A collapsed star wrapped around your soul. Unimaginably potent.',
-    lore: 'The only thing that can survive inside the Event Boundary. Wearing it rewrites local physics.',
-    slot: 'aura',
-    rarity: 'mythic',
-    icon: '🌑',
-    color: COLORS.mythic,
-    bonuses: { speedBonus: 12, xpBonus: 15, critChance: 8, luckBonus: 8, shieldChance: 7 },
-    requiredLevel: 32,
-    cost: 8000,
+    id: 'omega-core',
+    name: 'Omega Core',
+    description: 'The heart of the God-Engine. ALL artifacts grow +25% stronger.',
+    lore: 'REQUIEM\'s final heartbeat. It resonates with everything you own.',
+    slot: 'amulet', rarity: 'mythic', icon: '✦', color: '#ffe9b0', bossDrop: true,
+    passive: { omni: 25 }, requiredLevel: 1, cost: 0,
   },
 ]
 
-// ─── Helper functions ─────────────────────────────────────────────────────────
+// ─── Regular Armory Stock (bought with gold) ──────────────────────────────────
+
+const ARMORY: Relic[] = [
+  // ── WEAPONS ──
+  {
+    id: 'w-solvers-blade', name: 'Solver\'s Blade',
+    description: 'A duelist\'s edge. +3% time allowance in races.',
+    lore: 'Standard issue for those who swear the Solver\'s Oath.',
+    slot: 'weapon', rarity: 'common', icon: '🗡', color: C.common,
+    passive: { timeGrace: 3 }, requiredLevel: 1, cost: 120,
+  },
+  {
+    id: 'w-arithmetic-axe', name: 'Arithmetic Axe',
+    description: 'Brutal and efficient. +5% time allowance.',
+    lore: 'Every swing resolves an operation. Cleaves doubt in two.',
+    slot: 'weapon', rarity: 'rare', icon: '🪓', color: C.rare,
+    passive: { timeGrace: 5 }, requiredLevel: 3, cost: 320,
+  },
+  {
+    id: 'w-proof-spear', name: 'Proof Spear',
+    description: 'Reaches conclusions first. +8% time allowance.',
+    lore: 'Its point was proven sharp by contradiction.',
+    slot: 'weapon', rarity: 'epic', icon: '🔱', color: C.epic,
+    passive: { timeGrace: 8 }, requiredLevel: 6, cost: 750,
+  },
+  {
+    id: 'w-logos-edge', name: 'Logos Edge',
+    description: 'The argument that ends all arguments. +12% time, +10% gold.',
+    lore: 'Said to cut the space between question and answer.',
+    slot: 'weapon', rarity: 'legendary', icon: '⚔', color: C.legendary,
+    passive: { timeGrace: 12, goldBoost: 10 }, requiredLevel: 10, cost: 1500,
+  },
+
+  // ── ARMOR ──
+  {
+    id: 'a-scholar-plate', name: 'Scholar\'s Plate',
+    description: 'Sturdy study-wear. Start 25% of battles with a shield.',
+    lore: 'Reinforced with the covers of a thousand solved workbooks.',
+    slot: 'armor', rarity: 'common', icon: '🛡', color: C.common,
+    passive: { startShields: 0 }, requiredLevel: 1, cost: 100,
+  },
+  {
+    id: 'a-lamellar-logic', name: 'Lamellar of Logic',
+    description: 'Overlapping proofs. +15% XP from wins.',
+    lore: 'Each plate is an axiom. Together, they are argument itself.',
+    slot: 'armor', rarity: 'rare', icon: '🥋', color: C.rare,
+    passive: { xpBoost: 15 }, requiredLevel: 4, cost: 400,
+  },
+  {
+    id: 'a-bulwark-reason', name: 'Bulwark of Reason',
+    description: 'Immovable conviction. Start every battle with a shield.',
+    lore: 'Forged in the foundries where doubt goes to die.',
+    slot: 'armor', rarity: 'epic', icon: '🛡', color: C.epic,
+    passive: { startShields: 1 }, requiredLevel: 7, cost: 850,
+  },
+
+  // ── HELMS ──
+  {
+    id: 'h-focus-hood', name: 'Focus Hood',
+    description: 'Silences the crowd. +10% XP from wins.',
+    lore: 'The library at midnight, stitched into cloth.',
+    slot: 'helm', rarity: 'common', icon: '🧢', color: C.common,
+    passive: { xpBoost: 10 }, requiredLevel: 1, cost: 110,
+  },
+  {
+    id: 'h-signal-helm', name: 'Signal Helm',
+    description: 'Hears the Machine thinking. +5% gold from wins.',
+    lore: 'Tuned to the frequency of machine contemplation.',
+    slot: 'helm', rarity: 'rare', icon: '⛑', color: C.rare,
+    passive: { goldBoost: 5 }, requiredLevel: 3, cost: 300,
+  },
+  {
+    id: 'h-crown-clarity', name: 'Crown of Clarity',
+    description: 'No thought is wasted. +25% XP from wins.',
+    lore: 'Worn briefly by a scholar who never blinked.',
+    slot: 'helm', rarity: 'legendary', icon: '👑', color: C.legendary,
+    passive: { xpBoost: 25 }, requiredLevel: 9, cost: 1300,
+  },
+
+  // ── RINGS ──
+  {
+    id: 'r-combo-band', name: 'Combo Band',
+    description: 'A pulse of momentum. Combo multiplier +0.1x.',
+    lore: 'It tightens when your streak grows.',
+    slot: 'ring', rarity: 'common', icon: '💍', color: C.common,
+    passive: { comboPower: 0.1 }, requiredLevel: 2, cost: 180,
+  },
+  {
+    id: 'r-ledger-ring', name: 'Ledger Ring',
+    description: 'Counts every coin twice. +15% gold from wins.',
+    lore: 'Once owned by the accountant of a fallen empire.',
+    slot: 'ring', rarity: 'rare', icon: '💳', color: C.rare,
+    passive: { goldBoost: 15 }, requiredLevel: 4, cost: 350,
+  },
+  {
+    id: 'r-sigil-momentum', name: 'Sigil of Momentum',
+    description: 'The chain refuses to break. Combo multiplier +0.2x.',
+    lore: 'Engraved with the word "again" in eleven dead languages.',
+    slot: 'ring', rarity: 'epic', icon: '💠', color: C.epic,
+    passive: { comboPower: 0.2 }, requiredLevel: 8, cost: 800,
+  },
+
+  // ── AMULETS ──
+  {
+    id: 'm-ember-charm', name: 'Ember Charm',
+    description: 'A coal that never cools. +10% gold from wins.',
+    lore: 'Warm to the touch. It remembers the forge.',
+    slot: 'amulet', rarity: 'common', icon: '🔥', color: C.common,
+    passive: { goldBoost: 10 }, requiredLevel: 1, cost: 130,
+  },
+  {
+    id: 'm-hourglass-pendant', name: 'Hourglass Pendant',
+    description: 'Borrowed seconds. +6% time allowance in races.',
+    lore: 'The sand falls slower for those who study it.',
+    slot: 'amulet', rarity: 'rare', icon: '⏳', color: C.rare,
+    passive: { timeGrace: 6 }, requiredLevel: 3, cost: 340,
+  },
+  {
+    id: 'm-mask-truth', name: 'Mask of Truth',
+    description: 'Traps cannot hide. One wrong answer forgiven per battle.',
+    lore: 'It reads the problem before your eyes finish moving.',
+    slot: 'amulet', rarity: 'mythic', icon: '🎭', color: C.mythic,
+    passive: { secondChance: 1 }, requiredLevel: 12, cost: 2200,
+  },
+]
+
+export const ALL_RELICS: Relic[] = [...ARMORY, ...BOSS_ARTIFACTS]
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 export function getRelicsBySlot(slot: RelicSlot): Relic[] {
-  return ALL_RELICS.filter((r) => r.slot === slot)
+  return ALL_RELICS.filter(r => r.slot === slot)
 }
 
-export function getRelicsByRarity(rarity: string): Relic[] {
-  return ALL_RELICS.filter((r) => r.rarity === rarity)
+export function getRelicsByRarity(rarity: Rarity): Relic[] {
+  return ALL_RELICS.filter(r => r.rarity === rarity)
+}
+
+export function getRelicById(id: string): Relic | undefined {
+  return ALL_RELICS.find(r => r.id === id)
+}
+
+export interface GearEffects {
+  timeGracePct: number
+  xpBoostPct: number
+  goldBoostPct: number
+  startShields: number
+  comboPower: number
+  hintDiscountPct: number
+  secondChance: number
+}
+
+export function computeGearEffects(equippedIds: (string | null)[]): GearEffects {
+  const effects: GearEffects = {
+    timeGracePct: 0, xpBoostPct: 0, goldBoostPct: 0,
+    startShields: 0, comboPower: 0, hintDiscountPct: 0, secondChance: 0,
+  }
+  const relics = equippedIds
+    .map(id => (id ? getRelicById(id) : null))
+    .filter((r): r is Relic => r !== null)
+
+  for (const r of relics) {
+    effects.timeGracePct += r.passive.timeGrace || 0
+    effects.xpBoostPct += r.passive.xpBoost || 0
+    effects.goldBoostPct += r.passive.goldBoost || 0
+    effects.startShields += r.passive.startShields || 0
+    effects.comboPower += r.passive.comboPower || 0
+    effects.hintDiscountPct += r.passive.hintDiscount || 0
+    effects.secondChance += r.passive.secondChance || 0
+  }
+
+  // Omega Core: amplify all other passives by its omni value
+  const omega = relics.find(r => r.id === 'omega-core')
+  const omni = omega ? (omega.passive.omni || 25) / 100 : 0
+  if (omni > 0) {
+    effects.timeGracePct *= 1 + omni
+    effects.xpBoostPct *= 1 + omni
+    effects.goldBoostPct *= 1 + omni
+    effects.comboPower *= 1 + omni
+    effects.hintDiscountPct *= 1 + omni
+  }
+
+  // Round for display sanity
+  effects.timeGracePct = Math.round(effects.timeGracePct * 10) / 10
+  effects.xpBoostPct = Math.round(effects.xpBoostPct * 10) / 10
+  effects.goldBoostPct = Math.round(effects.goldBoostPct * 10) / 10
+  effects.comboPower = Math.round(effects.comboPower * 100) / 100
+
+  return effects
 }
