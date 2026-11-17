@@ -224,7 +224,7 @@ export default function BeatTheMachine({ onExit }: { onExit?: () => void }) {
     <div className={`btm-root${skyMode === 'day' ? ' btm-day' : ''}${shake ? ' btm-shake' : ''}`} onKeyDown={handleKeyDown}>
       <SkyField mode={skyMode} />
       {/* Version indicator - remove after debugging */}
-      <div style={{ position: 'fixed', bottom: 4, right: 8, fontSize: 9, color: 'rgba(0,229,255,0.5)', fontFamily: 'monospace', zIndex: 99999, pointerEvents: 'none' }}>MB v2.0.1</div>
+      <div style={{ position: 'fixed', bottom: 4, right: 8, fontSize: 9, color: 'rgba(201,162,39,0.5)', fontFamily: 'monospace', zIndex: 99999, pointerEvents: 'none' }}>REQUIEM v3.0</div>
       {showParticles && store.result?.correct && <WinParticles />}
       {showConfetti && <Confetti />}
 
@@ -324,8 +324,9 @@ function SetupScreen() {
   return (
     <div className="btm-screen btm-screen-center">
       <div className="btm-setup-card">
+        <div style={{ fontSize: 44, lineHeight: 1, filter: 'drop-shadow(0 0 18px rgba(201,162,39,0.5))' }}>⚔</div>
         <h1 className="btm-logo">BEAT THE MACHINE</h1>
-        <p className="btm-subtitle">Can you solve it faster than SpeedSolve?</p>
+        <p className="btm-subtitle">Seven Machine Lords guard the domains. Solve faster than the Machine, slay them all, claim their artifacts.</p>
         <div className="btm-form-group">
           <label className="btm-label">Choose a username</label>
           <input ref={inputRef} className="btm-input" value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleCreate()} placeholder="e.g. Alex" maxLength={20} autoComplete="off" />
