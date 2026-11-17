@@ -1155,8 +1155,7 @@ function JourneyScreen() {
           const isNext = nextBoss?.id === boss.id
           const worldLevels = world.levels
           const clearedLevels = worldLevels.filter(l => stats.completedLevels.includes(l.id)).length
-          const allCleared = clearedLevels === worldLevels.length
-          const bossLevelDone = stats.completedLevels.includes(`${boss.worldId}-5`)
+          const gatesCleared = worldLevels.filter(l => !l.isBoss).every(l => stats.completedLevels.includes(l.id))
 
           return (
             <div key={boss.id} className={`btm-domain-card${beaten ? ' conquered' : isNext ? ' next' : unlocked ? ' open' : ' locked'}`}
@@ -1188,14 +1187,11 @@ function JourneyScreen() {
               </div>
 
               <div className="btm-domain-actions">
-                {isNext && !allCleared && (
+                {isNext && !gatesCleared && (
                   <button className="btm-btn-war" onClick={() => store.setScreen('worldMap')}>FIGHT THE PATH</button>
                 )}
-                {isNext && allCleared && !bossLevelDone && (
+                {isNext && gatesCleared && (
                   <button className="btm-btn-war btm-btn-war-final" onClick={() => store.startBossIntro(boss.id)}>ENTER THE LAIR</button>
-                )}
-                {isNext && bossLevelDone && (
-                  <button className="btm-btn-war btm-btn-war-final" onClick={() => store.startBossIntro(boss.id)}>DEFEAT THE LORD</button>
                 )}
                 {beaten && (
                   <button className="btm-btn-ghost-dark" onClick={() => store.setScreen('worldMap')}>REPLAY DOMAIN</button>
