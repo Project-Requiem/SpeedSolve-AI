@@ -1,7 +1,7 @@
 // ─── Beat the Machine — Warrior Contracts (Daily / Weekly) ────────────────────
 // Procedurally selected objectives that reward gold, XP and relics.
 
-export type QuestType = 'win' | 'streak' | 'speed' | 'tower' | 'combo' | 'level' | 'boss'
+export type QuestType = 'win' | 'streak' | 'speed' | 'tower' | 'combo' | 'level' | 'boss' | 'stars'
 
 export interface Quest {
   id: string
@@ -64,11 +64,11 @@ const QUEST_POOL: Quest[] = [
   { id: 'q-level-2',  name: 'Pathfinder',        description: 'Complete 2 journey levels',              type: 'level',  icon: '🗺', target: 2,  reward: { xp: 120, gold: 100 },  difficulty: 'easy',     timeLimit: 'daily' },
   { id: 'q-level-4',  name: 'Domain Conqueror',  description: 'Complete 4 journey levels',              type: 'level',  icon: '🗺', target: 4,  reward: { xp: 300, gold: 240 },  difficulty: 'medium',   timeLimit: 'daily' },
   { id: 'q-level-8',  name: 'Cartographer',      description: 'Complete 8 journey levels',              type: 'level',  icon: '🧭', target: 8,  reward: { xp: 600, gold: 450 },  difficulty: 'hard',     timeLimit: 'weekly' },
-  { id: 'q-stars-3',  name: 'Star Collector',    description: 'Earn 3 stars in a single level',         type: 'level',  icon: '⭐', target: 1,  reward: { xp: 200, gold: 150 },  difficulty: 'medium',   timeLimit: 'daily' },
+  { id: 'q-stars-3',  name: 'Star Collector',    description: 'Earn a 3-star rating on any level',      type: 'stars',  icon: '⭐', target: 1,  reward: { xp: 200, gold: 150 },  difficulty: 'medium',   timeLimit: 'daily' },
 
   // ── BOSSES ────────────────────────────────────────────────────────────────
   { id: 'q-boss-any',   name: 'Lordkiller',      description: 'Defeat any Machine Lord',                type: 'boss',   icon: '💀', target: 1,  reward: { xp: 400, gold: 300 },  difficulty: 'hard',     timeLimit: 'weekly' },
-  { id: 'q-boss-retry', name: 'Ash and Retry',   description: 'Attempt any Machine Lord lair 3 times',  type: 'boss',   icon: '☠',  target: 3,  reward: { xp: 150, gold: 120 },  difficulty: 'medium',   timeLimit: 'daily' },
+  { id: 'q-boss-3',    name: 'Ash and Retry',     description: 'Defeat Machine Lords 3 times',           type: 'boss',   icon: '☠',  target: 3,  reward: { xp: 300, gold: 240 },  difficulty: 'hard',     timeLimit: 'weekly' },
   { id: 'q-boss-omega', name: 'The Final Word',  description: 'Defeat REQUIEM Ω',                       type: 'boss',   icon: '✦',  target: 1,  reward: { xp: 2000, gold: 1500 }, difficulty: 'legendary', timeLimit: 'season' },
 ]
 

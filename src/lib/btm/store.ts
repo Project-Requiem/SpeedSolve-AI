@@ -602,7 +602,8 @@ export const useBTMStore = create<BTMStore>((set, get) => {
 
       // Quest progress hooks
       get().updateQuestProgress('level', 1)
-      if (stars >= 3) get().updateQuestProgress('level', 0)
+      if (stars >= 3) get().updateQuestProgress('stars', 1)
+      if (levelPlay.isBoss && stars > 0) get().updateQuestProgress('boss', 1)
 
       set({
         stats: finalStats,
@@ -646,6 +647,7 @@ export const useBTMStore = create<BTMStore>((set, get) => {
       }
       // Quest progress hooks
       get().updateQuestProgress('win', isWin ? 1 : 0)
+      if (isWin) get().updateQuestProgress('combo', 1)
       if (isWin && userTimeMs < benchmark.aiTimeMs * 0.5) get().updateQuestProgress('speed', 1)
       set({
         stats: newStats,
@@ -990,6 +992,7 @@ export const useBTMStore = create<BTMStore>((set, get) => {
       set({ gold: get().gold + goldGainedC })
       persistRPG()
       get().updateQuestProgress('win', 1)
+      get().updateQuestProgress('combo', 1)
       if (userTimeMs < benchmark.aiTimeMs * 0.5) get().updateQuestProgress('speed', 1)
     }
 

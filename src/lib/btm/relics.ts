@@ -35,7 +35,7 @@ export interface Relic {
 export const RELIC_SLOT_INFO: Record<RelicSlot, { label: string; icon: string; desc: string }> = {
   weapon: { label: 'Weapon',  icon: '⚔', desc: 'Edge & momentum' },
   armor:  { label: 'Armor',   icon: '🛡', desc: 'Protection & endurance' },
-  helm:   { label: 'Helm',    icon: '头盔', desc: 'Focus & insight' },
+  helm:   { label: 'Helm',    icon: '🪖', desc: 'Focus & insight' },
   ring:   { label: 'Ring',    icon: '💍', desc: 'Fortune & power' },
   amulet: { label: 'Amulet',  icon: '🔮', desc: 'Forbidden knowledge' },
 }
